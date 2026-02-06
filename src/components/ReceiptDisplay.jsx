@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Printer, Download, Share2, Copy, FileText, Eye, X, CheckCircle } from 'lucide-react';
 import { useReceipt } from '../context/ReceiptContext';
 import ReceiptPDF from './ReceiptPDF';
 import { pdf } from '@react-pdf/renderer';
+import BuyMeACoffeeModal from './BuyMeACoffeeModal';
 
 const ReceiptDisplay = () => {
   const {
@@ -22,7 +23,35 @@ const ReceiptDisplay = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showCoffeeModal, setShowCoffeeModal] = useState(false);
+  const [actionCount, setActionCount] = useState(0);
   const printableRef = useRef();
+
+  useEffect(() => {
+    // Show coffee modal after 3 successful actions
+    if (actionCount >= 3) {
+      const hasShownToday = localStorage.getItem('coffeeModalShown');
+      if (!hasShownToday) {
+        setTimeout(() => {
+          setShowCoffeeModal(true);
+          localStorage.setItem('coffeeModalShown', 'true');
+        }, 1500);
+        setActionCount(0); // Reset counter
+      }
+    }
+  }, [actionCount]);
+
+  // Reset daily tracking
+  useEffect(() => {
+    // Check if we need to reset the "shown today" flag
+    const today = new Date().toDateString();
+    const lastShown = localStorage.getItem('coffeeModalLastShown');
+    
+    if (lastShown !== today) {
+      localStorage.removeItem('coffeeModalShown');
+      localStorage.setItem('coffeeModalLastShown', today);
+    }
+  }, []);
 
   // Generate PDF
   const generatePDF = async (saveToHistory = true) => {
@@ -57,6 +86,7 @@ const ReceiptDisplay = () => {
       return null;
     } finally {
       setIsGenerating(false);
+      setActionCount(prev => prev + 1);
     }
   };
 
@@ -74,6 +104,7 @@ const ReceiptDisplay = () => {
       // Show success message
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
+      setActionCount(prev => prev + 1);
     }
   };
 
@@ -100,6 +131,22 @@ const ReceiptDisplay = () => {
               padding: 20px;
               border-radius: 8px;
             }
+            .signature-container {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #ccc;
+            }
+            .signature-line {
+              width: 200px;
+              border-bottom: 1px solid #000;
+              margin: 20px auto;
+              padding-bottom: 5px;
+            }
+            .signature-image {
+              max-width: 200px;
+              max-height: 60px;
+              margin: 0 auto;
+            }
           </style>
         </head>
         <body>
@@ -124,6 +171,7 @@ const ReceiptDisplay = () => {
   const handlePreviewPDF = async () => {
     setShowPreview(true);
     await generatePDF(false);
+    setActionCount(prev => prev + 1);
   };
 
   // Copy receipt details as text
@@ -150,11 +198,14 @@ ${receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 ?
 
 ${receiptData.customerNotes}
 
+${receiptData.includeSignature ? 'Signed: _________________' : ''}
+
 Thank you for your business!
     `.trim();
     
     navigator.clipboard.writeText(text).then(() => {
       alert('Receipt copied to clipboard!');
+      setActionCount(prev => prev + 1);
     });
   };
 
@@ -179,14 +230,23 @@ ${itemsList}
 
 ${receiptData.customerNotes}
 
+${receiptData.includeSignature ? '✍️ Signed' : ''}
+
 Thank you for your business! 🎉
     `.trim());
     
     window.open(`https://wa.me/?text=${text}`, '_blank');
+    setActionCount(prev => prev + 1);
   };
 
   return (
     <div className="space-y-6">
+      {/* Buy Me a Coffee Modal */}
+      <BuyMeACoffeeModal
+        isOpen={showCoffeeModal}
+        onClose={() => setShowCoffeeModal(false)}
+      />
+
       {/* Success Message */}
       {showSuccess && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in">
@@ -419,9 +479,61 @@ Thank you for your business! 🎉
             </div>
           </div>
 
+          {/* Payment Details */}
+          <div className="mt-6 border-t pt-4">
+            <div className="text-sm text-gray-600 mb-2">Payment Method: {receiptData.paymentMethod}</div>
+            {receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 && (
+              <div className="text-sm text-gray-600">
+                Amount Paid: {formatNaira(receiptData.amountPaid)} | 
+                Change: {formatNaira(calculateChange())}
+              </div>
+            )}
+          </div>
+
+          {/* Signature Section */}
+          {receiptData.includeSignature && (
+            <div className="mt-8 pt-6 border-t">
+              <div className="text-center">
+                <div className="mb-2 font-semibold">Authorized Signature</div>
+                {receiptData.signatureData ? (
+                  <div>
+                    <img 
+                      src={receiptData.signatureData} 
+                      alt="Signature" 
+                      style={{ 
+                        maxWidth: '200px', 
+                        maxHeight: '60px', 
+                        margin: '0 auto',
+                        display: 'block'
+                      }}
+                    />
+                    <div className="text-xs text-gray-500 mt-1">Digital Signature</div>
+                  </div>
+                ) : (
+                  <div className="signature-line" style={{ width: '200px', margin: '20px auto', borderBottom: '1px solid #000', paddingBottom: '5px' }}></div>
+                )}
+                <div className="text-xs text-gray-600 mt-2">
+                  {new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-8 pt-4 border-t text-center text-sm">
             <p className="mb-2">{receiptData.customerNotes}</p>
             <p className="font-semibold">{receiptData.footerMessage}</p>
+            {receiptData.includeTerms && receiptData.termsAndConditions && (
+              <div className="mt-4 text-left">
+                <div className="font-semibold mb-2">Terms & Conditions:</div>
+                <div className="text-xs text-gray-600 whitespace-pre-line">
+                  {receiptData.termsAndConditions}
+                </div>
+              </div>
+            )}
             <p className="text-gray-600 mt-4">Thank you for your business!</p>
           </div>
         </div>
@@ -491,6 +603,27 @@ Thank you for your business! 🎉
               <span className="text-blue-600">{formatNaira(calculateTotal())}</span>
             </div>
           </div>
+
+          {/* Signature Preview */}
+          {receiptData.includeSignature && (
+            <div className="mt-6 pt-4 border-t">
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-700 mb-2">Signature</div>
+                {receiptData.signatureData ? (
+                  <div className="flex flex-col items-center">
+                    <img 
+                      src={receiptData.signatureData} 
+                      alt="Signature" 
+                      className="h-12 border border-gray-300 bg-white p-1"
+                    />
+                    <div className="text-xs text-gray-500 mt-1">Digital Signature</div>
+                  </div>
+                ) : (
+                  <div className="h-6 border-b border-gray-400 w-32 mx-auto"></div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 pt-4 border-t text-center">
             <p className="text-sm text-gray-500">

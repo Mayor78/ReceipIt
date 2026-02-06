@@ -1,13 +1,53 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>receipt</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Basic Meta Tags -->
+  <title>ReceiptIt - Professional Receipt Generator</title>
+  <meta name="description" content="Create professional receipts, invoices, and quotes for Nigerian businesses. 100% free, VAT compliant, print-ready.">
+  
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/site.webmanifest">
+  
+  <!-- Theme Colors -->
+  <meta name="theme-color" content="#10b981">
+  <meta name="apple-mobile-web-app-title" content="ReceiptIt">
+  <meta name="application-name" content="ReceiptIt">
+  
+  <!-- PWA Capable -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- VITE/REACT ENTRY POINT - THIS IS CRITICAL -->
+  <script type="module" src="/src/main.jsx"></script>
+  <!-- If using Create React App, it would be: -->
+  <!-- <script src="/static/js/bundle.js"></script> -->
+  
+  <script>
+    // Register Service Worker (optional - can be in your React app)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('✅ Service Worker registered');
+          })
+          .catch(err => {
+            console.log('❌ Service Worker failed:', err);
+          });
+      });
+    }
+  </script>
+</body>
 </html>

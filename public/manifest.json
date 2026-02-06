@@ -1,0 +1,94 @@
+{
+  "name": "ReceiptIt - Receipt Generator",
+  "short_name": "ReceiptIt",
+  "description": "Create professional receipts, invoices, and quotes for Nigerian businesses. 100% free, VAT compliant, and print-ready.",
+  "theme_color": "#10B981",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "icon/android/android-launchericon-48-48.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon/android/android-launchericon-72-72.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon/android/android-launchericon-96-96.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon/android/android-launchericon-144-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon/android/android-launchericon-192-192.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon/android/android-launchericon-512-512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  
+  
+  ],
+  "splash_pages": null,
+  "categories": ["business", "productivity", "finance"],
+  "shortcuts": [
+    {
+      "name": "New Receipt",
+      "short_name": "Receipt",
+      "description": "Create a new receipt",
+      "url": "/?new=receipt",
+      "icons": [
+        {
+          "src": "/icons/android/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "New Invoice",
+      "short_name": "Invoice",
+      "description": "Create a new invoice",
+      "url": "/?new=invoice",
+      "icons": [
+        {
+          "src": "icon/android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View History",
+      "short_name": "History",
+      "description": "View saved receipts",
+      "url": "/?tab=history",
+      "icons": [
+        {
+          "src": "icon/android/android-launchericon-144-144.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

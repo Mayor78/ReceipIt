@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PWA Check</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .success { color: green; }
+    .error { color: red; }
+    .warning { color: orange; }
+    img { width: 64px; height: 64px; margin: 5px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>PWA Configuration Check</h1>
+  
+  <h2>1. Checking Required Files:</h2>
+  <div id="files"></div>
+  
+  <h2>2. Manifest Test:</h2>
+  <div id="manifest"></div>
+  
+  <h2>3. Service Worker Test:</h2>
+  <div id="sw"></div>
+  
+  <h2>4. Icons Preview:</h2>
+  <div id="icons"></div>
+  
+  <script>
+    // Check required files
+    const requiredFiles = [
+      '/site.webmanifest',
+      '/service-worker.js',
+      '/web-app-manifest-192x192.png',
+      '/web-app-manifest-512x512.png',
+      '/favicon-96x96.png',
+      '/favicon.svg',
+      '/favicon.ico',
+      '/apple-touch-icon.png'
+    ];
+    
+    const filesDiv = document.getElementById('files');
+    
+    requiredFiles.forEach(file => {
+      const div = document.createElement('div');
+      
+      fetch(file)
+        .then(response => {
+          if (response.ok) {
+            div.innerHTML = `✅ ${file}`;
+            div.className = 'success';
+            
+            // Show icon preview
+            if (file.match(/\.(png|svg|ico)$/)) {
+              const img = document.createElement('img');
+              img.src = file;
+              img.alt = file;
+              img.onerror = () => {
+                img.style.border = '2px solid red';
+                img.title = 'Failed to load';
+              };
+              document.getElementById('icons').appendChild(img);
+            }
+          } else {
+            div.innerHTML = `❌ ${file} (Status: ${response.status})`;
+            div.className = 'error';
+          }
+        })
+        .catch(error => {
+          div.innerHTML = `❌ ${file} (Error: ${error.message})`;
+          div.className = 'error';
+        });
+      
+      filesDiv.appendChild(div);
+    });
+    
+    // Check manifest
+    fetch('/site.webmanifest')
+      .then(res => res.json())
+      .then(manifest => {
+        const manifestDiv = document.getElementById('manifest');
+        manifestDiv.innerHTML = `
+          <div class="success">✅ Manifest loaded successfully</div>
+          <pre>${JSON.stringify(manifest, null, 2)}</pre>
+        `;
+      })
+      .catch(err => {
+        document.getElementById('manifest').innerHTML = 
+          `<div class="error">❌ Failed to load manifest: ${err.message}</div>`;
+      });
+    
+    // Check service worker
+    const swDiv = document.getElementById('sw');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration()
+        .then(registration => {
+          if (registration) {
+            swDiv.innerHTML = `<div class="success">✅ Service Worker registered</div>`;
+          } else {
+            swDiv.innerHTML = `<div class="warning">⚠️ No Service Worker found</div>`;
+          }
+        });
+    } else {
+      swDiv.innerHTML = `<div class="error">❌ Service Workers not supported</div>`;
+    }
+  </script>
+
+  
+</body>
+</html>
