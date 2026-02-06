@@ -10,6 +10,7 @@ import TaxDiscountSection from './receipt/TaxDiscountSection';
 import PaymentSection from './receipt/PaymentSection';
 import TermsSection from './receipt/TermsSection';
 import MobileActions from './receipt/MobileActions';
+import { Building2, CreditCard, UserCircle } from 'lucide-react';
 
 const ReceiptForm = () => {
   const {
@@ -21,8 +22,6 @@ const ReceiptForm = () => {
     showDraftPrompt,
     restoreDraft,
     discardDraft,
-    hasOnlyDummyItems,
-    clearDummyItems,
   } = useReceipt();
 
   const [expandedSections, setExpandedSections] = useState({
@@ -35,111 +34,97 @@ const ReceiptForm = () => {
     terms: false
   });
 
-  // Check if there are incomplete items
-  const hasIncompleteItems = receiptData.items.some(item => 
-    !item.name.trim() || item.name === "New Item" || item.price === 0
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const GroupLabel = ({ icon: Icon, title }) => (
+    <div className="flex items-center space-x-2  mb-2">
+      <Icon size={14} className="text-gray-400" />
+      <span className="text-[11px] font-black uppercase tracking-[0.1em] text-gray-400">
+        {title}
+      </span>
+    </div>
   );
 
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  const handleAddItem = () => {
-    // If all items are dummy, clear them first
-    if (hasOnlyDummyItems()) {
-      if (window.confirm('Clear incomplete items and add new one?')) {
-        clearDummyItems();
-        setTimeout(() => {
-          addItem();
-        }, 100);
-      }
-    } else {
-      addItem();
-    }
-  };
-
   return (
-    <div className="space-y-3">
-      {/* Draft Prompt */}
+    <div className="max-w-5xl mx-auto pb-32 space-y-8 ">
       {showDraftPrompt && (
-        <DraftPrompt 
-          onRestore={restoreDraft}
-          onDiscard={discardDraft}
-        />
+        <DraftPrompt onRestore={restoreDraft} onDiscard={discardDraft} />
       )}
 
-      {/* Document Type Selector */}
-      <DocumentTypeSelector 
-        receiptType={receiptData.receiptType}
-        onTypeChange={(type) => updateReceiptData('receiptType', type)}
-      />
+      {/* ZONE 1: DOCUMENT IDENTITY */}
+      <section>
+        <GroupLabel icon={Building2} title="Sender & Type" />
+        <div className="bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden p-1 space-y-1">
+          <DocumentTypeSelector 
+            receiptType={receiptData.receiptType}
+            onTypeChange={(type) => updateReceiptData('receiptType', type)}
+          />
+          <BusinessInfoSection 
+            isExpanded={expandedSections.businessInfo}
+            onToggle={() => toggleSection('businessInfo')}
+            data={receiptData}
+            onUpdate={updateReceiptData}
+          />
+          <DocumentDetailsSection 
+            isExpanded={expandedSections.documentDetails}
+            onToggle={() => toggleSection('documentDetails')}
+            data={receiptData}
+            onUpdate={updateReceiptData}
+          />
+        </div>
+      </section>
 
-      {/* Business Information */}
-      <BusinessInfoSection 
-        isExpanded={expandedSections.businessInfo}
-        onToggle={() => toggleSection('businessInfo')}
-        data={receiptData}
-        onUpdate={updateReceiptData}
-      />
+      {/* ZONE 2: TRANSACTION DETAILS */}
+      <section>
+        <GroupLabel icon={UserCircle} title="Customer & Items" />
+        <div className="space-y-3">
+          <CustomerInfoSection 
+            isExpanded={expandedSections.customerInfo}
+            onToggle={() => toggleSection('customerInfo')}
+            data={receiptData}
+            onUpdate={updateReceiptData}
+          />
+          <ItemsSection 
+            isExpanded={expandedSections.items}
+            onToggle={() => toggleSection('items')}
+            items={receiptData.items}
+            onAddItem={addItem}
+            onUpdateItem={updateItem}
+            onRemoveItem={removeItem}
+          />
+        </div>
+      </section>
 
-      {/* Document Details */}
-      <DocumentDetailsSection 
-        isExpanded={expandedSections.documentDetails}
-        onToggle={() => toggleSection('documentDetails')}
-        data={receiptData}
-        onUpdate={updateReceiptData}
-      />
+      {/* ZONE 3: FINANCES & LOGISTICS */}
+      <section>
+        <GroupLabel icon={CreditCard} title="Payment & Notes" />
+        <div className="bg-gray-100/40 rounded-[32px] p-2 space-y-2 border border-gray-200/50">
+          <TaxDiscountSection 
+            isExpanded={expandedSections.taxDiscount}
+            onToggle={() => toggleSection('taxDiscount')}
+            data={receiptData}
+            onUpdate={updateReceiptData}
+          />
+          <PaymentSection 
+            isExpanded={expandedSections.payment}
+            onToggle={() => toggleSection('payment')}
+            data={receiptData}
+            onUpdate={updateReceiptData}
+          />
+          <TermsSection 
+            isExpanded={expandedSections.terms}
+            onToggle={() => toggleSection('terms')}
+            data={receiptData}
+            onUpdate={updateReceiptData}
+          />
+        </div>
+      </section>
 
-      {/* Customer Information */}
-      <CustomerInfoSection 
-        isExpanded={expandedSections.customerInfo}
-        onToggle={() => toggleSection('customerInfo')}
-        data={receiptData}
-        onUpdate={updateReceiptData}
-      />
-
-      {/* Items Section */}
-      <ItemsSection 
-        isExpanded={expandedSections.items}
-        onToggle={() => toggleSection('items')}
-        items={receiptData.items}
-        onAddItem={handleAddItem}
-        onUpdateItem={updateItem}
-        onRemoveItem={removeItem}
-        hasOnlyDummyItems={hasOnlyDummyItems()}
-      />
-
-      {/* Tax & Discount */}
-      <TaxDiscountSection 
-        isExpanded={expandedSections.taxDiscount}
-        onToggle={() => toggleSection('taxDiscount')}
-        data={receiptData}
-        onUpdate={updateReceiptData}
-      />
-
-      {/* Payment Section */}
-      <PaymentSection 
-        isExpanded={expandedSections.payment}
-        onToggle={() => toggleSection('payment')}
-        data={receiptData}
-        onUpdate={updateReceiptData}
-      />
-
-      {/* Terms & Notes */}
-      <TermsSection 
-        isExpanded={expandedSections.terms}
-        onToggle={() => toggleSection('terms')}
-        data={receiptData}
-        onUpdate={updateReceiptData}
-      />
-
-      {/* Mobile Bottom Actions */}
       <MobileActions 
-        onAddItem={handleAddItem}
-        hasIncompleteItems={hasIncompleteItems}
+        onAddItem={addItem}
+        hasIncompleteItems={receiptData.items.some(i => !i.name || i.price === 0)}
       />
     </div>
   );

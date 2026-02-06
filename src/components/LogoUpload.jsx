@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Image, CheckCircle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Upload, X, Image, CheckCircle, ChevronDown, ChevronUp, Info, Loader2 } from 'lucide-react';
 import { useReceipt } from '../context/ReceiptContext';
 
 const LogoUpload = () => {
@@ -15,12 +15,12 @@ const LogoUpload = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setError('Please select an image file (PNG, JPG, SVG)');
+      setError('Please select an image (PNG, JPG, SVG)');
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      setError('File size should be less than 2MB');
+      setError('File must be under 2MB');
       return;
     }
 
@@ -29,8 +29,9 @@ const LogoUpload = () => {
 
     try {
       await handleLogoUpload(file);
+      if (!expanded) setExpanded(true); // Expand to show success
     } catch (err) {
-      setError('Failed to upload logo. Please try again.');
+      setError('Upload failed. Try again.');
       console.error('Logo upload error:', err);
     } finally {
       setIsUploading(false);
@@ -38,100 +39,93 @@ const LogoUpload = () => {
     }
   };
 
-  const handleDrop = (event) => {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file) {
-      handleFileSelect({ target: { files: [file] } });
-    }
-  };
-
-  const handleDragOver = (event) => {
-    event.preventDefault();
+  const onDragOver = (e) => e.preventDefault();
+  const onDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect({ target: { files: [file] } });
   };
 
   return (
-    <div className="border rounded-lg p-2 bg-white">
-      {/* Header - Always visible */}
+    <div className={`transition-all duration-300 rounded-[24px] border border-gray-100 bg-white shadow-sm overflow-hidden ${expanded ? 'ring-1 ring-blue-100' : ''}`}>
+      {/* HEADER: Always Visible */}
       <div 
-        className="flex items-center justify-between cursor-pointer"
+        className="p-3 sm:p-4 flex items-center justify-between cursor-pointer active:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center space-x-2">
-          <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg">
-            <Image className="text-blue-600" size={18} />
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shadow-inner">
+            <Image size={20} />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-800">Company Logo</h3>
-            <p className="text-xs text-gray-500">
-              {companyLogo ? '✓ Logo uploaded' : 'No logo added'}
+            <h3 className="text-sm font-black text-gray-900 tracking-tight leading-none mb-1">Company Logo</h3>
+            <p className={`text-[10px] font-bold uppercase tracking-wider ${companyLogo ? 'text-green-500' : 'text-gray-400'}`}>
+              {companyLogo ? '✓ Brand identity set' : 'Logo not added'}
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+
+        <div className="flex items-center space-x-2">
           {companyLogo && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 removeLogo();
               }}
-              className="text-xs text-red-600 hover:text-red-700 flex items-center px-2 py-1 bg-red-50 rounded"
+              className="p-2 text-red-500 bg-red-50 rounded-full hover:bg-red-100 active:scale-90 transition-all"
+              title="Remove logo"
             >
-              <X size={12} className="mr-1" />
-              Remove
+              <X size={14} />
             </button>
           )}
-          {expanded ? (
-            <ChevronUp className="text-gray-500" size={20} />
-          ) : (
-            <ChevronDown className="text-gray-500" size={20} />
-          )}
+          <div className="p-2 text-gray-400">
+            {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
         </div>
       </div>
 
-      {/* Collapsible Content */}
+      {/* COLLAPSIBLE CONTENT */}
       {expanded && (
-        <div className="mt-4 space-y-4 pt-4 border-t">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Logo Preview - Compact */}
-            <div className="md:col-span-1 bg-gray-50 border rounded-lg p-4 flex flex-col items-center justify-center">
+        <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+            
+            {/* Logo Preview */}
+            <div className="sm:col-span-4 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 p-4 flex flex-col items-center justify-center min-h-[140px]">
               {companyLogo ? (
-                <div className="space-y-2">
-                  <div className="relative w-24 h-24 mx-auto">
+                <div className="text-center animate-in zoom-in-95 duration-300">
+                  <div className="relative w-20 h-20 bg-white p-2 rounded-xl shadow-sm border border-gray-100 mb-2">
                     <img
                       src={companyLogo}
-                      alt="Company Logo"
-                      className="w-full h-full object-contain"
+                      alt="Brand Logo"
+                      className="w-full h-full object-contain rounded-lg"
                     />
                   </div>
-                  <div className="flex items-center justify-center text-green-600 text-xs">
-                    <CheckCircle size={14} className="mr-1" />
-                    Uploaded
+                  <div className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[9px] font-black uppercase">
+                    <CheckCircle size={10} className="mr-1" />
+                    Active
                   </div>
                 </div>
               ) : (
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-2 bg-gray-100 rounded-full flex items-center justify-center">
-                    <Image className="text-gray-400" size={24} />
+                <div className="text-center opacity-40">
+                  <div className="w-12 h-12 mx-auto mb-2 border-2 border-gray-300 rounded-full flex items-center justify-center border-dotted">
+                    <Image size={20} />
                   </div>
-                  <p className="text-gray-500 text-xs">No logo</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Preview Area</p>
                 </div>
               )}
             </div>
 
-            {/* Upload Area - Compact */}
-            <div className="md:col-span-2">
+            {/* Upload Zone */}
+            <div className="sm:col-span-8 group">
               <div
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer transition-all h-full ${
-                  isUploading
-                    ? 'border-blue-400 bg-blue-50'
-                    : companyLogo
-                    ? 'border-green-200 bg-green-50'
-                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                }`}
+                onDrop={onDrop}
+                onDragOver={onDragOver}
                 onClick={() => fileInputRef.current?.click()}
+                className={`relative h-full min-h-[140px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden ${
+                  isUploading ? 'bg-blue-50 border-blue-300' : 
+                  companyLogo ? 'bg-white border-gray-200 hover:border-blue-400' : 
+                  'bg-gray-50/30 border-gray-300 hover:border-blue-500 hover:bg-white'
+                }`}
               >
                 <input
                   ref={fileInputRef}
@@ -140,75 +134,70 @@ const LogoUpload = () => {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                
+
                 {isUploading ? (
-                  <div className="space-y-2">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-blue-600 text-sm">Uploading...</p>
+                  <div className="flex flex-col items-center space-y-2">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                    <p className="text-xs font-black text-blue-600 uppercase tracking-widest">Processing...</p>
                   </div>
                 ) : (
-                  <div className="text-center space-y-2 w-full">
-                    <div className="flex items-center justify-center mb-2">
-                      <div className="p-3 rounded-full bg-gradient-to-br from-blue-100 to-blue-200">
-                        <Upload className="text-blue-600" size={20} />
-                      </div>
+                  <div className="text-center p-6 w-full space-y-2">
+                    <div className="w-10 h-10 mx-auto bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
+                      <Upload size={18} />
                     </div>
-                    <p className="font-medium text-gray-800 text-sm">
-                      {companyLogo ? 'Replace Logo' : 'Upload Logo'}
-                    </p>
-                    <p className="text-gray-500 text-xs">
-                      Click or drag & drop • PNG, JPG, SVG • Max 2MB
-                    </p>
-                    <button className="mt-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
-                      {companyLogo ? 'Change Logo' : 'Select Logo'}
-                    </button>
+                    <div className="space-y-1">
+                      <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">
+                        {companyLogo ? 'Change Brand Image' : 'Click to Upload'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-medium">
+                        PNG, JPG, SVG • Max 2MB
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Tips Toggle */}
-          <div className="flex justify-between items-center">
+          {/* Tips and Errors Footer */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <button
               onClick={() => setShowTips(!showTips)}
-              className="flex items-center text-xs text-blue-600 hover:text-blue-700"
+              className="flex items-center text-[10px] font-black uppercase tracking-tighter text-blue-500 hover:text-blue-700"
             >
-              <Info size={14} className="mr-1" />
-              {showTips ? 'Hide Tips' : 'Show Tips'}
+              <Info size={12} className="mr-1" />
+              {showTips ? 'Hide Requirements' : 'Image Requirements'}
             </button>
+            
             {error && (
-              <p className="text-xs text-red-600">{error}</p>
+              <div className="px-3 py-1 bg-red-50 rounded-lg text-[10px] font-bold text-red-600 border border-red-100 animate-bounce">
+                ⚠️ {error}
+              </div>
             )}
           </div>
 
-          {/* Tips - Collapsible */}
           {showTips && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-800">
-                <strong>Pro Tip:</strong> Use a transparent PNG logo (200×200px min) for best results.
+            <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100 animate-in slide-in-from-bottom-2 duration-300">
+              <p className="text-[11px] text-blue-800 leading-relaxed">
+                <strong>Best Practice:</strong> Use a high-resolution logo with a <strong>transparent background</strong> (PNG). For best receipt layout, a 1:1 square or 3:1 horizontal aspect ratio works best.
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Quick Upload Button (when collapsed) */}
-      {!expanded && !companyLogo && (
-        <div className="mt-4">
+      {/* QUICK UPLOAD: Visible only when collapsed and empty */}
+      {!expanded && !companyLogo && !isUploading && (
+        <div className="px-3 pb-3">
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-sm border border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              fileInputRef.current?.click();
+            }}
+            className="w-full flex items-center justify-center space-x-2 py-3 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-gray-500 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600 transition-all active:scale-95"
           >
             <Upload size={14} />
-            <span>Quick Upload Logo</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
+            <span className="text-xs font-black uppercase tracking-tight">Quick Add Logo</span>
           </button>
         </div>
       )}

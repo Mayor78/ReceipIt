@@ -6,105 +6,108 @@ const TemplateSelector = () => {
   const { selectedTemplate, templates, changeTemplate } = useReceipt();
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef(null);
+  const touchStart = useRef(null);
+  const touchEnd = useRef(null);
 
-  // Find current template index
+  // Sync index when template changes
   useEffect(() => {
     const index = templates.findIndex(t => t.id === selectedTemplate);
-    if (index !== -1) {
-      setCurrentIndex(index);
-    }
+    if (index !== -1) setCurrentIndex(index);
   }, [selectedTemplate, templates]);
 
+  // Swipe Logic for Mobile
+  const handleTouchStart = (e) => (touchStart.current = e.targetTouches[0].clientX);
+  const handleTouchMove = (e) => (touchEnd.current = e.targetTouches[0].clientX);
+  const handleTouchEnd = () => {
+    if (!touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    if (distance > 50) handleNext(); // Swiped left
+    if (distance < -50) handlePrev(); // Swiped right
+    touchStart.current = null;
+    touchEnd.current = null;
+  };
+
   const handlePrev = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex === 0 ? templates.length - 1 : prevIndex - 1
-    );
+    setCurrentIndex((prev) => (prev === 0 ? templates.length - 1 : prev - 1));
+    changeTemplate(templates[currentIndex === 0 ? templates.length - 1 : currentIndex - 1].id);
   };
 
   const handleNext = () => {
-    setCurrentIndex((prevIndex) => 
-      (prevIndex + 1) % templates.length
-    );
-  };
-
-  const handleTemplateSelect = (templateId, index) => {
-    changeTemplate(templateId);
-    setCurrentIndex(index);
+    setCurrentIndex((prev) => (prev + 1) % templates.length);
+    changeTemplate(templates[(currentIndex + 1) % templates.length].id);
   };
 
   const getTemplateColor = (templateId) => {
-    switch(templateId) {
-      case 'professional': return '#3B82F6'; // Blue
-      case 'modern': return '#10B981'; // Green
-      case 'elegant': return '#EF4444'; // Red
-      case 'standard': return '#6B7280'; // Gray
-      case 'thermal': return '#F59E0B'; // Amber
-      default: return '#6B7280';
-    }
+    const colors = {
+      professional: '#3B82F6',
+      modern: '#10B981',
+      elegant: '#EF4444',
+      standard: '#6B7280',
+      thermal: '#F59E0B'
+    };
+    return colors[templateId] || '#6B7280';
   };
 
   return (
-    <div className="space-y-4">
-      {/* Minimal Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 w-full max-w-full overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-1">
         <div>
-          <h3 className="text-sm font-semibold text-gray-800">Template</h3>
-          <p className="text-xs text-gray-500">Select design style</p>
+          <h3 className="text-sm font-bold text-gray-800 uppercase tracking-tight">Design Style</h3>
+          <p className="text-[10px] text-gray-500">Swipe to preview templates</p>
         </div>
-        <div className="text-xs font-medium text-gray-600">
-          {currentIndex + 1}/{templates.length}
+        <div className="bg-gray-100 px-2 py-1 rounded text-[10px] font-bold text-gray-500">
+          {currentIndex + 1} / {templates.length}
         </div>
       </div>
 
-      {/* Compact Carousel */}
-      <div className="relative bg-white border border-gray-200 rounded-lg p-3">
-        {/* Navigation Buttons - Small */}
+      {/* Main Carousel Card */}
+      <div className="relative bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        {/* Navigation - Hidden on very small screens, visible on tablet/desktop */}
         <button
           onClick={handlePrev}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/90 backdrop-blur shadow-md rounded-full border border-gray-100 hidden sm:block"
         >
-          <ChevronLeft size={16} className="text-gray-600" />
+          <ChevronLeft size={18} />
         </button>
-        
         <button
           onClick={handleNext}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/90 backdrop-blur shadow-md rounded-full border border-gray-100 hidden sm:block"
         >
-          <ChevronRight size={16} className="text-gray-600" />
+          <ChevronRight size={18} />
         </button>
 
-        {/* Compact Carousel Content */}
-        <div ref={carouselRef} className="overflow-hidden">
+        {/* Carousel Content */}
+        <div 
+          className="touch-pan-y" 
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div 
-            className="flex transition-transform duration-300 ease-out"
+            className="flex transition-transform duration-500 ease-in-out"
             style={{ transform: `translateX(-${currentIndex * 100}%)` }}
           >
             {templates.map((template) => (
-              <div
-                key={template.id}
-                className="w-full flex-shrink-0"
-              >
-                <div className="flex items-center space-x-3 px-6">
-                  {/* Color Indicator */}
+              <div key={template.id} className="w-full flex-shrink-0 p-4 min-h-[100px] flex items-center">
+                <div className="flex items-center space-x-4 w-full">
                   <div 
-                    className="w-2 h-8 rounded"
+                    className="w-1.5 h-12 rounded-full flex-shrink-0"
                     style={{ backgroundColor: getTemplateColor(template.id) }}
                   />
-                  
-                  {/* Template Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="text-sm font-medium text-gray-800 truncate">
-                        {template.name}
-                      </h4>
-                      {selectedTemplate === template.id && (
-                        <Check size={14} className="text-green-600 flex-shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">
+                    <h4 className="text-sm font-bold text-gray-900 truncate uppercase">
+                      {template.name}
+                    </h4>
+                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
                       {template.description}
                     </p>
                   </div>
+                  {selectedTemplate === template.id && (
+                    <div className="bg-green-100 p-1 rounded-full">
+                      <Check size={16} className="text-green-600" />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -112,87 +115,38 @@ const TemplateSelector = () => {
         </div>
       </div>
 
-      {/* Minimal Preview */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs font-medium text-gray-600">Preview</div>
-          <div 
-            className="text-xs font-medium px-2 py-0.5 rounded"
-            style={{ 
-              backgroundColor: `${getTemplateColor(selectedTemplate)}20`,
-              color: getTemplateColor(selectedTemplate)
-            }}
-          >
-            {selectedTemplate}
-          </div>
-        </div>
-        
-        {/* Mini Preview */}
-        <div className="flex items-center space-x-2">
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <div className="h-2 bg-gray-300 rounded w-16"></div>
-              <div className="h-2 bg-gray-400 rounded w-8"></div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="h-2 bg-gray-200 rounded w-12"></div>
-              <div className="h-2 bg-gray-300 rounded w-6"></div>
-            </div>
-          </div>
-          <div 
-            className="w-8 h-8 rounded border flex items-center justify-center"
-            style={{ 
-              borderColor: getTemplateColor(selectedTemplate),
-              backgroundColor: `${getTemplateColor(selectedTemplate)}10`
-            }}
-          >
-            <div 
-              className="w-4 h-1 rounded"
-              style={{ backgroundColor: getTemplateColor(selectedTemplate) }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Compact Template Pills */}
-      <div className="flex items-center justify-center space-x-1">
+      {/* Responsive Pills Container - Scrolls horizontally on mobile */}
+      <div className="flex overflow-x-auto no-scrollbar py-1 gap-2 -mx-1 px-1">
         {templates.map((template, index) => (
           <button
             key={template.id}
-            onClick={() => handleTemplateSelect(template.id, index)}
-            className={`flex items-center space-x-1 px-2 py-1 text-xs rounded-md transition-colors ${
+            onClick={() => {
+              changeTemplate(template.id);
+              setCurrentIndex(index);
+            }}
+            className={`flex-shrink-0 flex items-center space-x-1.5 px-3 py-2 rounded-lg border transition-all text-xs font-medium ${
               selectedTemplate === template.id
-                ? 'bg-gray-800 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-gray-900 border-gray-900 text-white shadow-sm'
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            {selectedTemplate === template.id ? (
-              <Check size={10} />
-            ) : (
-              <Circle 
-                size={8} 
-                fill={getTemplateColor(template.id)}
-                stroke={getTemplateColor(template.id)}
-              />
-            )}
-            <span className="truncate max-w-[60px]">{template.name}</span>
+            <Circle 
+              size={8} 
+              fill={getTemplateColor(template.id)} 
+              stroke="none"
+            />
+            <span>{template.name}</span>
           </button>
         ))}
       </div>
 
-      {/* Progress Dots */}
-      <div className="flex justify-center space-x-1">
+      {/* Progress Indicator */}
+      <div className="flex justify-center items-center space-x-1.5">
         {templates.map((_, index) => (
-          <button
+          <div
             key={index}
-            onClick={() => {
-              const templateId = templates[index].id;
-              handleTemplateSelect(templateId, index);
-            }}
-            className={`w-1.5 h-1.5 rounded-full transition-all ${
-              currentIndex === index
-                ? 'bg-gray-800'
-                : 'bg-gray-300 hover:bg-gray-400'
+            className={`transition-all duration-300 rounded-full ${
+              currentIndex === index ? 'w-4 h-1.5 bg-gray-800' : 'w-1.5 h-1.5 bg-gray-300'
             }`}
           />
         ))}

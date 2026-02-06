@@ -285,37 +285,31 @@ export const ReceiptProvider = ({ children }) => {
     setSelectedTemplate(templateId);
   };
 
-  // Smart addItem function
-  const addItem = useCallback(() => {
-    const newItem = {
-      id: Date.now(),
-      name: "",
-      price: 0,
-      quantity: 1,
-      unit: "pcs"
+ const addItem = useCallback(() => {
+  setReceiptData(prev => {
+    if (prev.items.length === 0) {
+      return { ...prev, items: [{ id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }] };
+    }
+
+    const lastItem = prev.items[prev.items.length - 1];
+
+    // Check if the fields are actually empty
+    // We use .trim() to catch spaces, and parseFloat to catch 0
+    const nameValue = lastItem.name ? String(lastItem.name).trim() : "";
+    const isNameEmpty = nameValue === "" || nameValue === "New Item";
+    const isPriceEmpty = !lastItem.price || parseFloat(lastItem.price) <= 0;
+
+    if (isNameEmpty || isPriceEmpty) {
+      alert("Please enter a valid Name and Price before adding a new item.");
+      return prev; 
+    }
+
+    return {
+      ...prev,
+      items: [...prev.items, { id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }]
     };
-    
-    setReceiptData(prev => {
-      // Check if all current items are empty/dummy
-      const hasRealItems = prev.items.some(item => 
-        item.name.trim() !== "" || item.price > 0
-      );
-      
-      // If no real items exist, replace the entire array with new item
-      if (!hasRealItems && prev.items.length > 0) {
-        return {
-          ...prev,
-          items: [newItem]
-        };
-      }
-      
-      // Otherwise, just add the new item
-      return {
-        ...prev,
-        items: [...prev.items, newItem]
-      };
-    });
-  }, []);
+  });
+}, []);
 
   const updateItem = useCallback((id, field, value) => {
     setReceiptData(prev => ({
@@ -333,22 +327,7 @@ export const ReceiptProvider = ({ children }) => {
     }));
   }, []);
 
-  // Check if items are all dummy
-  const hasOnlyDummyItems = useCallback(() => {
-    return receiptData.items.length > 0 && 
-           receiptData.items.every(item => 
-             (item.name === "" || item.name === "New Item") && 
-             item.price === 0
-           );
-  }, [receiptData.items]);
 
-  // Clear all dummy items
-  const clearDummyItems = useCallback(() => {
-    setReceiptData(prev => ({
-      ...prev,
-      items: []
-    }));
-  }, []);
 
   // Clear draft
   const clearDraft = useCallback(() => {
@@ -490,8 +469,8 @@ export const ReceiptProvider = ({ children }) => {
       restoreDraft,
       discardDraft,
       startNewReceipt,
-      hasOnlyDummyItems,
-      clearDummyItems,
+     
+    
       clearDraft,
     }}>
       {children}

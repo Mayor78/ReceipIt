@@ -1,34 +1,33 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// Create styles WITHOUT custom font registration
+// Standardized styles for mobile-to-PC consistency
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
     padding: 30,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Helvetica', // Standard safe font for mobile PDF engines
   },
   header: {
     marginBottom: 20,
     paddingBottom: 15,
     borderBottom: '2px solid #2563EB',
-    position: 'relative',
   },
   companyLogo: {
-    width: 80,
-    height: 80,
+    width: 60,
+    height: 60,
     marginBottom: 10,
     objectFit: 'contain',
   },
   companyName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   companyInfo: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#6B7280',
     marginBottom: 2,
   },
@@ -36,152 +35,113 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#111827',
     marginBottom: 8,
+    textTransform: 'uppercase',
   },
   row: {
     flexDirection: 'row',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   col: {
     flex: 1,
   },
   label: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#6B7280',
     marginBottom: 2,
+    textTransform: 'uppercase',
   },
   value: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#1F2937',
+    fontWeight: 'bold',
   },
   table: {
     marginTop: 10,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#D1D5DB',
-    borderBottomStyle: 'solid',
+    borderBottomColor: '#E5E7EB',
   },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    borderBottomStyle: 'solid',
+    borderBottomColor: '#F3F4F6',
   },
   tableCell: {
     flex: 1,
-    fontSize: 10,
-    color: '#1F2937',
-    marginHorizontal: 2,
+    fontSize: 9,
+    color: '#374151',
   },
   totalSection: {
     marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#D1D5DB',
-    borderTopStyle: 'solid',
     paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   grandTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 2,
     borderTopColor: '#1F2937',
-    borderTopStyle: 'solid',
   },
   footer: {
-    textAlign: 'center',
-    fontSize: 9,
-    color: '#6B7280',
-    marginTop: 20,
-    paddingTop: 10,
-  },
-  badge: {
-    backgroundColor: '#2563EB',
-    color: 'white',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    fontSize: 9,
-    marginLeft: 5,
-  },
-  watermark: {
     position: 'absolute',
     bottom: 30,
+    left: 30,
     right: 30,
+    textAlign: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: 10,
+  },
+  footerText: {
     fontSize: 8,
     color: '#9CA3AF',
-    opacity: 0.5,
   },
   signatureSection: {
-    marginTop: 30,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#D1D5DB',
-    borderTopStyle: 'solid',
-  },
-  signatureContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  signatureBox: {
-    flex: 1,
-    marginRight: 20,
-  },
-  signatureLine: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-    borderBottomStyle: 'solid',
     marginTop: 40,
-    width: 200,
   },
   signatureImage: {
-    width: 120,
+    width: 100,
     height: 40,
     objectFit: 'contain',
-    marginBottom: 5,
   },
-  signatureLabel: {
-    fontSize: 10,
-    color: '#6B7280',
+  signatureLine: {
+    width: 150,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
     marginTop: 5,
   },
   termsSection: {
-    marginTop: 15,
+    marginTop: 20,
     padding: 10,
     backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderStyle: 'solid',
-    borderRadius: 4,
-  },
-  termsText: {
-    fontSize: 8,
-    color: '#4B5563',
-    lineHeight: 1.4,
-  },
+    borderRadius: 8,
+  }
 });
 
-// Simple formatting function WITHOUT Naira symbol
 const formatCurrency = (amount) => {
-  const fixedAmount = amount % 1 === 0 ? amount.toString() : amount.toFixed(2);
-  return fixedAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return new Intl.NumberFormat('en-NG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 };
 
 const ReceiptPDF = ({ 
@@ -193,212 +153,112 @@ const ReceiptPDF = ({
   calculateChange,
   companyLogo 
 }) => {
-  
   return (
-    <Document>
+    <Document title={`${receiptData.receiptType}-${receiptData.receiptNumber}`}>
       <Page size="A4" style={styles.page}>
-        {/* Header with Logo */}
+        
+        {/* Header */}
         <View style={styles.header}>
-          {companyLogo && (
-            <Image 
-              style={styles.companyLogo}
-              src={companyLogo}
-            />
-          )}
-          <Text style={styles.companyName}>{receiptData.storeName}</Text>
-          <Text style={styles.companyInfo}>{receiptData.storeAddress}</Text>
-          <Text style={styles.companyInfo}>Phone: {receiptData.storePhone} • Email: {receiptData.storeEmail}</Text>
-          {receiptData.tinNumber && <Text style={styles.companyInfo}>{receiptData.tinNumber}</Text>}
-          {receiptData.rcNumber && <Text style={styles.companyInfo}>{receiptData.rcNumber}</Text>}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View>
+              {companyLogo && <Image style={styles.companyLogo} src={companyLogo} />}
+              <Text style={styles.companyName}>{receiptData.storeName}</Text>
+              <Text style={styles.companyInfo}>{receiptData.storeAddress}</Text>
+              <Text style={styles.companyInfo}>{receiptData.storePhone} | {receiptData.storeEmail}</Text>
+            </View>
+            <View style={{ textAlign: 'right' }}>
+              <Text style={[styles.sectionTitle, { color: '#2563EB', fontSize: 20 }]}>
+                {receiptData.receiptType}
+              </Text>
+              <Text style={styles.value}>#{receiptData.receiptNumber}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Receipt Info */}
+        {/* Info Grid */}
         <View style={styles.section}>
           <View style={styles.row}>
             <View style={styles.col}>
-              <Text style={styles.label}>Receipt Type</Text>
-              <Text style={styles.value}>
-                {receiptData.receiptType.toUpperCase()}
-                <Text style={styles.badge}> {receiptData.receiptNumber}</Text>
-              </Text>
+              <Text style={styles.label}>Date / Time</Text>
+              <Text style={styles.value}>{receiptData.date} {receiptData.time}</Text>
             </View>
-            <View style={styles.col}>
-              <Text style={styles.label}>Date</Text>
-              <Text style={styles.value}>{receiptData.date}</Text>
-            </View>
-            <View style={styles.col}>
-              <Text style={styles.label}>Time</Text>
-              <Text style={styles.value}>{receiptData.time}</Text>
-            </View>
-          </View>
-          <View style={[styles.row, { marginTop: 5 }]}>
             <View style={styles.col}>
               <Text style={styles.label}>Cashier</Text>
               <Text style={styles.value}>{receiptData.cashierName}</Text>
             </View>
-            {receiptData.invoiceNumber && (
-              <View style={styles.col}>
-                <Text style={styles.label}>Invoice #</Text>
-                <Text style={styles.value}>{receiptData.invoiceNumber}</Text>
-              </View>
-            )}
             <View style={styles.col}>
-              <Text style={styles.label}>Status</Text>
+              <Text style={styles.label}>Payment Status</Text>
               <Text style={[styles.value, { color: '#059669' }]}>PAID</Text>
             </View>
           </View>
         </View>
 
-        {/* Items Table */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items</Text>
-          <View style={styles.table}>
-            {/* Table Header */}
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableCell, { flex: 3 }]}>Description</Text>
-              <Text style={styles.tableCell}>Unit</Text>
-              <Text style={styles.tableCell}>Qty</Text>
-              <Text style={styles.tableCell}>Unit Price (NGN)</Text>
-              <Text style={styles.tableCell}>Total (NGN)</Text>
-            </View>
-            
-            {/* Table Rows */}
-            {receiptData.items.map((item, index) => (
-              <View key={`${item.id}-${index}`} style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 3 }]}>{item.name}</Text>
-                <Text style={styles.tableCell}>{item.unit || 'pcs'}</Text>
-                <Text style={styles.tableCell}>{item.quantity}</Text>
-                <Text style={styles.tableCell}>{formatCurrency(item.price)}</Text>
-                <Text style={styles.tableCell}>{formatCurrency(item.price * item.quantity)}</Text>
-              </View>
-            ))}
+        {/* Table */}
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.tableCell, { flex: 3, fontWeight: 'bold' }]}>Description</Text>
+            <Text style={[styles.tableCell, { textAlign: 'center' }]}>Qty</Text>
+            <Text style={[styles.tableCell, { textAlign: 'right' }]}>Price (NGN)</Text>
+            <Text style={[styles.tableCell, { textAlign: 'right' }]}>Total (NGN)</Text>
           </View>
+
+          {receiptData.items.map((item, i) => (
+            <View key={i} style={styles.tableRow}>
+              <Text style={[styles.tableCell, { flex: 3 }]}>{item.name}</Text>
+              <Text style={[styles.tableCell, { textAlign: 'center' }]}>{item.quantity}</Text>
+              <Text style={[styles.tableCell, { textAlign: 'right' }]}>{formatCurrency(item.price)}</Text>
+              <Text style={[styles.tableCell, { textAlign: 'right' }]}>{formatCurrency(item.price * item.quantity)}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Totals Section */}
+        {/* Totals */}
         <View style={styles.totalSection}>
-          <Text style={styles.sectionTitle}>Payment Summary</Text>
-          
           <View style={styles.totalRow}>
-            <Text style={styles.label}>Subtotal (NGN)</Text>
+            <Text style={styles.label}>Subtotal</Text>
             <Text style={styles.value}>{formatCurrency(calculateSubtotal())}</Text>
           </View>
-          
-          {receiptData.includeDiscount && receiptData.discount > 0 && (
+          {receiptData.discount > 0 && (
             <View style={styles.totalRow}>
-              <Text style={styles.label}>
-                Discount ({receiptData.discountType === 'percentage' ? `${receiptData.discount}%` : 'Fixed'})
-              </Text>
-              <Text style={[styles.value, { color: '#DC2626' }]}>
-                -{formatCurrency(calculateDiscount())}
-              </Text>
+              <Text style={styles.label}>Discount</Text>
+              <Text style={[styles.value, { color: '#DC2626' }]}>-{formatCurrency(calculateDiscount())}</Text>
             </View>
           )}
-          
-          {receiptData.deliveryFee > 0 && (
-            <View style={styles.totalRow}>
-              <Text style={styles.label}>Delivery Fee (NGN)</Text>
-              <Text style={styles.value}>+{formatCurrency(receiptData.deliveryFee)}</Text>
-            </View>
-          )}
-          
           {receiptData.includeVAT && (
             <View style={styles.totalRow}>
               <Text style={styles.label}>VAT ({receiptData.vatRate}%)</Text>
               <Text style={styles.value}>+{formatCurrency(calculateVAT())}</Text>
             </View>
           )}
-          
-          {/* Grand Total */}
           <View style={styles.grandTotal}>
-            <Text style={[styles.label, { fontSize: 12, fontWeight: 'bold' }]}>Grand Total (NGN)</Text>
-            <Text style={[styles.value, { fontSize: 14, fontWeight: 'bold', color: '#1F2937' }]}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Total Amount (NGN)</Text>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2563EB' }}>
               {formatCurrency(calculateTotal())}
             </Text>
           </View>
         </View>
 
-        {/* Payment Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Details</Text>
-          <View style={styles.row}>
-            <View style={styles.col}>
-              <Text style={styles.label}>Payment Method</Text>
-              <Text style={styles.value}>{receiptData.paymentMethod}</Text>
-            </View>
-            {receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 && (
-              <>
-                <View style={styles.col}>
-                  <Text style={styles.label}>Amount Paid (NGN)</Text>
-                  <Text style={[styles.value, { color: '#059669' }]}>
-                    {formatCurrency(receiptData.amountPaid)}
-                  </Text>
-                </View>
-                <View style={styles.col}>
-                  <Text style={styles.label}>Change (NGN)</Text>
-                  <Text style={[styles.value, { color: '#2563EB' }]}>
-                    {formatCurrency(calculateChange())}
-                  </Text>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Terms & Conditions */}
-        {receiptData.includeTerms && receiptData.termsAndConditions && (
-          <View style={styles.termsSection}>
-            <Text style={[styles.sectionTitle, { fontSize: 11 }]}>Terms & Conditions</Text>
-            <Text style={styles.termsText}>
-              {receiptData.termsAndConditions}
-            </Text>
-          </View>
-        )}
-
-        {/* Signature Section */}
+        {/* Signature */}
         {receiptData.includeSignature && (
           <View style={styles.signatureSection}>
-            <View style={styles.signatureContainer}>
-              {/* Signature Box */}
-              <View style={styles.signatureBox}>
-                {receiptData.signatureData ? (
-                  <View style={{ alignItems: 'flex-start' }}>
-                    <Image 
-                      style={styles.signatureImage}
-                      src={receiptData.signatureData}
-                    />
-                    <Text style={styles.signatureLabel}>Digital Signature</Text>
-                  </View>
-                ) : (
-                  <View style={styles.signatureLine} />
-                )}
-                <Text style={styles.signatureLabel}>Authorized Signature</Text>
-              </View>
-              
-              {/* Date Box */}
-              <View style={{ flex: 0.5 }}>
-                <Text style={[styles.signatureLine, { width: 120 }]} />
-                <Text style={styles.signatureLabel}>Date</Text>
-              </View>
-            </View>
+            {receiptData.signatureData ? (
+              <Image style={styles.signatureImage} src={receiptData.signatureData} />
+            ) : (
+              <View style={{ height: 40 }} />
+            )}
+            <View style={styles.signatureLine} />
+            <Text style={[styles.label, { marginTop: 4 }]}>Authorized Signature</Text>
           </View>
         )}
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={{ marginBottom: 5, fontSize: 10 }}>
-            {receiptData.customerNotes}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>Thank you for your business!</Text>
+          <Text style={[styles.footerText, { marginTop: 2 }]}>
+            Generated via ReceiptIt • {receiptData.date}
           </Text>
-          <Text style={{ fontWeight: 'bold', marginBottom: 3, fontSize: 10 }}>
-            {receiptData.footerMessage}
-          </Text>
-          <Text style={{ fontSize: 10 }}>Thank you for your business!</Text>
         </View>
 
-        {/* Watermark */}
-        <Text style={styles.watermark}>
-          Generated with ReceiptIt • {new Date().toLocaleDateString()}
-        </Text>
       </Page>
     </Document>
   );

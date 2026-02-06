@@ -103,3 +103,28 @@
 .scrolling-container:hover .animate-vertical-scroll {
   animation-play-state: paused;
 }
+
+
+/* The Scrollable Box */
+.ios-scroll-box {
+  max-height: 480px; /* Keep it fixed */
+  overflow-y: auto;
+  
+  /* FIX: Change 'mandatory' to 'proximity' or remove it to allow page scrolling */
+  scroll-snap-type: y proximity; 
+  
+  /* FIX: 'auto' allows the page to pick up scrolling when the box hits the end */
+  overscroll-behavior-y: auto; 
+  
+  -webkit-overflow-scrolling: touch;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Ensure the wrapper doesn't trap the focus too hard */
+.receipt-card-wrapper {
+  scroll-snap-align: start;
+  flex-shrink: 0; /* Prevents items from squishing */
+}
