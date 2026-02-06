@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import HomePage from './pages/HomePage';
 import ReceiptApp from './pages/ReceiptApp';
 import InstallPrompt from './components/InstallPrompt';
+import SimpleHeader from './components/home/SimplaHeader';
 import { Toaster } from 'react-hot-toast';
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -16,8 +17,11 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <Toaster position="top-right" reverseOrder={false} />
+    <div className="min-h-screen relative bg-gradient-to-br from-gray-50 to-blue-50">
+           <div className="sticky top-0 left-0 right-0 z-50">
+     <SimpleHeader/>
+      </div>
+        <Toaster position="top-right" reverseOrder={false} />
       <InstallPrompt/>
       {/* Navigation Header */}
       {currentPage === 'receipt' && (

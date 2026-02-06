@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, FileSignature, Eye, EyeOff } from 'lucide-react';
+import { MessageSquare, FileSignature, Eye, EyeOff, Check } from 'lucide-react';
 import SectionHeader from './SectionHeader';
 import SignatureCapture from './SignatureCapture';
 

@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 5,
     left: 30,
     right: 30,
     textAlign: 'center',
@@ -156,7 +156,9 @@ const ReceiptPDF = ({
   return (
     <Document title={`${receiptData.receiptType}-${receiptData.receiptNumber}`}>
       <Page size="A4" style={styles.page}>
-        
+         <Text style={ { marginBottom: 3, fontSize: 7, color: '#1F2937', textAlign: 'flex-start' } }>
+            Generated via ReceiptIt • Built by MayorDev {receiptData.date} 
+          </Text>
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -254,9 +256,7 @@ const ReceiptPDF = ({
         {/* Footer */}
         <View style={styles.footer} fixed>
           <Text style={styles.footerText}>Thank you for your business!</Text>
-          <Text style={[styles.footerText, { marginTop: 2 }]}>
-            Generated via ReceiptIt • {receiptData.date}
-          </Text>
+         
         </View>
 
       </Page>

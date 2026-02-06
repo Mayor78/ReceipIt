@@ -16,9 +16,7 @@ import SimpleHeader from '../components/home/SimplaHeader';
 const HomePage = ({ onGetStarted }) => {
   return (
     <div className="max-w-7xl mx-auto relative">
-         <div className="sticky top-0 left-0 right-0 z-50">
-     <SimpleHeader/>
-      </div>
+    
       <HeroSection onGetStarted={onGetStarted} />
       <FeaturesGrid />
       <PrivacySection />

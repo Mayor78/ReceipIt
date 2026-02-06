@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Printer, Download, Share2, Copy, FileText, Eye, X, CheckCircle } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useReceipt } from '../context/ReceiptContext';
 import ReceiptPDF from './ReceiptPDF';
 import { pdf } from '@react-pdf/renderer';
 import BuyMeACoffeeModal from './BuyMeACoffeeModal';
+import Swal from 'sweetalert2';
+
+// Import new components
+import ReceiptActions from './receiptDisplay/ReceiptActions';
+import PDFPreviewModal from './receiptDisplay/PDFPreviewModal';
+import MobileNotice from './receiptDisplay/MobileNotice';
+import PrintableReceipt from './receiptDisplay/PrintableReceipt';
+import ReceiptPreview from './receiptDisplay/ReceiptPreview';
 
 const ReceiptDisplay = () => {
   const {
@@ -22,254 +30,488 @@ const ReceiptDisplay = () => {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
-  const [actionCount, setActionCount] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const printableRef = useRef();
 
-  // Clean up Blob URLs to prevent memory leaks
+  // Detect mobile device
   useEffect(() => {
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      setIsMobile(/iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(userAgent));
     };
-  }, [pdfUrl]);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  useEffect(() => {
-    if (actionCount >= 3) {
-      const hasShownToday = localStorage.getItem('coffeeModalShown');
-      if (!hasShownToday) {
-        setTimeout(() => {
-          setShowCoffeeModal(true);
-          localStorage.setItem('coffeeModalShown', 'true');
-        }, 1500);
-        setActionCount(0);
-      }
-    }
-  }, [actionCount]);
-
+  // Reset modal tracking daily
   useEffect(() => {
     const today = new Date().toDateString();
     const lastShown = localStorage.getItem('coffeeModalLastShown');
+    
     if (lastShown !== today) {
-      localStorage.removeItem('coffeeModalShown');
+      console.log('Resetting coffee modal for new day');
+      localStorage.removeItem('coffeeModalShownToday');
       localStorage.setItem('coffeeModalLastShown', today);
     }
   }, []);
 
-  const generatePDFBlob = async () => {
-    const pdfInstance = (
-      <ReceiptPDF
-        receiptData={receiptData}
-        calculateSubtotal={calculateSubtotal}
-        calculateDiscount={calculateDiscount}
-        calculateVAT={calculateVAT}
-        calculateTotal={calculateTotal}
-        calculateChange={calculateChange}
-        companyLogo={companyLogo}
-      />
-    );
-    return await pdf(pdfInstance).toBlob();
+  // Function to show coffee modal (with daily limit)
+  const showCoffeeModalIfAllowed = () => {
+    const hasShownToday = localStorage.getItem('coffeeModalShownToday');
+    
+    if (!hasShownToday) {
+      console.log('Showing coffee modal - first time today');
+      setTimeout(() => {
+        setShowCoffeeModal(true);
+        // localStorage.setItem('coffeeModalShownToday', 'true');
+      }, 1500); // Show after 1.5 seconds
+    } else {
+      console.log('Coffee modal already shown today');
+    }
   };
 
-  const handleDownloadPDF = async () => {
+  const generatePDF = async (saveToHistory = true) => {
     setIsGenerating(true);
     try {
-      const blob = await generatePDFBlob();
-      saveCurrentReceipt(blob);
+      const pdfInstance = (
+        <ReceiptPDF
+          receiptData={receiptData}
+          formatNaira={formatNaira}
+          calculateSubtotal={calculateSubtotal}
+          calculateDiscount={calculateDiscount}
+          calculateVAT={calculateVAT}
+          calculateTotal={calculateTotal}
+          calculateChange={calculateChange}
+          companyLogo={companyLogo}
+        />
+      );
+      
+      const blob = await pdf(pdfInstance).toBlob();
+      
+      if (saveToHistory) {
+        saveCurrentReceipt(blob);
+      }
       
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
-      
-      // Required for Firefox/Mobile Safari
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-      
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-      setActionCount(prev => prev + 1);
+      setPdfUrl(url);
+      return { blob, url };
     } catch (error) {
-      console.error('PDF Generation Error:', error);
-      alert('Mobile browser blocked the download. Please try again or use Chrome.');
+      console.error('Error generating PDF:', error);
+      throw error;
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // MOBILE-FRIENDLY PDF DOWNLOAD
+  const handleDownloadPDF = async () => {
+    try {
+      const result = await generatePDF(true);
+      if (result) {
+        if (isMobile) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const mobileUrl = e.target.result;
+            const link = document.createElement('a');
+            link.href = mobileUrl;
+            link.download = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
+            link.target = '_blank';
+            
+            document.body.appendChild(link);
+            
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+              window.open(mobileUrl, '_blank');
+            } else {
+              link.click();
+            }
+            
+            setTimeout(() => {
+              document.body.removeChild(link);
+              URL.revokeObjectURL(result.url);
+            }, 100);
+          };
+          reader.readAsDataURL(result.blob);
+        } else {
+          const link = document.createElement('a');
+          link.href = result.url;
+          link.download = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+        
+        setTimeout(() => {
+          if (result.url) URL.revokeObjectURL(result.url);
+        }, 1000);
+        
+        // Show coffee modal after download (except preview)
+        showCoffeeModalIfAllowed();
+        
+        return true;
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      throw error;
+    }
+  };
+
+  // MOBILE-FRIENDLY PDF PREVIEW
   const handlePreviewPDF = async () => {
-    setIsGenerating(true);
+    if (isMobile) {
+      try {
+        const result = await generatePDF(false);
+        if (result) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            const newWindow = window.open();
+            newWindow.document.write(`
+              <html>
+                <head>
+                  <title>Receipt ${receiptData.receiptNumber}</title>
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <style>
+                    body { margin: 0; padding: 20px; background: #f5f5f5; }
+                    iframe { width: 100%; height: calc(100vh - 40px); border: none; }
+                    .mobile-actions {
+                      position: fixed;
+                      bottom: 0;
+                      left: 0;
+                      right: 0;
+                      background: white;
+                      padding: 15px;
+                      border-top: 1px solid #ddd;
+                      display: flex;
+                      gap: 10px;
+                    }
+                    .mobile-actions button {
+                      flex: 1;
+                      padding: 12px;
+                      border: none;
+                      border-radius: 8px;
+                      font-weight: bold;
+                      cursor: pointer;
+                    }
+                    .download-btn { background: #2563eb; color: white; }
+                    .share-btn { background: #10b981; color: white; }
+                    .close-btn { background: #6b7280; color: white; }
+                  </style>
+                </head>
+                <body>
+                  <iframe src="${dataUrl}"></iframe>
+                  <div class="mobile-actions">
+                    <button class="download-btn" onclick="window.open('${dataUrl}', '_blank')">Download</button>
+                    <button class="share-btn" onclick="window.open('https://wa.me/?text=${encodeURIComponent('Check out my receipt: ' + window.location.href)}', '_blank')">Share</button>
+                    <button class="close-btn" onclick="window.close()">Close</button>
+                  </div>
+                </body>
+              </html>
+            `);
+            newWindow.document.close();
+          };
+          reader.readAsDataURL(result.blob);
+          
+          setTimeout(() => {
+            if (result.url) URL.revokeObjectURL(result.url);
+          }, 10000);
+          
+          return true;
+        }
+      } catch (error) {
+        console.error('Preview error:', error);
+        throw error;
+      }
+      return;
+    }
+    
+    // Desktop preview - DON'T show coffee modal for preview
     setShowPreview(true);
     try {
-      const blob = await generatePDFBlob();
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      setActionCount(prev => prev + 1);
+      await generatePDF(false);
+      return true;
     } catch (error) {
-      console.error('Preview Error:', error);
-    } finally {
-      setIsGenerating(false);
+      console.error('Preview error:', error);
+      throw error;
     }
   };
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow pop-ups to print the receipt');
-      return;
-    }
-
     const printContent = `
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Print Receipt</title>
+          <title>${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
           <style>
-            body { font-family: sans-serif; padding: 20px; }
-            .print-container { max-width: 800px; margin: auto; }
-            @media print { .no-print { display: none; } }
+            @media print {
+              body { margin: 0; padding: 10px; font-size: 14px; }
+              @page { margin: 0; }
+              .no-print { display: none !important; }
+            }
+            @media screen {
+              body { max-width: 400px; margin: 0 auto; padding: 20px; }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+              line-height: 1.4;
+            }
+            .receipt {
+              border: ${isMobile ? 'none' : '1px solid #ccc'};
+              padding: ${isMobile ? '10px' : '15px'};
+              border-radius: 8px;
+            }
+            .signature-container {
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #ccc;
+            }
+            .signature-line {
+              width: ${isMobile ? '120px' : '150px'};
+              border-bottom: 1px solid #000;
+              margin: 10px auto;
+              padding-bottom: 3px;
+            }
+            .signature-image {
+              max-width: ${isMobile ? '120px' : '150px'};
+              max-height: 40px;
+              margin: 0 auto;
+            }
+            img { max-width: 100%; height: auto; }
+            .print-header {
+              text-align: center;
+              margin-bottom: 15px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 10px;
+            }
+            .print-actions {
+              margin-top: 20px;
+              text-align: center;
+              padding: 10px;
+              background: #f5f5f5;
+              border-radius: 5px;
+            }
+            .print-btn {
+              background: #2563eb;
+              color: white;
+              border: none;
+              padding: 8px 16px;
+              border-radius: 4px;
+              margin: 0 5px;
+              cursor: pointer;
+              font-size: 14px;
+            }
           </style>
         </head>
         <body>
-          <div class="print-container">${printableRef.current.innerHTML}</div>
+          <div class="no-print print-header">
+            <h2>Print Preview</h2>
+            <p>Receipt #${receiptData.receiptNumber}</p>
+          </div>
+          <div class="receipt">
+            ${printableRef.current?.innerHTML || ''}
+          </div>
+          <div class="no-print print-actions">
+            <button class="print-btn" onclick="window.print()">🖨️ Print Now</button>
+            <button class="print-btn" onclick="window.close()" style="background: #6b7280;">Close</button>
+          </div>
           <script>
-            window.onload = function() {
-              window.print();
+            setTimeout(() => {
+              if (${!isMobile}) {
+                window.print();
+              }
+            }, 1000);
+            
+            window.onafterprint = function() {
               setTimeout(() => window.close(), 500);
             };
           </script>
         </body>
       </html>
     `;
+    
+    const printWindow = window.open('', '_blank');
     printWindow.document.write(printContent);
     printWindow.document.close();
+    
+    // Show coffee modal after print
+    showCoffeeModalIfAllowed();
+    
+    return Promise.resolve();
   };
 
   const copyToClipboard = () => {
     const text = `
 ${receiptData.storeName}
 ${receiptData.receiptType.toUpperCase()}: ${receiptData.receiptNumber}
+Date: ${receiptData.date} | Time: ${receiptData.time}
+Cashier: ${receiptData.cashierName}
+
+ITEMS:
+${receiptData.items.map(item => 
+  `${item.quantity}x ${item.name} @ ${formatNaira(item.price)} = ${formatNaira(item.price * item.quantity)}`
+).join('\n')}
+
+Subtotal: ${formatNaira(calculateSubtotal())}
+${receiptData.includeDiscount ? `Discount: -${formatNaira(calculateDiscount())}\n` : ''}
+${receiptData.includeVAT ? `VAT: ${formatNaira(calculateVAT())}\n` : ''}
 Total: ${formatNaira(calculateTotal())}
+
+Payment: ${receiptData.paymentMethod}
+${receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 ? 
+  `Amount Paid: ${formatNaira(receiptData.amountPaid)}\nChange: ${formatNaira(calculateChange())}\n` : ''}
+
+${receiptData.customerNotes}
+
+${receiptData.includeSignature ? 'Signed: _________________' : ''}
+
 Thank you for your business!
     `.trim();
     
-    if (navigator.share) {
-      // Use native share if on mobile
-      navigator.share({ title: 'Receipt', text: text }).catch(() => {});
+    // Show coffee modal after copy
+    showCoffeeModalIfAllowed();
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
     } else {
-      navigator.clipboard.writeText(text).then(() => {
-        alert('Receipt text copied!');
-        setActionCount(prev => prev + 1);
-      });
+      return fallbackCopy(text);
     }
   };
 
-  const shareOnWhatsApp = () => {
-    const text = encodeURIComponent(`*${receiptData.storeName}* \nReceipt: ${receiptData.receiptNumber}\nTotal: ${formatNaira(calculateTotal())}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-    setActionCount(prev => prev + 1);
+  const fallbackCopy = (text) => {
+    return new Promise((resolve, reject) => {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        resolve();
+      } catch (err) {
+        reject(err);
+      } finally {
+        document.body.removeChild(textArea);
+      }
+    });
   };
+
+  const shareOnWhatsApp = () => {
+    const itemsList = receiptData.items.map(item => 
+      `${item.quantity}x ${item.name} - ${formatNaira(item.price * item.quantity)}`
+    ).join('\n');
+    
+    const totalAmount = formatNaira(calculateTotal());
+    const storeName = receiptData.storeName;
+    const receiptNumber = receiptData.receiptNumber;
+    
+    const text = encodeURIComponent(`
+*${receiptData.receiptType.toUpperCase()} from ${storeName}*
+
+📄 Receipt: ${receiptNumber}
+📅 Date: ${receiptData.date}
+⏰ Time: ${receiptData.time}
+👤 Cashier: ${receiptData.cashierName}
+
+🛒 Items:
+${itemsList}
+
+💰 Total: ${totalAmount}
+
+${receiptData.customerNotes}
+
+${receiptData.includeSignature ? '✍️ Signed' : ''}
+
+Thank you for your business! 🎉
+    `.trim());
+    
+    const whatsappUrl = `https://wa.me/?text=${text}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Show coffee modal after share
+    showCoffeeModalIfAllowed();
+    
+    return Promise.resolve();
+  };
+
+  // Clean up URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
 
   return (
     <div className="space-y-6">
-      <BuyMeACoffeeModal isOpen={showCoffeeModal} onClose={() => setShowCoffeeModal(false)} />
+      {/* Mobile Detection Notice */}
+      <MobileNotice isMobile={isMobile} />
 
-      {showSuccess && (
-        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white p-4 rounded-xl shadow-lg flex items-center space-x-2">
-          <CheckCircle size={20} />
-          <span>Receipt Saved Successfully!</span>
-        </div>
-      )}
+      {/* Buy Me a Coffee Modal */}
+      <BuyMeACoffeeModal
+        isOpen={showCoffeeModal}
+        onClose={() => {
+          setShowCoffeeModal(false);
+          console.log('Coffee modal closed');
+        }}
+      />
 
-      {/* PDF Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-2 md:p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="font-bold">PDF Preview</h2>
-              <button onClick={() => setShowPreview(false)} className="p-2 bg-gray-100 rounded-full"><X size={20}/></button>
-            </div>
-            <div className="flex-1 bg-gray-200 overflow-hidden relative">
-              {isGenerating ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                  <p className="mt-2 text-sm">Rendering PDF...</p>
-                </div>
-              ) : (
-                <object
-                  data={pdfUrl}
-                  type="application/pdf"
-                  className="w-full h-full"
-                >
-                  <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                    <p className="mb-4">Mobile browsers may not support inline PDF previews.</p>
-                    <button onClick={handleDownloadPDF} className="bg-blue-600 text-white px-6 py-2 rounded-lg">
-                      Download to View
-                    </button>
-                  </div>
-                </object>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* PDF Preview Modal - Desktop Only */}
+      <PDFPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        pdfUrl={pdfUrl}
+        isGenerating={isGenerating}
+        onDownload={handleDownloadPDF}
+        isMobile={isMobile}
+      />
 
-      {/* Action Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button onClick={handlePrint} className="flex items-center justify-center space-x-2 bg-gray-900 text-white p-3 rounded-xl hover:opacity-90 transition">
-          <Printer size={18} /> <span>Print</span>
-        </button>
-        <button onClick={handleDownloadPDF} disabled={isGenerating} className="flex items-center justify-center space-x-2 bg-blue-600 text-white p-3 rounded-xl hover:opacity-90 transition disabled:bg-blue-400">
-          <Download size={18} /> <span>{isGenerating ? 'Generating...' : 'Save PDF'}</span>
-        </button>
-        <button onClick={handlePreviewPDF} className="flex items-center justify-center space-x-2 bg-purple-600 text-white p-3 rounded-xl hover:opacity-90 transition">
-          <Eye size={18} /> <span>Preview</span>
-        </button>
-        <button onClick={shareOnWhatsApp} className="flex items-center justify-center space-x-2 bg-green-600 text-white p-3 rounded-xl hover:opacity-90 transition">
-          <Share2 size={18} /> <span>Share</span>
-        </button>
-      </div>
+      {/* Action Buttons Component */}
+      <ReceiptActions
+        onPrint={handlePrint}
+        onDownload={handleDownloadPDF}
+        onPreview={handlePreviewPDF}
+        onShare={shareOnWhatsApp}
+        onCopy={copyToClipboard}
+        isGenerating={isGenerating}
+        isMobile={isMobile}
+        receiptData={receiptData}
+        savedReceipts={savedReceipts}
+        formatNaira={formatNaira}
+        calculateTotal={calculateTotal}
+        setActionCount={() => {}} // Not needed anymore
+      />
 
-      {/* Visual UI Preview */}
-      <div className="bg-white rounded-2xl shadow-sm border p-6 max-w-md mx-auto">
-        <div className="text-center border-b pb-4 mb-4">
-          {companyLogo && <img src={companyLogo} alt="Logo" className="h-12 mx-auto mb-2" />}
-          <h2 className="text-xl font-bold">{receiptData.storeName}</h2>
-          <p className="text-xs text-gray-500">{receiptData.storeAddress}</p>
-        </div>
-        <div className="flex justify-between text-sm mb-4">
-          <span>#{receiptData.receiptNumber}</span>
-          <span>{receiptData.date}</span>
-        </div>
-        <div className="space-y-2 mb-4">
-          {receiptData.items.map((item, i) => (
-            <div key={i} className="flex justify-between text-sm">
-              <span>{item.quantity}x {item.name}</span>
-              <span>{formatNaira(item.price * item.quantity)}</span>
-            </div>
-          ))}
-        </div>
-        <div className="border-t pt-2 space-y-1">
-          <div className="flex justify-between font-bold text-lg">
-            <span>Total</span>
-            <span className="text-blue-600">{formatNaira(calculateTotal())}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Hidden container for Browser Printing */}
+      {/* Printable Receipt (Hidden for print) */}
       <div ref={printableRef} className="hidden">
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          <h1>{receiptData.storeName}</h1>
-          <p>{receiptData.storeAddress}</p>
-          <hr />
-          <p>Receipt: {receiptData.receiptNumber}</p>
-          <p>Total: {formatNaira(calculateTotal())}</p>
-        </div>
+        <PrintableReceipt
+          receiptData={receiptData}
+          companyLogo={companyLogo}
+          formatNaira={formatNaira}
+          calculateSubtotal={calculateSubtotal}
+          calculateDiscount={calculateDiscount}
+          calculateVAT={calculateVAT}
+          calculateTotal={calculateTotal}
+          calculateChange={calculateChange}
+          isMobile={isMobile}
+        />
       </div>
+
+      {/* Visible Preview */}
+      <ReceiptPreview
+        receiptData={receiptData}
+        companyLogo={companyLogo}
+        formatNaira={formatNaira}
+        calculateSubtotal={calculateSubtotal}
+        calculateVAT={calculateVAT}
+        calculateTotal={calculateTotal}
+      />
     </div>
   );
 };
