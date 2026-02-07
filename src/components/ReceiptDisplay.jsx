@@ -63,6 +63,7 @@ const ReceiptDisplay = () => {
   const showCoffeeModalIfAllowed = () => {
     if (!localStorage.getItem("coffeeModalShownToday")) {
       setTimeout(() => setShowCoffeeModal(true), 1500);
+      localStorage.setItem("coffeeModalShownToday", "true");
     }
   };
 
@@ -102,87 +103,200 @@ const ReceiptDisplay = () => {
     }
   };
 
-  /* ---------------- DOWNLOAD PDF ---------------- */
+  /* ---------------- DOWNLOAD PDF (WORKING FOR BOTH MOBILE & DESKTOP) ---------------- */
 
   const handleDownloadPDF = async () => {
     try {
-      const { url } = await generatePDF(true);
-
-      const link = document.createElement("a");
-      link.href = url;
+      const result = await generatePDF(true);
+      
+      // SIMPLE APPROACH THAT WORKS ON ALL DEVICES
+      const link = document.createElement('a');
+      link.href = result.url;
       link.download = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
-      link.target = "_blank";
-
+      
+      // Append to body
       document.body.appendChild(link);
+      
+      // Trigger download
       link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(result.url);
+      }, 100);
+      
+      // Show success message
+      await Swal.fire({
+        title: "Success!",
+        text: "Receipt downloaded successfully",
+        icon: "success",
+        confirmButtonText: "OK",
+        timer: 2000
+      });
+      
+      // Show coffee modal
       showCoffeeModalIfAllowed();
+      
       return true;
     } catch (error) {
       console.error("Download error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to download. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
       throw error;
     }
   };
 
-  /* ---------------- PREVIEW PDF ---------------- */
+  /* ---------------- PREVIEW PDF (WORKING FOR BOTH MOBILE & DESKTOP) ---------------- */
 
   const handlePreviewPDF = async () => {
     try {
-      const { url } = await generatePDF(false);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 15000);
+      const result = await generatePDF(false);
+      
+      if (isMobile) {
+        // On mobile, open in new tab
+        window.open(result.url, '_blank');
+        
+        // Clean up after some time
+        setTimeout(() => {
+          URL.revokeObjectURL(result.url);
+        }, 30000); // 30 seconds
+      } else {
+        // On desktop, show preview modal
+        setShowPreview(true);
+      }
+      
+      // Show success message
+      await Swal.fire({
+        title: "Success!",
+        text: "Receipt preview opened",
+        icon: "success",
+        confirmButtonText: "OK",
+        timer: 2000
+      });
+      
+      // Show coffee modal
+      showCoffeeModalIfAllowed();
+      
       return true;
     } catch (error) {
       console.error("Preview error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to preview. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
       throw error;
     }
   };
 
-  /* ---------------- PRINT ---------------- */
+  /* ---------------- PRINT (WORKING FOR BOTH MOBILE & DESKTOP) ---------------- */
 
-  const handlePrint = () => {
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            @media print {
-              body { margin: 0; padding: 10px; }
-              .no-print { display: none !important; }
-            }
-            body {
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              max-width: 400px;
-              margin: auto;
-            }
-          </style>
-        </head>
-        <body>
-          <div>${printableRef.current?.innerHTML || ""}</div>
-          <script>
-            setTimeout(() => window.print(), 500);
-            window.onafterprint = () => window.close();
-          </script>
-        </body>
-      </html>
-    `;
+  const handlePrint = async () => {
+    try {
+      // Generate print HTML
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              @media print {
+                body { margin: 0; padding: 0; }
+                .no-print { display: none !important; }
+                @page { margin: 0; }
+              }
+              body {
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                padding: 20px;
+                max-width: 400px;
+                margin: 0 auto;
+              }
+              @media screen {
+                body {
+                  background: #f5f5f5;
+                }
+                .print-actions {
+                  display: flex;
+                  justify-content: center;
+                  gap: 10px;
+                  margin-top: 20px;
+                  padding: 10px;
+                  background: #f0f0f0;
+                }
+                .print-btn {
+                  padding: 10px 20px;
+                  background: #007bff;
+                  color: white;
+                  border: none;
+                  border-radius: 5px;
+                  cursor: pointer;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div>${printableRef.current?.innerHTML || ""}</div>
+            <div class="no-print print-actions">
+              <button class="print-btn" onclick="window.print()">Print Now</button>
+              <button class="print-btn" onclick="window.close()" style="background: #6c757d;">Close</button>
+            </div>
+            <script>
+              // Auto-print after a short delay
+              setTimeout(() => {
+                if (${!isMobile}) {
+                  window.print();
+                }
+              }, 500);
+              
+              // Close after print
+              window.addEventListener('afterprint', function() {
+                setTimeout(() => window.close(), 500);
+              });
+            </script>
+          </body>
+        </html>
+      `;
 
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-
-    showCoffeeModalIfAllowed();
-    return Promise.resolve();
+      // Open print window
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // Show success message
+      await Swal.fire({
+        title: "Success!",
+        text: "Print dialog opened",
+        icon: "success",
+        confirmButtonText: "OK",
+        timer: 2000
+      });
+      
+      // Show coffee modal
+      showCoffeeModalIfAllowed();
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Print error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to open print dialog. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      throw error;
+    }
   };
 
   /* ---------------- CLEANUP ---------------- */
 
- useEffect(() => {
+  useEffect(() => {
     return () => {
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
@@ -190,11 +304,11 @@ const ReceiptDisplay = () => {
     };
   }, [pdfUrl]);
 
-
   /* ---------------- COPY TO CLIPBOARD ---------------- */
 
-const copyToClipboard = () => {
-  const text = `
+  const copyToClipboard = async () => {
+    try {
+      const text = `
 ${receiptData.storeName}
 ${receiptData.receiptType.toUpperCase()}: ${receiptData.receiptNumber}
 Date: ${receiptData.date} | Time: ${receiptData.time}
@@ -219,37 +333,65 @@ ${receiptData.customerNotes}
 ${receiptData.includeSignature ? 'Signed: _________________' : ''}
 
 Thank you for your business!
-  `.trim();
+      `.trim();
 
-  showCoffeeModalIfAllowed();
+      // Use modern clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          document.execCommand('copy');
+        } catch (err) {
+          throw new Error('Copy failed');
+        }
+        
+        document.body.removeChild(textArea);
+      }
 
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    return navigator.clipboard.writeText(text);
-  } else {
-    // fallback
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-9999px';
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-    } catch (err) {
-      console.error('Copy failed', err);
+      // Show success message
+      await Swal.fire({
+        title: "Success!",
+        text: "Receipt copied to clipboard!",
+        icon: "success",
+        confirmButtonText: "OK",
+        timer: 2000
+      });
+      
+      // Show coffee modal
+      showCoffeeModalIfAllowed();
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Copy error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to copy. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      throw error;
     }
-    document.body.removeChild(textArea);
-  }
-};
+  };
 
-/* ---------------- SHARE ON WHATSAPP ---------------- */
+  /* ---------------- SHARE ON WHATSAPP ---------------- */
 
-const shareOnWhatsApp = () => {
-  const itemsList = receiptData.items.map(item =>
-    `${item.quantity}x ${item.name} - ${formatNaira(item.price * item.quantity)}`
-  ).join('\n');
+  const shareOnWhatsApp = async () => {
+    try {
+      const itemsList = receiptData.items.map(item =>
+        `${item.quantity}x ${item.name} - ${formatNaira(item.price * item.quantity)}`
+      ).join('\n');
 
-  const text = encodeURIComponent(`
+      const text = encodeURIComponent(`
 *${receiptData.receiptType.toUpperCase()} from ${receiptData.storeName}*
 
 📄 Receipt: ${receiptData.receiptNumber}
@@ -267,13 +409,35 @@ ${receiptData.customerNotes}
 ${receiptData.includeSignature ? '✍️ Signed' : ''}
 
 Thank you for your business! 🎉
-  `.trim());
+      `.trim());
 
-  window.open(`https://wa.me/?text=${text}`, '_blank');
-
-  showCoffeeModalIfAllowed();
-};
-
+      // Open WhatsApp
+      window.open(`https://wa.me/?text=${text}`, '_blank');
+      
+      // Show success message
+      await Swal.fire({
+        title: "Success!",
+        text: "WhatsApp share opened",
+        icon: "success",
+        confirmButtonText: "OK",
+        timer: 2000
+      });
+      
+      // Show coffee modal
+      showCoffeeModalIfAllowed();
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Share error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to open WhatsApp. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -283,10 +447,7 @@ Thank you for your business! 🎉
       {/* Buy Me a Coffee Modal */}
       <BuyMeACoffeeModal
         isOpen={showCoffeeModal}
-        onClose={() => {
-          setShowCoffeeModal(false);
-          console.log('Coffee modal closed');
-        }}
+        onClose={() => setShowCoffeeModal(false)}
       />
 
       {/* PDF Preview Modal - Desktop Only */}
