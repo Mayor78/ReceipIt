@@ -6,12 +6,11 @@ import Swal from 'sweetalert2';
 
 // Import new components
 import ReceiptActions from './receiptDisplay/ReceiptActions';
-import PDFPreviewModal from './receiptDisplay/PDFPreviewModal';
 import MobileNotice from './receiptDisplay/MobileNotice';
 import PrintableReceipt from './receiptDisplay/PrintableReceipt';
 import ReceiptPreview from './receiptDisplay/ReceiptPreview';
 
-// Don't import PDF components at top level - causes SSR issues
+// Remove PDFPreviewModal import since we won't use it
 
 const ReceiptDisplay = () => {
   const {
@@ -27,15 +26,12 @@ const ReceiptDisplay = () => {
     formatNaira
   } = useReceipt();
 
-  const [pdfUrl, setPdfUrl] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [pdfAvailable, setPdfAvailable] = useState(true);
   const printableRef = useRef();
 
-  /* ---------------- CHECK ENVIRONMENT ONCE ---------------- */
+  /* ---------------- CHECK ENVIRONMENT ---------------- */
 
   const [isClient, setIsClient] = useState(false);
 
@@ -77,7 +73,7 @@ const ReceiptDisplay = () => {
     }
   };
 
-  /* ---------------- PRINT FALLBACK (ALWAYS WORKS) ---------------- */
+  /* ---------------- UNIVERSAL PRINT FUNCTION (ALWAYS WORKS) ---------------- */
 
   const handlePrint = async () => {
     if (!isClient) {
@@ -103,60 +99,106 @@ const ReceiptDisplay = () => {
         return;
       }
       
+      // Create a clean print document
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
             <title>${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta charset="UTF-8">
             <style>
               @media print {
                 body { margin: 0; padding: 0; }
                 .no-print { display: none !important; }
                 @page { margin: 0; }
               }
+              @media screen {
+                body { 
+                  background: #f5f5f5;
+                  padding: 20px;
+                }
+              }
               body {
                 font-family: system-ui, -apple-system, sans-serif;
-                padding: 20px;
                 max-width: 400px;
                 margin: 0 auto;
+                color: #333;
+                line-height: 1.4;
+              }
+              .print-container {
                 background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
               }
               .print-actions {
                 display: flex;
                 justify-content: center;
                 gap: 10px;
                 margin-top: 20px;
-                padding: 10px;
-                background: #f0f0f0;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 8px;
               }
               .print-btn {
                 padding: 10px 20px;
-                background: #007bff;
+                background: #2563eb;
                 color: white;
                 border: none;
-                border-radius: 5px;
+                border-radius: 6px;
                 cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: background 0.2s;
+              }
+              .print-btn:hover {
+                background: #1d4ed8;
+              }
+              .print-btn.secondary {
+                background: #6b7280;
+              }
+              .print-btn.secondary:hover {
+                background: #4b5563;
+              }
+              .print-instructions {
+                text-align: center;
+                margin-top: 15px;
+                color: #6b7280;
                 font-size: 14px;
               }
             </style>
           </head>
           <body>
-            <div>${printableRef.current?.innerHTML || ""}</div>
-            <div class="no-print print-actions">
-              <button class="print-btn" onclick="window.print()">🖨️ Print Now</button>
-              <button class="print-btn" onclick="window.close()" style="background: #6c757d;">Close</button>
+            <div class="print-container">
+              ${printableRef.current?.innerHTML || ""}
+            </div>
+            <div class="print-actions no-print">
+              <button class="print-btn" onclick="window.print()">
+                🖨️ Print / Save as PDF
+              </button>
+              <button class="print-btn secondary" onclick="window.close()">
+                Close
+              </button>
+            </div>
+            <div class="print-instructions no-print">
+              <p><strong>To save as PDF:</strong> In print dialog, select "Save as PDF" as destination</p>
             </div>
             <script>
+              // Auto-open print dialog after 1 second (for desktop)
               setTimeout(() => {
                 if (${!isMobile}) {
                   window.print();
                 }
               }, 1000);
               
+              // Close window after printing
               window.addEventListener('afterprint', function() {
-                setTimeout(() => window.close(), 500);
+                setTimeout(() => window.close(), 1000);
               });
+              
+              // Focus the print button for better UX
+              document.querySelector('.print-btn').focus();
             </script>
           </body>
         </html>
@@ -165,11 +207,23 @@ const ReceiptDisplay = () => {
       
       // Success message
       Swal.fire({
-        title: "Success!",
-        text: "Print dialog opened. Use 'Save as PDF' to download.",
-        icon: "success",
-        confirmButtonText: "OK",
-        timer: 3000
+        title: "Print View Opened!",
+        html: `
+          <div style="text-align: left;">
+            <p><strong>To download as PDF:</strong></p>
+            <ol>
+              <li>Click "Print / Save as PDF" button</li>
+              <li>In print dialog, select "Save as PDF"</li>
+              <li>Choose location and save</li>
+            </ol>
+            <p style="color: #666; font-size: 14px; margin-top: 10px;">
+              This method works on all browsers and devices.
+            </p>
+          </div>
+        `,
+        icon: "info",
+        confirmButtonText: "Got it!",
+        timer: 5000
       });
       
       showCoffeeModalIfAllowed();
@@ -178,71 +232,14 @@ const ReceiptDisplay = () => {
       console.error("Print error:", error);
       Swal.fire({
         title: "Error",
-        text: "Failed to open print dialog. Please try again.",
+        text: "Failed to open print view. Please try again.",
         icon: "error",
         confirmButtonText: "OK"
       });
     }
   };
 
-  /* ---------------- PDF GENERATION (CLIENT-SIDE ONLY) ---------------- */
-
-  const generatePDF = async (saveToHistory = true) => {
-    if (!isClient) {
-      throw new Error("Please refresh page and try again");
-    }
-    
-    setIsGenerating(true);
-    
-    try {
-      // Dynamically import PDF libraries ONLY on client side
-      const { pdf } = await import('@react-pdf/renderer');
-      const ReceiptPDFModule = await import('./ReceiptPDF');
-      const ReceiptPDF = ReceiptPDFModule.default;
-      
-      const pdfInstance = (
-        <ReceiptPDF
-          receiptData={receiptData}
-          formatNaira={formatNaira}
-          calculateSubtotal={calculateSubtotal}
-          calculateDiscount={calculateDiscount}
-          calculateVAT={calculateVAT}
-          calculateTotal={calculateTotal}
-          calculateChange={calculateChange}
-          companyLogo={companyLogo}
-        />
-      );
-      
-      const blob = await pdf(pdfInstance).toBlob();
-      
-      if (saveToHistory) {
-        saveCurrentReceipt(blob);
-      }
-      
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      
-      return { blob, url };
-      
-    } catch (error) {
-      console.error("PDF Generation Error:", error);
-      
-      // Mark PDF as unavailable
-      setPdfAvailable(false);
-      
-      // Show user-friendly error
-      if (error.message.includes("Cannot read properties") || 
-          error.message.includes("__CLIENT_INTERNALS")) {
-        throw new Error("PDF feature not available. Please use Print instead.");
-      } else {
-        throw new Error("Failed to generate PDF. Please try Print option.");
-      }
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  /* ---------------- DOWNLOAD PDF WITH GRACEFUL FALLBACK ---------------- */
+  /* ---------------- DOWNLOAD PDF (USES PRINT METHOD) ---------------- */
 
   const handleDownloadPDF = async () => {
     if (!isClient) {
@@ -256,61 +253,50 @@ const ReceiptDisplay = () => {
     }
 
     try {
-      // Try PDF generation
-      const result = await generatePDF(true);
+      setIsGenerating(true);
       
-      // Download the PDF
-      const link = document.createElement('a');
-      link.href = result.url;
-      link.download = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up
-      setTimeout(() => URL.revokeObjectURL(result.url), 1000);
-      
-      // Success message
-      Swal.fire({
-        title: "Success!",
-        text: "Receipt downloaded as PDF",
-        icon: "success",
-        confirmButtonText: "OK",
-        timer: 2000
-      });
-      
-      showCoffeeModalIfAllowed();
-      
-    } catch (error) {
-      console.error("Download error:", error);
-      
-      // Offer print as alternative
-      const result = await Swal.fire({
-        title: "PDF Download Not Available",
+      // Show instructions for downloading via print
+      await Swal.fire({
+        title: "Download Receipt",
         html: `
           <div style="text-align: left;">
-            <p>${error.message}</p>
-            <p><strong>Alternative Method:</strong></p>
+            <p><strong>How to download as PDF:</strong></p>
             <ol>
-              <li>Click "Print" button</li>
+              <li>A print view will open</li>
+              <li>Click "Print / Save as PDF" button</li>
               <li>In print dialog, select "Save as PDF"</li>
               <li>Choose location and save</li>
             </ol>
+            <p style="color: #666; font-size: 14px; margin-top: 10px;">
+              This method works reliably on all browsers and devices.
+            </p>
           </div>
         `,
-        icon: "warning",
+        icon: "info",
         showCancelButton: true,
-        confirmButtonText: "Open Print",
-        cancelButtonText: "Cancel"
+        confirmButtonText: "Open Print View",
+        cancelButtonText: "Cancel",
+        timer: 10000
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          await handlePrint();
+        }
       });
       
-      if (result.isConfirmed) {
-        await handlePrint();
-      }
+    } catch (error) {
+      console.error("Download error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to prepare download. Please try the Print option.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  /* ---------------- PREVIEW PDF ---------------- */
+  /* ---------------- PREVIEW PDF (USES PRINT METHOD) ---------------- */
 
   const handlePreviewPDF = async () => {
     if (!isClient) {
@@ -324,38 +310,17 @@ const ReceiptDisplay = () => {
     }
 
     try {
-      if (isMobile || !pdfAvailable) {
-        // For mobile or when PDF fails, use print
-        await handlePrint();
-      } else {
-        // Try PDF preview
-        const result = await generatePDF(false);
-        setShowPreview(true);
-        
-        Swal.fire({
-          title: "Success!",
-          text: "PDF preview opened",
-          icon: "success",
-          confirmButtonText: "OK",
-          timer: 2000
-        });
-      }
-      
-      showCoffeeModalIfAllowed();
+      // Just use the print function for preview
+      await handlePrint();
       
     } catch (error) {
       console.error("Preview error:", error);
-      
-      // Fallback to print
       Swal.fire({
-        title: "Preview Not Available",
-        text: "Opening print view instead...",
-        icon: "info",
-        timer: 2000,
-        showConfirmButton: false
+        title: "Error",
+        text: "Failed to open preview. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
       });
-      
-      setTimeout(() => handlePrint(), 2000);
     }
   };
 
@@ -484,15 +449,8 @@ Thank you for your business! 🎉
     }
   };
 
-  /* ---------------- CLEANUP ---------------- */
+  /* ---------------- DON'T RENDER UNTIL CLIENT-SIDE ---------------- */
 
-  useEffect(() => {
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    };
-  }, [pdfUrl]);
-
-  // Don't render anything until client-side hydration is complete
   if (!isClient) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -506,21 +464,6 @@ Thank you for your business! 🎉
 
   return (
     <div className="space-y-6">
-      {/* PDF Availability Notice */}
-      {!pdfAvailable && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <div className="flex items-start space-x-3">
-            <FileText className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
-            <div>
-              <p className="font-medium text-yellow-800 mb-1">⚠️ PDF Features Limited</p>
-              <p className="text-sm text-yellow-700">
-                PDF download may not work in this browser. Use <strong>Print → Save as PDF</strong> as alternative.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Mobile Detection Notice */}
       <MobileNotice isMobile={isMobile} />
 
@@ -530,17 +473,19 @@ Thank you for your business! 🎉
         onClose={() => setShowCoffeeModal(false)}
       />
 
-      {/* PDF Preview Modal - Desktop Only */}
-      {pdfAvailable && !isMobile && (
-        <PDFPreviewModal
-          isOpen={showPreview}
-          onClose={() => setShowPreview(false)}
-          pdfUrl={pdfUrl}
-          isGenerating={isGenerating}
-          onDownload={handleDownloadPDF}
-          isMobile={isMobile}
-        />
-      )}
+      {/* Simple Info Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-start space-x-3">
+          <FileText className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="font-medium text-blue-800 mb-1">📄 How to Download PDF:</p>
+            <p className="text-sm text-blue-700">
+              Click any button below and use <strong>"Save as PDF"</strong> in the print dialog.
+              This works on all browsers and devices.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Action Buttons Component */}
       <ReceiptActions
