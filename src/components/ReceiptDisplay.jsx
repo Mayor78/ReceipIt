@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FileText } from 'lucide-react';
 import { useReceipt } from '../context/ReceiptContext';
 import BuyMeACoffeeModal from './BuyMeACoffeeModal';
@@ -11,9 +11,7 @@ import MobileNotice from './receiptDisplay/MobileNotice';
 import PrintableReceipt from './receiptDisplay/PrintableReceipt';
 import ReceiptPreview from './receiptDisplay/ReceiptPreview';
 
-// Lazy load PDF components to avoid SSR issues
-const ReceiptPDF = lazy(() => import('./ReceiptPDF'));
-const { pdf } = lazy(() => import('@react-pdf/renderer'));
+// Don't import PDF components at top level - causes SSR issues
 
 const ReceiptDisplay = () => {
   const {
@@ -34,14 +32,15 @@ const ReceiptDisplay = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [useFallback, setUseFallback] = useState(false);
+  const [pdfAvailable, setPdfAvailable] = useState(true);
   const printableRef = useRef();
 
-  // Check if we're in browser environment
-  const [isBrowser, setIsBrowser] = useState(false);
-  
+  /* ---------------- CHECK ENVIRONMENT ONCE ---------------- */
+
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
-    setIsBrowser(typeof window !== 'undefined');
+    setIsClient(true);
     
     const checkMobile = () => {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
@@ -49,6 +48,7 @@ const ReceiptDisplay = () => {
         /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)
       );
     };
+    
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -57,6 +57,8 @@ const ReceiptDisplay = () => {
   /* ---------------- COFFEE MODAL RESET ---------------- */
 
   useEffect(() => {
+    if (!isClient) return;
+    
     const today = new Date().toDateString();
     const lastShown = localStorage.getItem("coffeeModalLastShown");
 
@@ -64,18 +66,30 @@ const ReceiptDisplay = () => {
       localStorage.removeItem("coffeeModalShownToday");
       localStorage.setItem("coffeeModalLastShown", today);
     }
-  }, []);
+  }, [isClient]);
 
   const showCoffeeModalIfAllowed = () => {
+    if (!isClient) return;
+    
     if (!localStorage.getItem("coffeeModalShownToday")) {
       setTimeout(() => setShowCoffeeModal(true), 1500);
       localStorage.setItem("coffeeModalShownToday", "true");
     }
   };
 
-  /* ---------------- SIMPLE PRINT FALLBACK (No PDF Required) ---------------- */
+  /* ---------------- PRINT FALLBACK (ALWAYS WORKS) ---------------- */
 
-  const handlePrintFallback = async () => {
+  const handlePrint = async () => {
+    if (!isClient) {
+      Swal.fire({
+        title: "Error",
+        text: "Please refresh the page and try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
     try {
       const printWindow = window.open('', '_blank');
       
@@ -149,26 +163,42 @@ const ReceiptDisplay = () => {
       `);
       printWindow.document.close();
       
-      return true;
+      // Success message
+      Swal.fire({
+        title: "Success!",
+        text: "Print dialog opened. Use 'Save as PDF' to download.",
+        icon: "success",
+        confirmButtonText: "OK",
+        timer: 3000
+      });
+      
+      showCoffeeModalIfAllowed();
+      
     } catch (error) {
-      console.error("Print fallback error:", error);
-      throw error;
+      console.error("Print error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to open print dialog. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
     }
   };
 
-  /* ---------------- PDF GENERATION WITH COMPATIBILITY FIX ---------------- */
+  /* ---------------- PDF GENERATION (CLIENT-SIDE ONLY) ---------------- */
 
   const generatePDF = async (saveToHistory = true) => {
-    if (!isBrowser || useFallback) {
-      throw new Error("PDF generation not available");
+    if (!isClient) {
+      throw new Error("Please refresh page and try again");
     }
     
     setIsGenerating(true);
     
     try {
-      // Dynamically import to avoid SSR issues
+      // Dynamically import PDF libraries ONLY on client side
       const { pdf } = await import('@react-pdf/renderer');
-      const ReceiptPDF = (await import('./ReceiptPDF')).default;
+      const ReceiptPDFModule = await import('./ReceiptPDF');
+      const ReceiptPDF = ReceiptPDFModule.default;
       
       const pdfInstance = (
         <ReceiptPDF
@@ -197,30 +227,39 @@ const ReceiptDisplay = () => {
     } catch (error) {
       console.error("PDF Generation Error:", error);
       
-      // If React PDF fails, switch to fallback mode
-      if (!useFallback) {
-        setUseFallback(true);
-        Swal.fire({
-          title: "PDF Feature Limited",
-          text: "Using alternative methods. PDF download may not work.",
-          icon: "info",
-          timer: 3000
-        });
-      }
+      // Mark PDF as unavailable
+      setPdfAvailable(false);
       
-      throw new Error("PDF generation failed. Use Print instead.");
+      // Show user-friendly error
+      if (error.message.includes("Cannot read properties") || 
+          error.message.includes("__CLIENT_INTERNALS")) {
+        throw new Error("PDF feature not available. Please use Print instead.");
+      } else {
+        throw new Error("Failed to generate PDF. Please try Print option.");
+      }
     } finally {
       setIsGenerating(false);
     }
   };
 
-  /* ---------------- DOWNLOAD PDF WITH FALLBACK ---------------- */
+  /* ---------------- DOWNLOAD PDF WITH GRACEFUL FALLBACK ---------------- */
 
   const handleDownloadPDF = async () => {
+    if (!isClient) {
+      Swal.fire({
+        title: "Error",
+        text: "Please refresh the page and try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
     try {
-      // First try PDF generation
+      // Try PDF generation
       const result = await generatePDF(true);
       
+      // Download the PDF
       const link = document.createElement('a');
       link.href = result.url;
       link.download = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
@@ -228,9 +267,11 @@ const ReceiptDisplay = () => {
       link.click();
       document.body.removeChild(link);
       
+      // Clean up
       setTimeout(() => URL.revokeObjectURL(result.url), 1000);
       
-      await Swal.fire({
+      // Success message
+      Swal.fire({
         title: "Success!",
         text: "Receipt downloaded as PDF",
         icon: "success",
@@ -239,20 +280,19 @@ const ReceiptDisplay = () => {
       });
       
       showCoffeeModalIfAllowed();
-      return true;
       
     } catch (error) {
       console.error("Download error:", error);
       
-      // Offer print fallback
+      // Offer print as alternative
       const result = await Swal.fire({
-        title: "Download Failed",
+        title: "PDF Download Not Available",
         html: `
           <div style="text-align: left;">
-            <p>PDF download is not available.</p>
-            <p><strong>Alternative:</strong></p>
+            <p>${error.message}</p>
+            <p><strong>Alternative Method:</strong></p>
             <ol>
-              <li>Use "Print" button</li>
+              <li>Click "Print" button</li>
               <li>In print dialog, select "Save as PDF"</li>
               <li>Choose location and save</li>
             </ol>
@@ -260,74 +300,78 @@ const ReceiptDisplay = () => {
         `,
         icon: "warning",
         showCancelButton: true,
-        confirmButtonText: "Open Print View",
+        confirmButtonText: "Open Print",
         cancelButtonText: "Cancel"
       });
       
       if (result.isConfirmed) {
-        await handlePrintFallback();
+        await handlePrint();
       }
-      
-      throw error;
     }
   };
 
   /* ---------------- PREVIEW PDF ---------------- */
 
   const handlePreviewPDF = async () => {
+    if (!isClient) {
+      Swal.fire({
+        title: "Error",
+        text: "Please refresh the page and try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
     try {
-      if (isMobile || useFallback) {
-        // For mobile or when PDF fails, use print fallback
-        await handlePrintFallback();
+      if (isMobile || !pdfAvailable) {
+        // For mobile or when PDF fails, use print
+        await handlePrint();
       } else {
         // Try PDF preview
         const result = await generatePDF(false);
         setShowPreview(true);
+        
+        Swal.fire({
+          title: "Success!",
+          text: "PDF preview opened",
+          icon: "success",
+          confirmButtonText: "OK",
+          timer: 2000
+        });
       }
       
       showCoffeeModalIfAllowed();
-      return true;
       
     } catch (error) {
       console.error("Preview error:", error);
       
       // Fallback to print
       Swal.fire({
-        title: "Preview Unavailable",
+        title: "Preview Not Available",
         text: "Opening print view instead...",
         icon: "info",
         timer: 2000,
         showConfirmButton: false
       });
       
-      await handlePrintFallback();
-      showCoffeeModalIfAllowed();
-      return true;
-    }
-  };
-
-  /* ---------------- PRINT ---------------- */
-
-  const handlePrint = async () => {
-    try {
-      await handlePrintFallback();
-      showCoffeeModalIfAllowed();
-      return true;
-    } catch (error) {
-      console.error("Print error:", error);
-      Swal.fire({
-        title: "Error",
-        text: "Failed to print. Please try again.",
-        icon: "error",
-        confirmButtonText: "OK"
-      });
-      throw error;
+      setTimeout(() => handlePrint(), 2000);
     }
   };
 
   /* ---------------- COPY TO CLIPBOARD ---------------- */
 
   const copyToClipboard = async () => {
+    if (!isClient) {
+      Swal.fire({
+        title: "Error",
+        text: "Please refresh the page and try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
     try {
       const text = `
 ${receiptData.storeName}
@@ -358,7 +402,7 @@ Thank you for your business!
 
       await navigator.clipboard.writeText(text);
       
-      await Swal.fire({
+      Swal.fire({
         title: "Success!",
         text: "Receipt copied to clipboard!",
         icon: "success",
@@ -367,7 +411,7 @@ Thank you for your business!
       });
       
       showCoffeeModalIfAllowed();
-      return true;
+      
     } catch (error) {
       console.error("Copy error:", error);
       Swal.fire({
@@ -376,13 +420,22 @@ Thank you for your business!
         icon: "error",
         confirmButtonText: "OK"
       });
-      throw error;
     }
   };
 
   /* ---------------- SHARE ON WHATSAPP ---------------- */
 
   const shareOnWhatsApp = async () => {
+    if (!isClient) {
+      Swal.fire({
+        title: "Error",
+        text: "Please refresh the page and try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
     try {
       const itemsList = receiptData.items.map(item =>
         `${item.quantity}x ${item.name} - ${formatNaira(item.price * item.quantity)}`
@@ -410,7 +463,7 @@ Thank you for your business! 🎉
 
       window.open(`https://wa.me/?text=${text}`, '_blank');
       
-      await Swal.fire({
+      Swal.fire({
         title: "Success!",
         text: "WhatsApp share opened",
         icon: "success",
@@ -419,7 +472,7 @@ Thank you for your business! 🎉
       });
       
       showCoffeeModalIfAllowed();
-      return true;
+      
     } catch (error) {
       console.error("Share error:", error);
       Swal.fire({
@@ -428,7 +481,6 @@ Thank you for your business! 🎉
         icon: "error",
         confirmButtonText: "OK"
       });
-      throw error;
     }
   };
 
@@ -440,12 +492,12 @@ Thank you for your business! 🎉
     };
   }, [pdfUrl]);
 
-  // Show loading state
-  if (!isBrowser) {
+  // Don't render anything until client-side hydration is complete
+  if (!isClient) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <FileText className="mx-auto text-gray-400 mb-4" size={48} />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading receipt viewer...</p>
         </div>
       </div>
@@ -453,93 +505,84 @@ Thank you for your business! 🎉
   }
 
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading PDF features...</p>
-        </div>
-      </div>
-    }>
-      <div className="space-y-6">
-        {/* Fallback Notice */}
-        {useFallback && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-            <div className="flex items-start space-x-3">
-              <FileText className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
-              <div>
-                <p className="font-medium text-yellow-800 mb-1">⚠️ PDF Features Limited</p>
-                <p className="text-sm text-yellow-700">
-                  PDF download may not work. Use <strong>Print → Save as PDF</strong> as alternative.
-                </p>
-              </div>
+    <div className="space-y-6">
+      {/* PDF Availability Notice */}
+      {!pdfAvailable && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="flex items-start space-x-3">
+            <FileText className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="font-medium text-yellow-800 mb-1">⚠️ PDF Features Limited</p>
+              <p className="text-sm text-yellow-700">
+                PDF download may not work in this browser. Use <strong>Print → Save as PDF</strong> as alternative.
+              </p>
             </div>
           </div>
-        )}
-
-        {/* Mobile Detection Notice */}
-        <MobileNotice isMobile={isMobile} />
-
-        {/* Buy Me a Coffee Modal */}
-        <BuyMeACoffeeModal
-          isOpen={showCoffeeModal}
-          onClose={() => setShowCoffeeModal(false)}
-        />
-
-        {/* PDF Preview Modal - Desktop Only */}
-        {!useFallback && (
-          <PDFPreviewModal
-            isOpen={showPreview}
-            onClose={() => setShowPreview(false)}
-            pdfUrl={pdfUrl}
-            isGenerating={isGenerating}
-            onDownload={handleDownloadPDF}
-            isMobile={isMobile}
-          />
-        )}
-
-        {/* Action Buttons Component */}
-        <ReceiptActions
-          onPrint={handlePrint}
-          onDownload={handleDownloadPDF}
-          onPreview={handlePreviewPDF}
-          onShare={shareOnWhatsApp}
-          onCopy={copyToClipboard}
-          isGenerating={isGenerating}
-          isMobile={isMobile}
-          receiptData={receiptData}
-          savedReceipts={savedReceipts}
-          formatNaira={formatNaira}
-          calculateTotal={calculateTotal}
-          setActionCount={() => {}}
-        />
-
-        {/* Printable Receipt (Hidden for print) */}
-        <div ref={printableRef} className="hidden">
-          <PrintableReceipt
-            receiptData={receiptData}
-            companyLogo={companyLogo}
-            formatNaira={formatNaira}
-            calculateSubtotal={calculateSubtotal}
-            calculateDiscount={calculateDiscount}
-            calculateVAT={calculateVAT}
-            calculateTotal={calculateTotal}
-            calculateChange={calculateChange}
-            isMobile={isMobile}
-          />
         </div>
+      )}
 
-        {/* Visible Preview */}
-        <ReceiptPreview
+      {/* Mobile Detection Notice */}
+      <MobileNotice isMobile={isMobile} />
+
+      {/* Buy Me a Coffee Modal */}
+      <BuyMeACoffeeModal
+        isOpen={showCoffeeModal}
+        onClose={() => setShowCoffeeModal(false)}
+      />
+
+      {/* PDF Preview Modal - Desktop Only */}
+      {pdfAvailable && !isMobile && (
+        <PDFPreviewModal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          pdfUrl={pdfUrl}
+          isGenerating={isGenerating}
+          onDownload={handleDownloadPDF}
+          isMobile={isMobile}
+        />
+      )}
+
+      {/* Action Buttons Component */}
+      <ReceiptActions
+        onPrint={handlePrint}
+        onDownload={handleDownloadPDF}
+        onPreview={handlePreviewPDF}
+        onShare={shareOnWhatsApp}
+        onCopy={copyToClipboard}
+        isGenerating={isGenerating}
+        isMobile={isMobile}
+        receiptData={receiptData}
+        savedReceipts={savedReceipts}
+        formatNaira={formatNaira}
+        calculateTotal={calculateTotal}
+        setActionCount={() => {}}
+      />
+
+      {/* Printable Receipt (Hidden for print) */}
+      <div ref={printableRef} className="hidden">
+        <PrintableReceipt
           receiptData={receiptData}
           companyLogo={companyLogo}
           formatNaira={formatNaira}
           calculateSubtotal={calculateSubtotal}
+          calculateDiscount={calculateDiscount}
           calculateVAT={calculateVAT}
           calculateTotal={calculateTotal}
+          calculateChange={calculateChange}
+          isMobile={isMobile}
         />
       </div>
-    </Suspense>
+
+      {/* Visible Preview */}
+      <ReceiptPreview
+        receiptData={receiptData}
+        companyLogo={companyLogo}
+        formatNaira={formatNaira}
+        calculateSubtotal={calculateSubtotal}
+        calculateVAT={calculateVAT}
+        calculateTotal={calculateTotal}
+      />
+    </div>
   );
 };
 
