@@ -1,11 +1,14 @@
 import React from "react";
 import { pdf } from "@react-pdf/renderer";
-import TestPDF from "./TestPDF";
+import TestPd from "./Testpd";
+
+
+
 
 const PdfTestPage = () => {
   const generateAndOpenPDF = async () => {
     try {
-      const blob = await pdf(<TestPDF />).toBlob();
+      const blob = await pdf(<TestPd />).toBlob();
 
       // 🔥 This line alone tells us everything
       const url = URL.createObjectURL(blob);

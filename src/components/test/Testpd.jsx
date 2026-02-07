@@ -12,7 +12,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const TestPDF = () => (
+const TestPd = () => (
   <Document>
     <Page size="A4" style={styles.page}>
       <Text style={styles.title}>PDF TEST SUCCESS 🎉</Text>
@@ -23,4 +23,4 @@ const TestPDF = () => (
   </Document>
 );
 
-export default TestPDF;
+export default TestPd;
