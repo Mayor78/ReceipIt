@@ -7,7 +7,7 @@ import TemplateSelector from './receiptTemplates/TemplateSelector';
 import TemplateRenderer from './receiptTemplates/TemplateRenderer';
 import ReceiptActions from './receiptDisplay/ReceiptActions';
 import { generatePrintHTML } from './receiptTemplates/printTemplates';
-import { getPrintStyles } from '../utils/printUtils';
+import { getPrintStyles, detectPlatform } from '../utils/printUtils';
 
 const ReceiptDisplay = () => {
   const {
@@ -21,29 +21,38 @@ const ReceiptDisplay = () => {
     calculateTotal,
     calculateChange,
     formatNaira,
-    selectedTemplate // Get selected template from context
+    selectedTemplate
   } = useReceipt();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [platform, setPlatform] = useState('desktop');
   const printableRef = useRef();
 
   /* ---------------- CHECK ENVIRONMENT ---------------- */
+  useEffect(() => {
+    setIsClient(true);
+    
+    const checkDevice = () => {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      setIsMobile(isMobileDevice);
+      
+      // Detect specific platform
+      const detectedPlatform = detectPlatform();
+      setPlatform(detectedPlatform);
+    };
+    
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    
-    const checkMobile = () => {
-      const ua = navigator.userAgent || navigator.vendor || window.opera;
-      const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-      setIsMobile(isMobileDevice);
-    };
-    
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   /* ---------------- COFFEE MODAL RESET ---------------- */
@@ -68,7 +77,7 @@ const ReceiptDisplay = () => {
     }
   };
 
-  /* ---------------- FIXED PRINT FUNCTION ---------------- */
+  /* ---------------- IMPROVED PRINT FUNCTION ---------------- */
   const handlePrint = async () => {
     if (!isClient) {
       Swal.fire({
@@ -81,17 +90,138 @@ const ReceiptDisplay = () => {
     }
 
     try {
-      const printWindow = window.open('', '_blank');
+      // Check if it's Android
+      const isAndroid = /Android/i.test(navigator.userAgent);
       
-      if (!printWindow) {
-        Swal.fire({
-          title: "Pop-up Blocked",
-          text: "Please allow pop-ups for this site to print.",
-          icon: "warning",
-          confirmButtonText: "OK"
-        });
+      if (isAndroid) {
+        // Use Android-specific print method
+        await handleAndroidPrint();
         return;
       }
+      
+      // For iOS and Desktop, use the regular method
+      await handleStandardPrint();
+      
+    } catch (error) {
+      console.error("Print error:", error);
+      Swal.fire({
+        title: "Print Error",
+        html: `
+          <div style="text-align: left;">
+            <p style="margin-bottom: 15px;">Failed to print. Please try:</p>
+            <ol style="margin-left: 20px;">
+              <li>Allow pop-ups for this site</li>
+              <li>Try the download PDF option instead</li>
+              <li>Use Chrome browser for best results</li>
+            </ol>
+          </div>
+        `,
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+    }
+  };
+
+  /* ---------------- STANDARD PRINT (iOS/Desktop) ---------------- */
+  const handleStandardPrint = async () => {
+    const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+      Swal.fire({
+        title: "Pop-up Blocked",
+        text: "Please allow pop-ups for this site to print.",
+        icon: "warning",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+    
+    // Calculate all values
+    const calculations = {
+      subtotal: calculateSubtotal(),
+      discount: calculateDiscount(),
+      vat: calculateVAT(),
+      total: calculateTotal(),
+      change: calculateChange(),
+      deliveryFee: receiptData.deliveryFee || 0
+    };
+    
+    // Generate the selected template HTML
+    const templateHtml = generatePrintHTML(
+      selectedTemplate,
+      receiptData,
+      companyLogo,
+      formatNaira,
+      calculations
+    );
+    
+    // Create simplified print document for better compatibility
+    const printDocument = createPrintDocument(templateHtml, false);
+    
+    printWindow.document.write(printDocument);
+    printWindow.document.close();
+    
+    // Wait for content to load
+    setTimeout(() => {
+      printWindow.focus();
+      
+      // For iOS, trigger print after a delay
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        setTimeout(() => {
+          try {
+            printWindow.print();
+          } catch (e) {
+            // iOS print might fail, show manual instructions
+            Swal.fire({
+              title: "Print Instructions",
+              html: `
+                <div style="text-align: left;">
+                  <p>On iOS, please:</p>
+                  <ol style="margin-left: 20px;">
+                    <li>Tap the Share button (📤)</li>
+                    <li>Scroll and select "Print"</li>
+                    <li>Choose your printer or "Save to PDF"</li>
+                  </ol>
+                </div>
+              `,
+              icon: "info",
+              confirmButtonText: "Got it"
+            });
+          }
+        }, 1000);
+      } else {
+        // For desktop, auto-print after delay
+        setTimeout(() => {
+          try {
+            printWindow.print();
+          } catch (e) {
+            // If auto-print fails, at least the print dialog is open
+          }
+        }, 800);
+      }
+    }, 300);
+    
+    // Show coffee modal on main page
+    showCoffeeModalIfAllowed();
+  };
+
+  /* ---------------- ANDROID PRINT SOLUTION ---------------- */
+  const handleAndroidPrint = async () => {
+    setIsGenerating(true);
+    
+    try {
+      // Show loading message
+      const loadingSwal = Swal.fire({
+        title: "Preparing for Android...",
+        text: "Creating print-friendly document",
+        icon: "info",
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
       
       // Calculate all values
       const calculations = {
@@ -112,98 +242,229 @@ const ReceiptDisplay = () => {
         calculations
       );
       
-      // Get print styles
-      const printStyles = getPrintStyles();
+      // Create Android-optimized print document
+      const printDocument = createPrintDocument(templateHtml, true);
       
-      // Create the complete print document
-      const printDocument = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}</title>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta name="description" content="Receipt generated by ReceiptIt">
-            ${printStyles}
-          </head>
-          <body>
-            <div style="max-width: 210mm; margin: 0 auto; padding: ${isMobile ? '10mm' : '20mm'};">
-              ${templateHtml}
-            </div>
-            
-            <!-- Print Controls (Screen Only) -->
-            <div class="no-print" style="
-              position: fixed;
-              bottom: 30px;
-              right: 30px;
-              display: flex;
-              gap: 12px;
-              z-index: 1000;
-            ">
-              <button onclick="window.print()" style="
-                padding: 14px 28px;
-                background: linear-gradient(135deg, #059669 0%, #047857 100%);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-              ">
-                🖨️ Print / Save as PDF
-              </button>
-              <button onclick="window.close()" style="
-                padding: 14px 28px;
-                background: white;
-                color: #475569;
-                border: 2px solid #e2e8f0;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-              ">
-                ✕ Close
-              </button>
-            </div>
-            
-            <script>
-              // Auto-print for desktop (not mobile)
-              setTimeout(() => {
-                const isMobileDevice = ${isMobile} || window.innerWidth <= 768;
-                if (!isMobileDevice) {
-                  window.print();
-                }
-              }, 800);
-              
-              // Close after print
-              window.addEventListener('afterprint', () => {
-                setTimeout(() => window.close(), 500);
-              });
-            </script>
-          </body>
-        </html>
-      `;
+      // Close loading
+      await loadingSwal.close();
       
-      printWindow.document.write(printDocument);
-      printWindow.document.close();
+      // For Android, use iframe method
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      iframe.style.opacity = '0';
       
-      // Show coffee modal on main page
+      document.body.appendChild(iframe);
+      
+      const iframeDoc = iframe.contentWindow || iframe.contentDocument;
+      if (iframeDoc.document) {
+        iframeDoc = iframeDoc.document;
+      }
+      
+      iframeDoc.open();
+      iframeDoc.write(printDocument);
+      iframeDoc.close();
+      
+      // Wait for iframe to load
+      setTimeout(() => {
+        try {
+          // Try to print from iframe
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          
+          // Remove iframe after print attempt
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 5000);
+          
+          // Show manual instructions as backup
+          Swal.fire({
+            title: "Android Print",
+            html: `
+              <div style="text-align: left;">
+                <p style="margin-bottom: 15px;">If print dialog doesn't appear:</p>
+                <ol style="margin-left: 20px;">
+                  <li>Tap the 3-dot menu (⋮)</li>
+                  <li>Select "Print" or "Share"</li>
+                  <li>Choose "Save as PDF" to save</li>
+                </ol>
+                <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                  <p style="font-weight: 600; color: #4a5568;">Tip: Use Chrome browser for best results</p>
+                </div>
+              </div>
+            `,
+            icon: "info",
+            confirmButtonText: "Got it",
+            showCancelButton: true,
+            cancelButtonText: "Download PDF Instead",
+            confirmButtonColor: "#059669",
+            cancelButtonColor: "#4a5568"
+          }).then((result) => {
+            if (result.dismiss === Swal.DismissReason.cancel) {
+              handleDownloadPDF();
+            }
+          });
+          
+        } catch (iframeError) {
+          console.error("Iframe print error:", iframeError);
+          document.body.removeChild(iframe);
+          
+          // Fallback: Open in new window
+          const fallbackWindow = window.open();
+          fallbackWindow.document.write(printDocument);
+          fallbackWindow.document.close();
+          
+          Swal.fire({
+            title: "Manual Print Required",
+            html: `
+              <div style="text-align: left;">
+                <p>Please use your browser's print function:</p>
+                <ol style="margin-left: 20px;">
+                  <li>Tap the 3-dot menu (⋮) in top right</li>
+                  <li>Select "Print"</li>
+                  <li>Choose "Save as PDF" if needed</li>
+                </ol>
+              </div>
+            `,
+            icon: "warning",
+            confirmButtonText: "OK"
+          });
+        }
+      }, 1000);
+      
       showCoffeeModalIfAllowed();
       
     } catch (error) {
-      console.error("Print error:", error);
+      console.error("Android print error:", error);
       Swal.fire({
-        title: "Error",
-        text: "Failed to open print view. Please try again.",
+        title: "Print Failed",
+        text: "Please try the Download PDF option instead",
         icon: "error",
-        confirmButtonText: "OK"
+        confirmButtonText: "Download PDF",
+        cancelButtonText: "Cancel",
+        showCancelButton: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          handleDownloadPDF();
+        }
       });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  /* ---------------- DOWNLOAD PDF ---------------- */
+  /* ---------------- CREATE PRINT DOCUMENT ---------------- */
+  const createPrintDocument = (templateHtml, isAndroid = false) => {
+    const printStyles = getPrintStyles();
+    
+    // Simplified HTML structure for better compatibility
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}</title>
+        <meta name="description" content="Receipt generated by ReceiptIt">
+        ${printStyles}
+        <style>
+          /* Additional print-safe styles */
+          @media print {
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          }
+          
+          /* Android-specific optimizations */
+          ${isAndroid ? `
+            body {
+              font-size: 14px !important;
+              line-height: 1.5 !important;
+            }
+            img {
+              max-width: 100% !important;
+              height: auto !important;
+            }
+            table {
+              width: 100% !important;
+              table-layout: fixed !important;
+            }
+          ` : ''}
+          
+          /* Print button styling */
+          .print-button {
+            display: none;
+          }
+          @media screen {
+            .print-button {
+              display: block;
+              position: fixed;
+              bottom: 20px;
+              right: 20px;
+              padding: 12px 24px;
+              background: #059669;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              z-index: 1000;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
+          ${templateHtml}
+        </div>
+        
+        <!-- Manual print button (visible on screen only) -->
+        <button class="print-button" onclick="window.print()">
+          🖨️ Print / Save PDF
+        </button>
+        
+        <script>
+          // Auto-print logic (only for desktop)
+          setTimeout(function() {
+            try {
+              // Don't auto-print on mobile devices
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              const isAndroid = /Android/i.test(navigator.userAgent);
+              
+              if (!isMobile || window.location.search.includes('autoprint')) {
+                window.print();
+              }
+              
+              // Close window after print (with delay)
+              window.addEventListener('afterprint', function() {
+                setTimeout(function() {
+                  window.close();
+                }, 1000);
+              });
+              
+            } catch (error) {
+              console.log('Auto-print not available');
+            }
+          }, 1000);
+        </script>
+      </body>
+      </html>
+    `;
+  };
+
+  /* ---------------- DOWNLOAD PDF (IMPROVED FOR ANDROID) ---------------- */
   const handleDownloadPDF = async () => {
     if (!isClient) {
       Swal.fire({
@@ -218,32 +479,51 @@ const ReceiptDisplay = () => {
     try {
       setIsGenerating(true);
       
-      await Swal.fire({
-        title: "📄 Save as PDF",
-        html: `
-          <div style="text-align: left; font-size: 15px;">
-            <p style="margin-bottom: 15px; color: #4a5568;">Opening print view to save your receipt as PDF...</p>
-            <div style="background: #f7fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #4299e1;">
-              <p style="font-weight: 600; color: #2d3748; margin-bottom: 10px;">📋 Instructions:</p>
-              <ol style="margin-left: 20px; color: #4a5568;">
-                <li style="margin-bottom: 8px;">Click <strong style="color: #2b6cb0;">"Print / Save as PDF"</strong> button</li>
-                <li style="margin-bottom: 8px;">Select <strong style="color: #2b6cb0;">"Save as PDF"</strong> as printer</li>
-                <li style="margin-bottom: 8px;">Choose location and save</li>
-                <li>For mobile: Use browser's share menu</li>
-              </ol>
-            </div>
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      
+      const instructions = isAndroid ? `
+        <div style="text-align: left; font-size: 15px;">
+          <p style="margin-bottom: 15px; color: #4a5568;">📱 <strong>Android Instructions:</strong></p>
+          <div style="background: #f7fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #4299e1;">
+            <ol style="margin-left: 20px; color: #4a5568;">
+              <li style="margin-bottom: 8px;">Tap the <strong style="color: #2b6cb0;">"Print / Save as PDF"</strong> button</li>
+              <li style="margin-bottom: 8px;">In print preview, select <strong style="color: #2b6cb0;">"Save as PDF"</strong></li>
+              <li style="margin-bottom: 8px;">Or tap <strong style="color: #2b6cb0;">"⋮" menu → "Share" → Save to Drive/Files</strong></li>
+              <li style="margin-bottom: 8px;"><strong>Recommended:</strong> Use Chrome browser</li>
+            </ol>
           </div>
-        `,
+        </div>
+      ` : `
+        <div style="text-align: left; font-size: 15px;">
+          <p style="margin-bottom: 15px; color: #4a5568;">Opening print view to save your receipt as PDF...</p>
+          <div style="background: #f7fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #4299e1;">
+            <p style="font-weight: 600; color: #2d3748; margin-bottom: 10px;">📋 Instructions:</p>
+            <ol style="margin-left: 20px; color: #4a5568;">
+              <li style="margin-bottom: 8px;">Click <strong style="color: #2b6cb0;">"Print / Save as PDF"</strong> button</li>
+              <li style="margin-bottom: 8px;">Select <strong style="color: #2b6cb0;">"Save as PDF"</strong> as printer</li>
+              <li style="margin-bottom: 8px;">Choose location and save</li>
+            </ol>
+          </div>
+        </div>
+      `;
+      
+      await Swal.fire({
+        title: isAndroid ? "📱 Save PDF on Android" : "📄 Save as PDF",
+        html: instructions,
         icon: "info",
         showCancelButton: true,
-        confirmButtonText: "Open Print View",
+        confirmButtonText: isAndroid ? "Open Print View" : "Continue",
         cancelButtonText: "Cancel",
         confirmButtonColor: "#4299e1",
         cancelButtonColor: "#a0aec0",
-        timer: 8000
+        allowOutsideClick: false
       }).then(async (result) => {
         if (result.isConfirmed) {
-          await handlePrint();
+          if (isAndroid) {
+            await handleAndroidPrint();
+          } else {
+            await handleStandardPrint();
+          }
         }
       });
       
@@ -273,16 +553,23 @@ const ReceiptDisplay = () => {
     }
 
     try {
-      // Show loading
-      await Swal.fire({
-        title: "Opening Preview...",
-        text: "Preparing receipt for viewing",
-        icon: "info",
-        timer: 1500,
-        showConfirmButton: false
-      });
+      const isAndroid = /Android/i.test(navigator.userAgent);
       
-      await handlePrint();
+      if (isAndroid) {
+        // For Android, show preview in new tab
+        await handleAndroidPrint();
+      } else {
+        // Show loading for desktop/iOS
+        await Swal.fire({
+          title: "Opening Preview...",
+          text: "Preparing receipt for viewing",
+          icon: "info",
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        await handleStandardPrint();
+      }
       
     } catch (error) {
       console.error("Preview error:", error);
@@ -439,7 +726,37 @@ Thank you for your business! 🎉
         onClose={() => setShowCoffeeModal(false)}
       />
 
-    
+      {/* Template Selector */}
+      <TemplateSelector />
+
+      {/* Platform-specific notice */}
+      {platform === 'android' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Android Device Detected
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>
+                  For best printing results on Android:
+                  <ul className="list-disc ml-4 mt-1">
+                    <li>Use Chrome browser</li>
+                    <li>Allow pop-ups for this site</li>
+                    <li>Use "Download PDF" option if printing fails</li>
+                  </ul>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons Component */}
       <ReceiptActions
         onPrint={handlePrint}
@@ -449,6 +766,7 @@ Thank you for your business! 🎉
         onCopy={copyToClipboard}
         isGenerating={isGenerating}
         isMobile={isMobile}
+        platform={platform}
         receiptData={receiptData}
         savedReceipts={savedReceipts}
         formatNaira={formatNaira}
@@ -468,10 +786,14 @@ Thank you for your business! 🎉
             <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
               ${selectedTemplate.toUpperCase()} TEMPLATE
             </span>
+            {platform === 'android' && (
+              <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+                ANDROID
+              </span>
+            )}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
             This is how your receipt will look when printed
-            {isMobile && <span className="ml-2 text-orange-500 font-medium">(Mobile View)</span>}
           </p>
         </div>
         <div className="p-4 sm:p-6">
@@ -488,7 +810,11 @@ Thank you for your business! 🎉
           />
           <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
             <p>🎯 Preview only • Click buttons above to print, save, or share</p>
-            <p className="mt-1 text-xs">Selected template will be used for printing</p>
+            {platform === 'android' && (
+              <p className="mt-1 text-xs text-yellow-600">
+                ⚠️ On Android, use "Download PDF" for best results
+              </p>
+            )}
           </div>
         </div>
       </div>
