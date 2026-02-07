@@ -1,17 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { FileText } from 'lucide-react';
-import { useReceipt } from '../context/ReceiptContext';
-import ReceiptPDF from './ReceiptPDF';
-import { pdf } from '@react-pdf/renderer';
-import BuyMeACoffeeModal from './BuyMeACoffeeModal';
-import Swal from 'sweetalert2';
+import React, { useState, useRef, useEffect } from "react";
+import { pdf } from "@react-pdf/renderer";
+import Swal from "sweetalert2";
 
-// Import new components
-import ReceiptActions from './receiptDisplay/ReceiptActions';
-import PDFPreviewModal from './receiptDisplay/PDFPreviewModal';
-import MobileNotice from './receiptDisplay/MobileNotice';
-import PrintableReceipt from './receiptDisplay/PrintableReceipt';
-import ReceiptPreview from './receiptDisplay/ReceiptPreview';
+import { useReceipt } from "../context/ReceiptContext";
+import ReceiptPDF from "./ReceiptPDF";
+import BuyMeACoffeeModal from "./BuyMeACoffeeModal";
+
+import ReceiptActions from "./receiptDisplay/ReceiptActions";
+import MobileNotice from "./receiptDisplay/MobileNotice";
+import PrintableReceipt from "./receiptDisplay/PrintableReceipt";
+import ReceiptPreview from "./receiptDisplay/ReceiptPreview";
 
 const ReceiptDisplay = () => {
   const {
@@ -24,176 +22,140 @@ const ReceiptDisplay = () => {
     calculateVAT,
     calculateTotal,
     calculateChange,
-    formatNaira
+    formatNaira,
   } = useReceipt();
 
-  const [pdfUrl, setPdfUrl] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const printableRef = useRef();
+  const printableRef = useRef(null);
 
   /* ---------------- MOBILE DETECTION ---------------- */
 
   useEffect(() => {
     const checkMobile = () => {
-      const ua = navigator.userAgent || navigator.vendor || window.opera;
-      setIsMobile(/iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua));
+      const ua = navigator.userAgent || "";
+      setIsMobile(/Android|iPhone|iPad|iPod/i.test(ua));
     };
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  /* ---------------- PDF CORE GENERATOR (DATA URI METHOD) ---------------- */
+  /* ---------------- PDF GENERATION ---------------- */
 
-  const generatePDFData = async (saveToHistory = true) => {
+  const generatePDFBlob = async (saveToHistory = true) => {
     setIsGenerating(true);
+
     try {
-      const pdfInstance = (
+      const document = (
         <ReceiptPDF
           receiptData={receiptData}
+          companyLogo={companyLogo}
           formatNaira={formatNaira}
           calculateSubtotal={calculateSubtotal}
           calculateDiscount={calculateDiscount}
           calculateVAT={calculateVAT}
           calculateTotal={calculateTotal}
           calculateChange={calculateChange}
-          companyLogo={companyLogo}
         />
       );
 
-      const blob = await pdf(pdfInstance).toBlob();
+      const blob = await pdf(document).toBlob();
 
-      if (saveToHistory) {
+      // ❗ Save history only on desktop
+      if (saveToHistory && !isMobile) {
         saveCurrentReceipt(blob);
       }
 
-      // Convert to Base64 Data URI for mobile stability
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve({ blob, dataUri: reader.result });
-        reader.onerror = () => reject(new Error("Failed to convert PDF to Data URI"));
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error("PDF Gen Error:", error);
-      throw new Error(error.message || "Internal Rendering Error");
+      return blob;
+    } catch (err) {
+      console.error(err);
+      throw new Error("Failed to generate receipt PDF");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  /* ---------------- DOWNLOAD / SHARE ---------------- */
+  /* ---------------- DOWNLOAD (MOBILE SAFE) ---------------- */
 
   const handleDownloadPDF = async () => {
     Swal.fire({
-      title: 'Preparing Receipt',
-      text: 'Finalizing PDF document...',
+      title: "Preparing Receipt",
+      text: "Generating PDF…",
       allowOutsideClick: false,
-      didOpen: () => Swal.showLoading()
+      didOpen: () => Swal.showLoading(),
     });
 
     try {
-      const { blob } = await generatePDFData(true);
+      const blob = await generatePDFBlob(true);
       const fileName = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
 
       if (isMobile && navigator.share) {
-        // Share API is the only 100% way to "Download" to Files on iOS/Android
-        const file = new File([blob], fileName, { type: 'application/pdf' });
+        // ✅ ONLY reliable mobile method
+        const file = new File([blob], fileName, {
+          type: "application/pdf",
+        });
+
         await navigator.share({
           files: [file],
-          title: 'Receipt PDF',
-          text: 'Generated by Receipt App'
+          title: "Receipt",
+          text: "Generated receipt",
         });
+
         Swal.close();
       } else {
-        // Desktop Standard Download
+        // Desktop download
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        link.remove();
         URL.revokeObjectURL(url);
-        
-        Swal.fire({ title: "Success!", text: "Downloaded", icon: "success", timer: 2000 });
+
+        Swal.fire("Downloaded", "Receipt saved successfully", "success");
       }
+
       showCoffeeModalIfAllowed();
-    } catch (error) {
-      Swal.fire({ title: "Error", text: `Source: ${error.message}`, icon: "error" });
+    } catch (err) {
+      Swal.fire("Download failed", err.message, "error");
     }
   };
 
-  /* ---------------- PREVIEW (DATA URI + IFRAME) ---------------- */
+  /* ---------------- PRINT (DESKTOP ONLY) ---------------- */
 
-  const handlePreviewPDF = async () => {
-    let remoteWindow = null;
-
-    if (isMobile) {
-      // Open window immediately to satisfy browser security
-      remoteWindow = window.open('', '_blank');
-      if (!remoteWindow) {
-        Swal.fire({ title: "Popup Blocked", text: "Please allow popups to view receipt", icon: "warning" });
-        return;
-      }
-      remoteWindow.document.write('<p style="font-family:sans-serif; text-align:center; margin-top:50px;">Generating Receipt Preview...</p>');
-    }
+  const handlePrint = () => {
+    if (isMobile) return;
 
     try {
-      const { dataUri } = await generatePDFData(false);
+      const win = window.open("", "_blank");
+      if (!win) throw new Error("Popup blocked");
 
-      if (isMobile && remoteWindow) {
-        // Inject an iframe with the Data URI
-        remoteWindow.document.body.innerHTML = ''; // Clear loader
-        remoteWindow.document.write(`
-          <body style="margin:0; padding:0; overflow:hidden;">
-            <iframe src="${dataUri}" width="100%" height="100%" style="border:none;" allowfullscreen></iframe>
-          </body>
-        `);
-        remoteWindow.document.close();
-      } else {
-        setPdfUrl(dataUri);
-        setShowPreview(true);
-      }
-      showCoffeeModalIfAllowed();
-    } catch (error) {
-      if (remoteWindow) remoteWindow.close();
-      Swal.fire({ title: "Preview Error", text: `Source: ${error.message}`, icon: "error" });
-    }
-  };
-
-  /* ---------------- PRINT, COPY, SHARE ---------------- */
-
-  const handlePrint = async () => {
-    try {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) throw new Error("Popup blocked!");
-      
-      printWindow.document.write(`
+      win.document.write(`
         <html>
           <head><title>Print Receipt</title></head>
           <body>
             ${printableRef.current.innerHTML}
-            <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
+            <script>
+              setTimeout(() => { window.print(); window.close(); }, 500);
+            </script>
           </body>
         </html>
       `);
-      printWindow.document.close();
-    } catch (error) {
-      Swal.fire({ title: "Print Error", text: error.message, icon: "error" });
+      win.document.close();
+    } catch (err) {
+      Swal.fire("Print Error", err.message, "error");
     }
   };
 
-  const shareOnWhatsApp = async () => { /* Logic remains same as your original */ };
-  const copyToClipboard = async () => { /* Logic remains same as your original */ };
+  /* ---------------- COFFEE MODAL ---------------- */
 
-  // ... (Your existing useEffect for coffee modal logic remains here) ...
   useEffect(() => {
     const today = new Date().toDateString();
     const lastShown = localStorage.getItem("coffeeModalLastShown");
+
     if (lastShown !== today) {
       localStorage.removeItem("coffeeModalShownToday");
       localStorage.setItem("coffeeModalLastShown", today);
@@ -202,40 +164,34 @@ const ReceiptDisplay = () => {
 
   const showCoffeeModalIfAllowed = () => {
     if (!localStorage.getItem("coffeeModalShownToday")) {
-      setTimeout(() => setShowCoffeeModal(true), 1500);
+      setTimeout(() => setShowCoffeeModal(true), 1200);
       localStorage.setItem("coffeeModalShownToday", "true");
     }
   };
 
+  /* ---------------- RENDER ---------------- */
+
   return (
     <div className="space-y-6">
       <MobileNotice isMobile={isMobile} />
-      <BuyMeACoffeeModal isOpen={showCoffeeModal} onClose={() => setShowCoffeeModal(false)} />
-      
-      <PDFPreviewModal
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        pdfUrl={pdfUrl}
-        isGenerating={isGenerating}
-        onDownload={handleDownloadPDF}
-        isMobile={isMobile}
+
+      <BuyMeACoffeeModal
+        isOpen={showCoffeeModal}
+        onClose={() => setShowCoffeeModal(false)}
       />
 
       <ReceiptActions
-        onPrint={handlePrint}
         onDownload={handleDownloadPDF}
-        onPreview={handlePreviewPDF}
-        onShare={shareOnWhatsApp}
-        onCopy={copyToClipboard}
+        onPrint={!isMobile ? handlePrint : undefined}
         isGenerating={isGenerating}
         isMobile={isMobile}
         receiptData={receiptData}
         savedReceipts={savedReceipts}
         formatNaira={formatNaira}
         calculateTotal={calculateTotal}
-        setActionCount={() => {}}
       />
 
+      {/* PRINT TEMPLATE */}
       <div ref={printableRef} className="hidden">
         <PrintableReceipt
           receiptData={receiptData}
@@ -246,10 +202,10 @@ const ReceiptDisplay = () => {
           calculateVAT={calculateVAT}
           calculateTotal={calculateTotal}
           calculateChange={calculateChange}
-          isMobile={isMobile}
         />
       </div>
 
+      {/* ONSCREEN RECEIPT PREVIEW (HTML, NOT PDF) */}
       <ReceiptPreview
         receiptData={receiptData}
         companyLogo={companyLogo}
