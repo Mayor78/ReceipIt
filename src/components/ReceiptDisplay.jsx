@@ -82,73 +82,93 @@ const ReceiptDisplay = () => {
     }
   };
 
-  /* ---------------- IMPROVED DOWNLOAD / SHARE ---------------- */
+ /* ---------------- THE "LOADER-FIRST" PREVIEW ---------------- */
+  const handlePreviewPDF = async () => {
+    let remoteWindow = null;
+
+    if (isMobile) {
+      // 1. Open window IMMEDIATELY to bypass popup blockers
+      remoteWindow = window.open('', '_blank');
+      
+      if (!remoteWindow) {
+        Swal.fire({
+          title: "Popup Blocked",
+          text: "Please enable popups to view the receipt.",
+          icon: "warning"
+        });
+        return;
+      }
+
+      // 2. Inject a nice loader into the new window
+      remoteWindow.document.write(`
+        <div id="loader-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
+          <div style="border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 60px; height: 60px; animation: spin 2s linear infinite;"></div>
+          <p style="margin-top: 20px; font-size: 18px; color: #555;">Generating Your Receipt...</p>
+          <style>
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          </style>
+        </div>
+      `);
+    }
+
+    try {
+      // 3. Generate the PDF
+      const result = await generatePDF(false);
+      
+      if (isMobile && remoteWindow) {
+        // 4. Swap loader for the PDF
+        remoteWindow.location.href = result.url;
+      } else if (!isMobile) {
+        setShowPreview(true);
+      }
+    } catch (error) {
+      if (remoteWindow) remoteWindow.close();
+      Swal.fire({
+        title: "Error",
+        text: `Source: ${error.message}`,
+        icon: "error"
+      });
+    }
+  };
+
+  /* ---------------- SHARE / DOWNLOAD WITH LOADER ---------------- */
   const handleDownloadPDF = async () => {
+    // Show a loading overlay on the main screen
+    Swal.fire({
+      title: 'Preparing PDF',
+      html: 'Please wait...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     try {
       const result = await generatePDF(true);
       const fileName = `${receiptData.receiptType}-${receiptData.receiptNumber}.pdf`;
 
-      // NATIVE MOBILE SHARING (The "No Error" way for Mobile)
       if (isMobile && navigator.share) {
         const file = new File([result.blob], fileName, { type: 'application/pdf' });
+        
+        // Native Share sheet
         await navigator.share({
           files: [file],
-          title: 'Receipt PDF',
-          text: 'Here is your receipt'
-        }).catch((err) => {
-           if (err.name !== 'AbortError') throw err;
+          title: 'Receipt',
         });
+        Swal.close(); 
       } else {
-        // DESKTOP DOWNLOAD
+        // Desktop Download logic
         const link = document.createElement('a');
         link.href = result.url;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      }
-
-      await Swal.fire({
-        title: "Success!",
-        text: "Receipt processed successfully",
-        icon: "success",
-        timer: 2000
-      });
-      
-      showCoffeeModalIfAllowed();
-    } catch (error) {
-      Swal.fire({
-        title: "Download/Share Error",
-        text: `Source: ${error.message}`,
-        icon: "error",
-        confirmButtonText: "Close"
-      });
-    }
-  };
-
-  /* ---------------- IMPROVED PREVIEW ---------------- */
-  const handlePreviewPDF = async () => {
-    try {
-      const result = await generatePDF(false);
-      
-      if (isMobile) {
-        // Many mobile browsers block blob URLs in new tabs. 
-        // We use window.location.href or a better alternative is to just use handleDownloadPDF's share logic.
-        // For now, we attempt to open in a way mobile handles best:
-        const newWindow = window.open(result.url, '_blank');
-        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-           // If blocked by popup blocker, fall back to direct navigation
-           window.location.href = result.url;
-        }
-      } else {
-        setShowPreview(true);
+        
+        Swal.fire({ title: "Success!", icon: "success", timer: 1500 });
       }
     } catch (error) {
-      Swal.fire({
-        title: "Preview Error",
-        text: `Source: ${error.message}`,
-        icon: "error"
-      });
+      Swal.fire({ title: "Error", text: error.message, icon: "error" });
     }
   };
 
