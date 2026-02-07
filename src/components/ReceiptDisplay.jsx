@@ -207,154 +207,231 @@ const ReceiptDisplay = () => {
   };
 
   /* ---------------- ANDROID PRINT SOLUTION ---------------- */
-  const handleAndroidPrint = async () => {
-    setIsGenerating(true);
+ /* ---------------- ANDROID PRINT SOLUTION ---------------- */
+const handleAndroidPrint = async () => {
+  setIsGenerating(true);
+  
+  try {
+    // Show loading message
+    const loadingSwal = Swal.fire({
+      title: "Preparing for Android...",
+      text: "Creating print-friendly document",
+      icon: "info",
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
     
+    // Calculate all values
+    const calculations = {
+      subtotal: calculateSubtotal(),
+      discount: calculateDiscount(),
+      vat: calculateVAT(),
+      total: calculateTotal(),
+      change: calculateChange(),
+      deliveryFee: receiptData.deliveryFee || 0
+    };
+    
+    // Generate the selected template HTML
+    const templateHtml = generatePrintHTML(
+      selectedTemplate,
+      receiptData,
+      companyLogo,
+      formatNaira,
+      calculations
+    );
+    
+    // Create Android-optimized print document
+    const printDocument = createPrintDocument(templateHtml, true);
+    
+    // Close loading
+    await loadingSwal.close();
+    
+    // For Android, use iframe method
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    iframe.style.visibility = 'hidden';
+    
+    document.body.appendChild(iframe);
+    
+    // FIXED: Proper iframe document handling
+    let iframeDoc;
     try {
-      // Show loading message
-      const loadingSwal = Swal.fire({
-        title: "Preparing for Android...",
-        text: "Creating print-friendly document",
-        icon: "info",
-        showConfirmButton: false,
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-      
-      // Calculate all values
-      const calculations = {
-        subtotal: calculateSubtotal(),
-        discount: calculateDiscount(),
-        vat: calculateVAT(),
-        total: calculateTotal(),
-        change: calculateChange(),
-        deliveryFee: receiptData.deliveryFee || 0
-      };
-      
-      // Generate the selected template HTML
-      const templateHtml = generatePrintHTML(
-        selectedTemplate,
-        receiptData,
-        companyLogo,
-        formatNaira,
-        calculations
-      );
-      
-      // Create Android-optimized print document
-      const printDocument = createPrintDocument(templateHtml, true);
-      
-      // Close loading
-      await loadingSwal.close();
-      
-      // For Android, use iframe method
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'absolute';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = 'none';
-      iframe.style.opacity = '0';
-      
-      document.body.appendChild(iframe);
-      
-      const iframeDoc = iframe.contentWindow || iframe.contentDocument;
-      if (iframeDoc.document) {
-        iframeDoc = iframeDoc.document;
+      // Try to get the document from contentWindow first
+      if (iframe.contentWindow && iframe.contentWindow.document) {
+        iframeDoc = iframe.contentWindow.document;
+      } else if (iframe.contentDocument) {
+        iframeDoc = iframe.contentDocument;
+      } else {
+        throw new Error('Could not access iframe document');
       }
       
+      // Open and write to iframe
       iframeDoc.open();
       iframeDoc.write(printDocument);
       iframeDoc.close();
       
-      // Wait for iframe to load
+    } catch (iframeError) {
+      console.error("Iframe document error:", iframeError);
+      // Fallback: use srcdoc attribute
+      iframe.srcdoc = printDocument;
+      await new Promise(resolve => {
+        iframe.onload = resolve;
+        iframe.onerror = resolve;
+        setTimeout(resolve, 1000);
+      });
+    }
+    
+    // Wait for iframe to load
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    try {
+      // Try to print from iframe
+      if (iframe.contentWindow) {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      }
+      
+      // Remove iframe after print attempt
       setTimeout(() => {
-        try {
-          // Try to print from iframe
-          iframe.contentWindow.focus();
-          iframe.contentWindow.print();
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 5000);
+      
+      // Show success message with instructions
+      await Swal.fire({
+        title: "✅ Print Dialog Opened",
+        html: `
+          <div style="text-align: left;">
+            <p style="margin-bottom: 15px; color: #059669;">Print dialog should be visible now.</p>
+            <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-top: 15px;">
+              <p style="font-weight: 600; color: #0369a1; margin-bottom: 10px;">📱 Android Tips:</p>
+              <ul style="margin-left: 20px; color: #475569;">
+                <li>Select <strong>"Save as PDF"</strong> to save</li>
+                <li>Or choose a printer if connected</li>
+                <li>If dialog doesn't appear, use 3-dot menu → "Print"</li>
+              </ul>
+            </div>
+          </div>
+        `,
+        icon: "success",
+        confirmButtonText: "Got it",
+        showCancelButton: true,
+        cancelButtonText: "Try Download Instead",
+        confirmButtonColor: "#059669",
+        cancelButtonColor: "#4a5568",
+        timer: 10000
+      }).then((result) => {
+        if (result.dismiss === Swal.DismissReason.cancel) {
+          handleDownloadPDF();
+        }
+      });
+      
+    } catch (iframeError) {
+      console.error("Iframe print error:", iframeError);
+      
+      // Clean up iframe
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+      
+      // Fallback 1: Open in new window
+      try {
+        const fallbackWindow = window.open();
+        if (fallbackWindow) {
+          fallbackWindow.document.write(printDocument);
+          fallbackWindow.document.close();
           
-          // Remove iframe after print attempt
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-          }, 5000);
-          
-          // Show manual instructions as backup
-          Swal.fire({
-            title: "Android Print",
+          await Swal.fire({
+            title: "📄 Opened in New Tab",
             html: `
               <div style="text-align: left;">
-                <p style="margin-bottom: 15px;">If print dialog doesn't appear:</p>
+                <p>Receipt opened in new tab. Please:</p>
                 <ol style="margin-left: 20px;">
-                  <li>Tap the 3-dot menu (⋮)</li>
-                  <li>Select "Print" or "Share"</li>
+                  <li>Tap the 3-dot menu (⋮) in top right</li>
+                  <li>Select "Print"</li>
                   <li>Choose "Save as PDF" to save</li>
                 </ol>
-                <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
-                  <p style="font-weight: 600; color: #4a5568;">Tip: Use Chrome browser for best results</p>
-                </div>
               </div>
             `,
             icon: "info",
-            confirmButtonText: "Got it",
+            confirmButtonText: "OK",
             showCancelButton: true,
-            cancelButtonText: "Download PDF Instead",
-            confirmButtonColor: "#059669",
-            cancelButtonColor: "#4a5568"
+            cancelButtonText: "Download PDF",
+            confirmButtonColor: "#3B82F6",
+            cancelButtonColor: "#059669"
           }).then((result) => {
             if (result.dismiss === Swal.DismissReason.cancel) {
               handleDownloadPDF();
             }
           });
-          
-        } catch (iframeError) {
-          console.error("Iframe print error:", iframeError);
-          document.body.removeChild(iframe);
-          
-          // Fallback: Open in new window
-          const fallbackWindow = window.open();
-          fallbackWindow.document.write(printDocument);
-          fallbackWindow.document.close();
-          
-          Swal.fire({
-            title: "Manual Print Required",
-            html: `
-              <div style="text-align: left;">
-                <p>Please use your browser's print function:</p>
-                <ol style="margin-left: 20px;">
-                  <li>Tap the 3-dot menu (⋮) in top right</li>
-                  <li>Select "Print"</li>
-                  <li>Choose "Save as PDF" if needed</li>
-                </ol>
-              </div>
-            `,
-            icon: "warning",
-            confirmButtonText: "OK"
-          });
+        } else {
+          throw new Error('Could not open new window');
         }
-      }, 1000);
-      
-      showCoffeeModalIfAllowed();
-      
-    } catch (error) {
-      console.error("Android print error:", error);
-      Swal.fire({
-        title: "Print Failed",
-        text: "Please try the Download PDF option instead",
-        icon: "error",
-        confirmButtonText: "Download PDF",
-        cancelButtonText: "Cancel",
-        showCancelButton: true
-      }).then((result) => {
-        if (result.isConfirmed) {
-          handleDownloadPDF();
-        }
-      });
-    } finally {
-      setIsGenerating(false);
+      } catch (windowError) {
+        // Fallback 2: Direct download
+        await Swal.fire({
+          title: "⚠️ Print Not Available",
+          html: `
+            <div style="text-align: left;">
+              <p style="margin-bottom: 15px;">Your browser's pop-up blocker may be active.</p>
+              <p>Please try:</p>
+              <ol style="margin-left: 20px;">
+                <li>Allow pop-ups for this site</li>
+                <li>Or use the Download PDF option below</li>
+                <li>Use Chrome browser for best results</li>
+              </ol>
+            </div>
+          `,
+          icon: "warning",
+          confirmButtonText: "Download PDF",
+          cancelButtonText: "Cancel",
+          showCancelButton: true,
+          confirmButtonColor: "#059669"
+        }).then((result) => {
+          if (result.isConfirmed) {
+            handleDownloadPDF();
+          }
+        });
+      }
     }
-  };
-
+    
+    showCoffeeModalIfAllowed();
+    
+  } catch (error) {
+    console.error("Android print error:", error);
+    await Swal.fire({
+      title: "Print Failed",
+      html: `
+        <div style="text-align: left;">
+          <p style="margin-bottom: 15px;">There was an error preparing the print.</p>
+          <div style="background: #fef2f2; padding: 15px; border-radius: 8px;">
+            <p style="color: #dc2626; font-weight: 600;">Suggested fix:</p>
+            <p>Use the "Download PDF" option for reliable saving.</p>
+          </div>
+        </div>
+      `,
+      icon: "error",
+      confirmButtonText: "Download PDF",
+      cancelButtonText: "Cancel",
+      showCancelButton: true,
+      confirmButtonColor: "#059669"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleDownloadPDF();
+      }
+    });
+  } finally {
+    setIsGenerating(false);
+  }
+};
   /* ---------------- CREATE PRINT DOCUMENT ---------------- */
   const createPrintDocument = (templateHtml, isAndroid = false) => {
     const printStyles = getPrintStyles();
