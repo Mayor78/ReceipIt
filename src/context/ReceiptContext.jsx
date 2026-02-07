@@ -2,39 +2,125 @@ import React, { createContext, useState, useContext, useEffect, useMemo, useCall
 
 const ReceiptContext = createContext();
 
-// Define templates here
+// Updated templates with all 6 styles
 const RECEIPT_TEMPLATES = [
-  {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Clean layout for invoices and official receipts',
-    headerColor: '#3B82F6',
-  },
   {
     id: 'modern',
     name: 'Modern',
-    description: 'Sleek design with gradients and modern typography',
-    headerColor: '#10B981',
+    description: 'Clean, minimalist design with subtle gradients and shadows',
+    previewColor: '#3B82F6',
+    icon: 'sparkles',
+    category: 'premium',
+    features: ['Gradient accents', 'Card layout', 'Modern typography']
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    description: 'Corporate style with clean lines and formal layout',
+    previewColor: '#10B981',
+    icon: 'briefcase',
+    category: 'business',
+    features: ['Corporate branding', 'Formal layout', 'Clean structure']
   },
   {
     id: 'elegant',
     name: 'Elegant',
-    description: 'Classic design with red accents for premium look',
-    headerColor: '#EF4444',
+    description: 'Sophisticated design with serif fonts and decorative elements',
+    previewColor: '#8B5CF6',
+    icon: 'diamond',
+    category: 'luxury',
+    features: ['Serif fonts', 'Decorative lines', 'Premium feel']
   },
   {
-    id: 'standard',
-    name: 'Standard',
-    description: 'Simple business receipt with all essential details',
-    headerColor: '#6B7280',
+    id: 'minimal',
+    name: 'Minimal',
+    description: 'Ultra-simple design focusing on essential information',
+    previewColor: '#6B7280',
+    icon: 'minimize',
+    category: 'simple',
+    features: ['No distractions', 'Essential info only', 'Clean whitespace']
   },
   {
-    id: 'thermal',
-    name: 'Thermal',
-    description: '58mm format optimized for POS printers',
-    headerColor: '#F59E0B',
+    id: 'bold',
+    name: 'Bold',
+    description: 'High-contrast design with strong typography and colors',
+    previewColor: '#EF4444',
+    icon: 'zap',
+    category: 'creative',
+    features: ['High contrast', 'Bold typography', 'Color accents']
   },
+  {
+    id: 'classic',
+    name: 'Classic',
+    description: 'Traditional receipt style with familiar layout',
+    previewColor: '#F59E0B',
+    icon: 'receipt',
+    category: 'standard',
+    features: ['Traditional layout', 'Easy to read', 'Familiar format']
+  }
 ];
+
+// Template configuration function
+export const getTemplateConfig = (templateId) => {
+  const configs = {
+    modern: {
+      primaryColor: '#3B82F6',
+      secondaryColor: '#8B5CF6',
+      bgColor: '#FFFFFF',
+      borderColor: '#E5E7EB',
+      shadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      borderRadius: '16px',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
+    },
+    professional: {
+      primaryColor: '#10B981',
+      secondaryColor: '#059669',
+      bgColor: '#FFFFFF',
+      borderColor: '#D1D5DB',
+      shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      borderRadius: '8px',
+      fontFamily: "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
+    },
+    elegant: {
+      primaryColor: '#8B5CF6',
+      secondaryColor: '#7C3AED',
+      bgColor: '#F9FAFB',
+      borderColor: '#E5E7EB',
+      shadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+      borderRadius: '12px',
+      fontFamily: "'Playfair Display', serif"
+    },
+    minimal: {
+      primaryColor: '#6B7280',
+      secondaryColor: '#4B5563',
+      bgColor: '#FFFFFF',
+      borderColor: '#F3F4F6',
+      shadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+      borderRadius: '4px',
+      fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif"
+    },
+    bold: {
+      primaryColor: '#EF4444',
+      secondaryColor: '#DC2626',
+      bgColor: '#FFFFFF',
+      borderColor: '#000000',
+      shadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+      borderRadius: '20px',
+      fontFamily: "'Montserrat', sans-serif"
+    },
+    classic: {
+      primaryColor: '#F59E0B',
+      secondaryColor: '#D97706',
+      bgColor: '#FFFFFF',
+      borderColor: '#E5E7EB',
+      shadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      borderRadius: '0px',
+      fontFamily: "'Courier New', monospace"
+    }
+  };
+  
+  return configs[templateId] || configs.modern;
+};
 
 // Helper function to generate receipt number (outside component)
 const generateReceiptNumber = () => {
@@ -107,7 +193,7 @@ export const ReceiptProvider = ({ children }) => {
 
   const [companyLogo, setCompanyLogo] = useState(null);
   const [savedReceipts, setSavedReceipts] = useState(loadSavedReceipts());
-  const [selectedTemplate, setSelectedTemplate] = useState('professional');
+  const [selectedTemplate, setSelectedTemplate] = useState('modern'); // Changed default to modern
   
   // Check for existing draft
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
@@ -124,8 +210,8 @@ export const ReceiptProvider = ({ children }) => {
       tinNumber: "",
       rcNumber: "",
       cashierName: "",
-       includeSignature: false,
-    signatureData: null,
+      includeSignature: false,
+      signatureData: null,
       receiptNumber: generateReceiptNumber(),
       invoiceNumber: generateInvoiceNumber(),
       date,
@@ -142,7 +228,6 @@ export const ReceiptProvider = ({ children }) => {
       amountPaid: 0,
       customerNotes: "",
       footerMessage: "",
-      includeSignature: false,
       includeTerms: false,
       termsAndConditions: "",
       includeBillTo: false,
@@ -285,31 +370,30 @@ export const ReceiptProvider = ({ children }) => {
     setSelectedTemplate(templateId);
   };
 
- const addItem = useCallback(() => {
-  setReceiptData(prev => {
-    if (prev.items.length === 0) {
-      return { ...prev, items: [{ id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }] };
-    }
+  const addItem = useCallback(() => {
+    setReceiptData(prev => {
+      if (prev.items.length === 0) {
+        return { ...prev, items: [{ id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }] };
+      }
 
-    const lastItem = prev.items[prev.items.length - 1];
+      const lastItem = prev.items[prev.items.length - 1];
 
-    // Check if the fields are actually empty
-    // We use .trim() to catch spaces, and parseFloat to catch 0
-    const nameValue = lastItem.name ? String(lastItem.name).trim() : "";
-    const isNameEmpty = nameValue === "" || nameValue === "New Item";
-    const isPriceEmpty = !lastItem.price || parseFloat(lastItem.price) <= 0;
+      // Check if the fields are actually empty
+      const nameValue = lastItem.name ? String(lastItem.name).trim() : "";
+      const isNameEmpty = nameValue === "" || nameValue === "New Item";
+      const isPriceEmpty = !lastItem.price || parseFloat(lastItem.price) <= 0;
 
-    if (isNameEmpty || isPriceEmpty) {
-      alert("Please enter a valid Name and Price before adding a new item.");
-      return prev; 
-    }
+      if (isNameEmpty || isPriceEmpty) {
+        alert("Please enter a valid Name and Price before adding a new item.");
+        return prev; 
+      }
 
-    return {
-      ...prev,
-      items: [...prev.items, { id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }]
-    };
-  });
-}, []);
+      return {
+        ...prev,
+        items: [...prev.items, { id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }]
+      };
+    });
+  }, []);
 
   const updateItem = useCallback((id, field, value) => {
     setReceiptData(prev => ({
@@ -326,8 +410,6 @@ export const ReceiptProvider = ({ children }) => {
       items: prev.items.filter(item => item.id !== id)
     }));
   }, []);
-
-
 
   // Clear draft
   const clearDraft = useCallback(() => {
@@ -438,6 +520,7 @@ export const ReceiptProvider = ({ children }) => {
     return generateReceiptNumber();
   };
 
+  // Also export getTemplateConfig from context
   return (
     <ReceiptContext.Provider value={{
       receiptData,
@@ -464,13 +547,13 @@ export const ReceiptProvider = ({ children }) => {
       formatNaira,
       resetReceipt,
       generateReceiptNumber: generateNewReceiptNumber,
+      // Template configuration
+      getTemplateConfig,
       // Draft management
       showDraftPrompt,
       restoreDraft,
       discardDraft,
       startNewReceipt,
-     
-    
       clearDraft,
     }}>
       {children}
