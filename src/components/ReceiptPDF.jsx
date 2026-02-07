@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// Standardized styles for mobile-to-PC consistency
+// Standardized styles for mo bbile-to-PC consistency
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
