@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import { ReceiptProvider } from '../context/ReceiptContext';
 
-import TemplateSelector from '../components/TemplateSelector';
+
 import LogoUpload from '../components/LogoUpload';
 import ReceiptForm from '../components/ReceiptForm';
 import ReceiptDisplay from '../components/ReceiptDisplay';
 import ReceiptHistory from '../components/ReceiptHistory';
 import ActionButtons from '../components/ActionButtons';
 import { FileText, History, Settings, Receipt } from 'lucide-react';
+import TemplateSelector from '../components/receiptTemplates/TemplateSelector';
 
 const ReceiptApp = () => {
   const [activeTab, setActiveTab] = useState('create');
