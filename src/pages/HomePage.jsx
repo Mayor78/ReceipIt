@@ -10,7 +10,7 @@ import CTASection from '../components/home/CTASection';
 import Footer from '../components/home/Footer';
 import PWAInstallSection from '../components/home/PWAInstallSection';
 import SimpleHeader from '../components/home/SimplaHeader';
-import PdfTestPage from '../components/test/PdfTestPage';
+
 
 
 
@@ -21,7 +21,7 @@ const HomePage = ({ onGetStarted }) => {
       <HeroSection onGetStarted={onGetStarted} />
       <FeaturesGrid />
       <PrivacySection />
-      <PdfTestPage/>
+   
        <PWAInstallSection /> 
       <HowItWorks />
       <WhyChooseUs />
