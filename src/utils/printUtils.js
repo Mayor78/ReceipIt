@@ -173,6 +173,9 @@ export const generatePDFBlob = (htmlContent) => {
 };
 
 // Android-specific print helper
+// printUtils.js
+
+// Android-specific print helper - FIXED VERSION
 export const printForAndroid = (htmlContent) => {
   return new Promise((resolve, reject) => {
     try {
@@ -185,11 +188,28 @@ export const printForAndroid = (htmlContent) => {
       
       document.body.appendChild(iframe);
       
-      const iframeDoc = iframe.contentWindow || iframe.contentDocument;
-      if (iframeDoc.document) {
-        iframeDoc = iframeDoc.document;
+      // FIX: Use proper variable declaration
+      let iframeDoc;
+      if (iframe.contentWindow && iframe.contentWindow.document) {
+        iframeDoc = iframe.contentWindow.document;
+      } else if (iframe.contentDocument) {
+        iframeDoc = iframe.contentDocument;
+      } else {
+        // Fallback: use srcdoc
+        iframe.srcdoc = htmlContent;
+        iframe.onload = () => {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            resolve(true);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        return;
       }
       
+      // Write content to iframe
       iframeDoc.open();
       iframeDoc.write(htmlContent);
       iframeDoc.close();
