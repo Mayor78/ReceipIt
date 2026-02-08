@@ -155,46 +155,50 @@ const showCoffeeModalIfAllowed = () => {
     printWindow.document.write(printDocument);
     printWindow.document.close();
     
-    // Wait for content to load
-    setTimeout(() => {
+    // CRITICAL: Wait for full load + images before print - fixes blank PDF
+    const triggerPrint = () => {
       printWindow.focus();
-      
-      // For iOS, trigger print after a delay
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        setTimeout(() => {
-          try {
-            printWindow.print();
-          } catch (e) {
-            // iOS print might fail, show manual instructions
-            Swal.fire({
-              title: "Print Instructions",
-              html: `
-                <div style="text-align: left;">
-                  <p>On iOS, please:</p>
-                  <ol style="margin-left: 20px;">
-                    <li>Tap the Share button (📤)</li>
-                    <li>Scroll and select "Print"</li>
-                    <li>Choose your printer or "Save to PDF"</li>
-                  </ol>
-                </div>
-              `,
-              icon: "info",
-              confirmButtonText: "Got it"
-            });
-          }
-        }, 1000);
-      } else {
-        // For desktop, auto-print after delay
-        setTimeout(() => {
-          try {
-            printWindow.print();
-          } catch (e) {
-            // If auto-print fails, at least the print dialog is open
-          }
-        }, 800);
+      try {
+        printWindow.print();
+      } catch (e) {
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          Swal.fire({
+            title: "Print Instructions",
+            html: `
+              <div style="text-align: left;">
+                <p>On iOS, please:</p>
+                <ol style="margin-left: 20px;">
+                  <li>Tap the Share button (📤)</li>
+                  <li>Scroll and select "Print"</li>
+                  <li>Choose your printer or "Save to PDF"</li>
+                </ol>
+              </div>
+            `,
+            icon: "info",
+            confirmButtonText: "Got it"
+          });
+        }
       }
-    }, 300);
+    };
+
+    // Wait for document load, then images, then paint - prevents blank PDF
+    const doPrintWhenReady = () => {
+      const doc = printWindow.document;
+      const imgs = doc.querySelectorAll('img');
+      const imgPromises = Array.from(imgs).map(img =>
+        img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
+      );
+      Promise.all(imgPromises).then(() => {
+        // Extra delay for layout/paint - Chrome PDF capture needs content fully rendered
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(triggerPrint, 500);
+          });
+        });
+      });
+    };
+    
+    printWindow.onload = doPrintWhenReady;
     
     // Show coffee modal on main page
     showCoffeeModalIfAllowed();
@@ -283,8 +287,22 @@ const handleAndroidPrint = async () => {
       });
     }
     
-    // Wait for iframe to load
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for iframe load + images before print (fixes blank PDF)
+    await new Promise(resolve => {
+      iframe.onload = resolve;
+      setTimeout(resolve, 2000); // fallback
+    });
+    
+    const waitForImages = (doc) => {
+      const imgs = doc.querySelectorAll('img');
+      return Promise.all(Array.from(imgs).map(img =>
+        img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
+      ));
+    };
+    
+    const iframeDocEl = iframe.contentDocument || iframe.contentWindow?.document;
+    if (iframeDocEl) await waitForImages(iframeDocEl);
+    await new Promise(r => setTimeout(r, 500)); // allow paint
     
     try {
       // Try to print from iframe
@@ -508,28 +526,10 @@ const handleAndroidPrint = async () => {
         </button>
         
         <script>
-          // Auto-print logic (only for desktop)
-          setTimeout(function() {
-            try {
-              // Don't auto-print on mobile devices
-              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-              const isAndroid = /Android/i.test(navigator.userAgent);
-              
-              if (!isMobile || window.location.search.includes('autoprint')) {
-                window.print();
-              }
-              
-              // Close window after print (with delay)
-              window.addEventListener('afterprint', function() {
-                setTimeout(function() {
-                  window.close();
-                }, 1000);
-              });
-              
-            } catch (error) {
-              console.log('Auto-print not available');
-            }
-          }, 1000);
+          // Close window after user finishes print/PDF (print triggered by parent)
+          window.addEventListener('afterprint', function() {
+            setTimeout(function() { window.close(); }, 500);
+          });
         </script>
       </body>
       </html>
