@@ -10,12 +10,14 @@ const ReceiptActions = ({
   onCopy,
   isGenerating,
   isMobile,
+  platform,
   receiptData,
   formatNaira,
   setActionCount,
   calculateTotal,
   savedReceipts,
 }) => {
+  const isAndroid = platform === 'android';
   // Wrap actions to show success alert and increment action count
   const handleAction = async (action, actionName) => {
     try {
@@ -46,8 +48,9 @@ const ReceiptActions = ({
 
   return (
     <div className="space-y-4">
-      {/* Action Buttons - Mobile Optimized */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Action Buttons - Mobile Optimized. On Android: hide Print (doesn't work), show View/Download/Share only */}
+      <div className={`grid gap-3 ${isAndroid ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
+        {!isAndroid && (
         <button
           onClick={() => handleAction(onPrint, "Print")}
           disabled={isGenerating}
@@ -62,6 +65,7 @@ const ReceiptActions = ({
             </>
           )}
         </button>
+        )}
         
         <button
           onClick={() => handleAction(onDownload, "Download")}
@@ -88,7 +92,7 @@ const ReceiptActions = ({
           ) : (
             <>
               <Eye size={18} />
-              <span>{isMobile ? 'Open PDF' : 'Preview PDF'}</span>
+              <span>{isAndroid ? 'View' : (isMobile ? 'Open PDF' : 'Preview PDF')}</span>
             </>
           )}
         </button>

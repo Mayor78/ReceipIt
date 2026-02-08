@@ -72,30 +72,14 @@ const showCoffeeModalIfAllowed = () => {
   localStorage.setItem("coffeeModalShownToday", "true");
 };
 
-  /* ---------------- IMPROVED PRINT FUNCTION ---------------- */
+  /* ---------------- PRINT (iOS/PC only - Print hidden on Android) ---------------- */
   const handlePrint = async () => {
     if (!isClient) {
-      Swal.fire({
-        title: "Error",
-        text: "Please refresh the page and try again.",
-        icon: "error",
-        confirmButtonText: "OK"
-      });
+      Swal.fire({ title: "Error", text: "Please refresh the page and try again.", icon: "error", confirmButtonText: "OK" });
       return;
     }
-
     try {
-      // Check if it's Android
-      const isAndroid = /Android/i.test(navigator.userAgent);
-      
-      if (isAndroid) {
-        // Use Android-specific print method
-        await handleAndroidPrint();
-        return;
-      }
-      
-      // For iOS and Desktop, use the regular method
-      await handleStandardPrint();
+      await handleStandardPrint(false);
       
     } catch (error) {
       console.error("Print error:", error);
@@ -150,8 +134,7 @@ const showCoffeeModalIfAllowed = () => {
       calculations
     );
     
-    // Create print document (pass isAndroid for Share button on Android)
-    const printDocument = createPrintDocument(templateHtml, isAndroid);
+    const printDocument = createPrintDocument(templateHtml, { isAndroid });
     
     printWindow.document.write(printDocument);
     printWindow.document.close();
@@ -205,13 +188,24 @@ const showCoffeeModalIfAllowed = () => {
     showCoffeeModalIfAllowed();
   };
 
-  /* ---------------- ANDROID PRINT SOLUTION ---------------- */
-  /* Use new window (same as PC) - adds Share button so users can share receipt to customer */
-  const handleAndroidPrint = async () => {
-    await handleStandardPrint(true);
+  /* ---------------- ANDROID VIEW (receipt in new tab with Download button - print doesn't work on Android) ---------------- */
+  const handleAndroidView = () => {
+    const viewWindow = window.open('', '_blank');
+    if (!viewWindow) {
+      Swal.fire({ title: "Pop-up Blocked", text: "Please allow pop-ups for this site.", icon: "warning", confirmButtonText: "OK" });
+      return;
+    }
+    const calculations = { subtotal: calculateSubtotal(), discount: calculateDiscount(), vat: calculateVAT(), total: calculateTotal(), change: calculateChange(), deliveryFee: receiptData.deliveryFee || 0 };
+    const templateHtml = generatePrintHTML(selectedTemplate, receiptData, companyLogo, formatNaira, calculations);
+    const doc = createPrintDocument(templateHtml, { isAndroid: true, showDownloadInsteadOfPrint: true });
+    viewWindow.document.write(doc);
+    viewWindow.document.close();
+    showCoffeeModalIfAllowed();
   };
+
   /* ---------------- CREATE PRINT DOCUMENT ---------------- */
-  const createPrintDocument = (templateHtml, isAndroid = false) => {
+  const createPrintDocument = (templateHtml, options = {}) => {
+    const { isAndroid = false, showDownloadInsteadOfPrint = false } = typeof options === 'boolean' ? { isAndroid: options } : options;
     const printStyles = getPrintStyles();
     
     // Simplified HTML structure for better compatibility
@@ -284,6 +278,11 @@ const showCoffeeModalIfAllowed = () => {
         <div style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
           ${templateHtml}
         </div>
+        ${showDownloadInsteadOfPrint ? `
+        <button class="print-button" onclick="if(window.opener){window.opener.postMessage({type:'receiptit-download-pdf'},'*');}">
+          📥 Download PDF
+        </button>
+        ` : `
         <button class="print-button" onclick="window.print()">
           🖨️ Print / Save PDF
         </button>
@@ -292,6 +291,7 @@ const showCoffeeModalIfAllowed = () => {
             setTimeout(function() { window.close(); }, 500);
           });
         </script>
+        `}
       </body>
       </html>
     `;
@@ -363,24 +363,28 @@ const showCoffeeModalIfAllowed = () => {
     URL.revokeObjectURL(a.href);
   };
 
+  /* ---------------- Listen for Download PDF from Android view window ---------------- */
+  const handleDownloadPDFRef = useRef(() => {});
+  handleDownloadPDFRef.current = handleDownloadPDF;
+  useEffect(() => {
+    const onMessage = (e) => {
+      if (e.data?.type === 'receiptit-download-pdf') handleDownloadPDFRef.current();
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   /* ---------------- PREVIEW PDF ---------------- */
   const handlePreviewPDF = async () => {
     if (!isClient) {
-      Swal.fire({
-        title: "Error",
-        text: "Please refresh the page and try again.",
-        icon: "error",
-        confirmButtonText: "OK"
-      });
+      Swal.fire({ title: "Error", text: "Please refresh the page and try again.", icon: "error", confirmButtonText: "OK" });
       return;
     }
-
     try {
       const isAndroid = /Android/i.test(navigator.userAgent);
-      
       if (isAndroid) {
-        // For Android, show preview in new tab
-        await handleAndroidPrint();
+        handleAndroidView();
+        return;
       } else {
         // Show loading for desktop/iOS
         await Swal.fire({
@@ -615,7 +619,7 @@ Thank you for your business! 🎉
             )}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            This is how your receipt will look when printed
+            {platform === 'android' ? 'Use View to preview, then Download or Share' : 'This is how your receipt will look when printed'}
           </p>
         </div>
         <div className="p-4 sm:p-6">
@@ -631,12 +635,7 @@ Thank you for your business! 🎉
             isMobile={isMobile}
           />
           <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-            <p>🎯 Preview only • Click buttons above to print, save, or share</p>
-            {platform === 'android' && (
-              <p className="mt-1 text-xs text-yellow-600">
-                ⚠️ On Android, use "Download PDF" for best results
-              </p>
-            )}
+            <p>🎯 {platform === 'android' ? 'Use View, Download PDF, or Share above' : 'Preview only • Click buttons above to print, save, or share'}</p>
           </div>
         </div>
       </div>
