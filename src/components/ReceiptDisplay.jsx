@@ -605,15 +605,15 @@ Thank you for your business! 🎉
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
           <h3 className="font-bold text-gray-800 flex items-center gap-2">
             <FileText size={18} className="text-blue-600" />
-            Live Preview
-            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-              ${receiptData.receiptType.toUpperCase()}
+           <span className="text-sm font-medium text-gray-800"> Live Preview</span>
+            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-md">
+              {receiptData.receiptType.toUpperCase()}
             </span>
-            <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-              ${selectedTemplate.toUpperCase()} TEMPLATE
+            <span className="text-center px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-md">
+              {selectedTemplate.toUpperCase()} TEMPLATE
             </span>
             {platform === 'android' && (
-              <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+              <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-md">
                 ANDROID
               </span>
             )}
@@ -635,7 +635,7 @@ Thank you for your business! 🎉
             isMobile={isMobile}
           />
           <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-            <p>🎯 {platform === 'android' ? 'Use View, Download PDF, or Share above' : 'Preview only • Click buttons above to print, save, or share'}</p>
+            <p>{platform === 'android' ? 'Use View, Download PDF, or Share above' : 'Preview only • Click buttons above to print, save, or share'}</p>
           </div>
         </div>
       </div>

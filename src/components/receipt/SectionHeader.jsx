@@ -8,7 +8,8 @@ const SectionHeader = ({
   children, 
   badge, 
   isExpanded,
-  onClick 
+  onClick,
+  details
 }) => {
   const getSectionColor = (key) => {
     switch(key) {
@@ -35,8 +36,9 @@ const SectionHeader = ({
         </div>
         <div>
           <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+          <p className='text-xs font-normal text-gray-400'>{details}</p>
           {badge && (
-            <span className={`text-xs px-2 py-0.5 rounded-full ${badge.className}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-md ${badge.className}`}>
               {badge.text}
             </span>
           )}

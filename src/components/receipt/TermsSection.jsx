@@ -67,7 +67,8 @@ const TermsSection = ({
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
       <SectionHeader 
-        title="Notes & Terms" 
+        title="Notes, Terms & Signature" 
+        details="Add your notes, terms and signature"
         icon={MessageSquare} 
         sectionKey="terms"
         isExpanded={isExpanded}
@@ -109,7 +110,7 @@ const TermsSection = ({
           </div>
 
           {/* Footer Message */}
-          <div>
+          {/* <div>
             <label className="block text-xs font-medium text-gray-700 mb-2">
               Footer Message
             </label>
@@ -124,7 +125,7 @@ const TermsSection = ({
                 'Thank you for your business!'
               }
             />
-          </div>
+          </div> */}
 
           {/* Quick Options */}
           <div className="space-y-4">

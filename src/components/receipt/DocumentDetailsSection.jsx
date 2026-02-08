@@ -36,6 +36,7 @@ const DocumentDetailsSection = ({
     <div className="bg-white rounded-xl p-4 shadow-sm">
       <SectionHeader 
         title="Document Details" 
+        details="Who is filling it"
         icon={FileText}
         sectionKey="documentDetails"
         isExpanded={isExpanded}

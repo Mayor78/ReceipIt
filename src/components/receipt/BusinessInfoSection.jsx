@@ -12,6 +12,7 @@ const BusinessInfoSection = ({
     <div className="bg-white rounded-xl p-4 shadow-sm">
       <SectionHeader 
         title="Business Info" 
+        details="Add Your Business Information"
         icon={Building2} 
         sectionKey="businessInfo"
         isExpanded={isExpanded}

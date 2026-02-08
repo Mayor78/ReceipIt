@@ -1,14 +1,12 @@
 // pages/ReceiptApp.jsx
 import React, { useState } from 'react';
 import { ReceiptProvider } from '../context/ReceiptContext';
-
-
 import LogoUpload from '../components/LogoUpload';
 import ReceiptForm from '../components/ReceiptForm';
 import ReceiptDisplay from '../components/ReceiptDisplay';
 import ReceiptHistory from '../components/ReceiptHistory';
 import ActionButtons from '../components/ActionButtons';
-import { FileText, History, Settings, Receipt } from 'lucide-react';
+import { Receipt, History, Settings } from 'lucide-react';
 import TemplateSelector from '../components/receiptTemplates/TemplateSelector';
 
 const ReceiptApp = () => {
@@ -16,43 +14,45 @@ const ReceiptApp = () => {
 
   return (
     <ReceiptProvider>
-      <div className="max-w-7xl mx-auto px-4 py-4 md:p-4">
-        {/* Simplified Header for Receipt App */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-                Receipt Generator
-              </h1>
-              <p className="text-gray-600 text-sm mt-1">
-                Create, customize, and download professional receipts
-              </p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <ActionButtons />
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto">
           
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
-            <div className="flex space-x-1">
+          {/* Minimal Header */}
+          <div className="bg-white border-b sticky top-0 z-10">
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
+                    <Receipt className="text-white" size={18} />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-semibold text-gray-900">Receipt Generator</h1>
+                    <p className="text-xs text-gray-500">Create professional receipts</p>
+                  </div>
+                </div>
+                <ActionButtons />
+              </div>
+            </div>
+
+            {/* Minimal Tabs */}
+            <div className="flex border-t">
               <button
                 onClick={() => setActiveTab('create')}
-                className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors text-sm ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'create'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'border-green-600 text-green-600 bg-green-50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <Receipt size={16} />
-                <span>Create Receipt</span>
+                <span>Create</span>
               </button>
               <button
                 onClick={() => setActiveTab('history')}
-                className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors text-sm ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'history'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'border-green-600 text-green-600 bg-green-50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <History size={16} />
@@ -60,10 +60,10 @@ const ReceiptApp = () => {
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
-                className={`flex items-center space-x-2 px-4 py-3 font-medium transition-colors text-sm ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'settings'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'border-green-600 text-green-600 bg-green-50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <Settings size={16} />
@@ -71,62 +71,98 @@ const ReceiptApp = () => {
               </button>
             </div>
           </div>
+
+          {/* Content */}
+          <div className="p-4">
+            {/* CREATE TAB */}
+            {activeTab === 'create' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Left Column */}
+                <div className="lg:col-span-2 space-y-4">
+                  
+                  {/* Logo Upload */}
+                  <div className="bg-white ">
+                    <div className="px-4 py-2 border-b bg-gray-50">
+                      <h2 className="text-sm font-semibold text-gray-900">Company Logo</h2>
+                    </div>
+                    <div className="p-4">
+                      <LogoUpload />
+                    </div>
+                  </div>
+                  
+                  {/* Template Selector */}
+                  <div className="bg-white ">
+                    <div className="px-4 py-2 border-b bg-gray-50">
+                      <h2 className="text-sm font-semibold text-gray-900">Choose Template</h2>
+                    </div>
+                    <div className="p-4">
+                      <TemplateSelector />
+                    </div>
+                  </div>
+                  
+                  {/* Receipt Form */}
+                  <div className="bg-white ">
+                    <div className="px-4 py-2 border-b bg-gray-50">
+                      <h2 className="text-sm font-semibold text-gray-900">Receipt Details</h2>
+                    </div>
+                    <div className="p-4">
+                      <ReceiptForm />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Preview */}
+                <div className="lg:col-span-1">
+                  <div className="sticky top-20">
+                    <div className="bg-white ">
+                      <div className="px-4 py-2 border-b bg-gray-50 flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-gray-900">Preview</h2>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                          <span className="text-xs text-gray-500">Live</span>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <ReceiptDisplay />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* HISTORY TAB */}
+            {activeTab === 'history' && (
+              <div className="bg-white ">
+                <div className="px-4 py-2 border-b bg-gray-50">
+                  <h2 className="text-sm font-semibold text-gray-900">Receipt History</h2>
+                </div>
+                <div className="p-4">
+                  <ReceiptHistory />
+                </div>
+              </div>
+            )}
+
+            {/* SETTINGS TAB */}
+            {activeTab === 'settings' && (
+              <div className="bg-white ">
+                <div className="px-4 py-2 border-b bg-gray-50">
+                  <h2 className="text-sm font-semibold text-gray-900">Settings</h2>
+                </div>
+                <div className="p-4">
+                  <LogoUpload />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Minimal Footer */}
+          <div className="px-4 py-3 border-t bg-white">
+            <p className="text-center text-xs text-gray-500">
+              Built by mayordev • v2.0
+            </p>
+          </div>
         </div>
-
-        {activeTab === 'create' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Controls */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Logo Upload Section */}
-              <div className="bg-white rounded-xl shadow-lg p-5">
-                <LogoUpload />
-              </div>
-              
-              {/* Template Selector */}
-              <div className="bg-white rounded-xl shadow-lg p-5">
-                <TemplateSelector />
-              </div>
-              
-              {/* Receipt Form */}
-              <div className="bg-white rounded-xl shadow-lg p-5">
-                <h2 className="text-lg font-bold text-gray-800 mb-4">
-                  Receipt Details
-                </h2>
-                <ReceiptForm />
-              </div>
-            </div>
-
-            {/* Right Column: Preview */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-4">
-                <ReceiptDisplay />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'history' && (
-          <div className="space-y-6">
-            <ReceiptHistory />
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-xl shadow-lg p-5">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Settings</h2>
-            <div className="space-y-6">
-              <LogoUpload />
-              {/* Add more settings here */}
-            </div>
-          </div>
-        )}
-
-        {/* Minimal Footer */}
-        <footer className="mt-12 pt-6 border-t border-gray-200 text-center">
-          <p className="text-gray-600 text-sm">
-            Built with ❤️ by mayordev • Version 2.0
-          </p>
-        </footer>
       </div>
     </ReceiptProvider>
   );

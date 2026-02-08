@@ -22,7 +22,7 @@ const MobileActions = ({
   };
 
   return (
-    <div className="sticky bottom-0 bg-white border-t p-4 shadow-lg lg:hidden z-">
+    <div className="sticky bottom-0 bg-white border-t p-2 shadow-lg lg:hidden z-">
       <div className="flex justify-end space-x-2">
     
 
@@ -31,9 +31,9 @@ const MobileActions = ({
           onClick={() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="px-4 py-3 border border-gray-300 rounded-lg font-medium hover:bg-green-300 transition-colors"
+          className="px-2 py-2 border border-gray-300 rounded-lg font-bold hover:bg-green-300 bg-green-500 text-white transition-colors"
         >
-          <ArrowUp size={18} />
+          <ArrowUp size={22} />
         </button>
       </div>
    
