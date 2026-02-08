@@ -803,8 +803,7 @@ Thank you for your business! 🎉
         onClose={() => setShowCoffeeModal(false)}
       />
 
-      {/* Template Selector */}
-      <TemplateSelector />
+      
 
       {/* Platform-specific notice */}
       {platform === 'android' && (

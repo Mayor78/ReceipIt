@@ -17,7 +17,9 @@ export const printTemplates = {
           ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 60px; margin-bottom: 15px;">` : ''}
           <h1 style="color: #111827; margin: 10px 0; font-size: 24px; font-weight: 700;">${receiptData.storeName}</h1>
           <p style="color: #6B7280; margin: 5px 0; font-size: 13px;">${receiptData.storeAddress}</p>
-          <p style="color: #6B7280; margin: 5px 0; font-size: 13px;">Tel: ${receiptData.storePhone}</p>
+          <p style="color: #6B7280; margin: 5px 0; font-size: 13px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• Email: ${receiptData.storeEmail}` : ''}</p>
+          ${receiptData.tinNumber ? `<p style="color: #6B7280; margin: 5px 0; font-size: 13px; font-weight: 600;">TIN: ${receiptData.tinNumber}</p>` : ''}
+          ${receiptData.rcNumber ? `<p style="color: #6B7280; margin: 5px 0; font-size: 13px;">RC: ${receiptData.rcNumber}</p>` : ''}
         </div>
         
         <!-- Document Info -->
@@ -25,12 +27,17 @@ export const printTemplates = {
           <div>
             <h3 style="color: #6B7280; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 10px;">${receiptData.receiptType} Details</h3>
             <p style="margin: 5px 0; color: #111827;"><strong>Receipt #:</strong> ${receiptData.receiptNumber}</p>
+            ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
+              <p style="margin: 5px 0; color: #111827;"><strong>Invoice #:</strong> ${receiptData.invoiceNumber}</p>
+            ` : ''}
+            ${receiptData.poNumber ? `<p style="margin: 5px 0; color: #111827;"><strong>PO #:</strong> ${receiptData.poNumber}</p>` : ''}
             <p style="margin: 5px 0; color: #111827;"><strong>Cashier:</strong> ${receiptData.cashierName}</p>
           </div>
           <div>
             <h3 style="color: #6B7280; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 10px;">Date & Time</h3>
             <p style="margin: 5px 0; color: #111827;"><strong>Date:</strong> ${receiptData.date}</p>
             <p style="margin: 5px 0; color: #111827;"><strong>Time:</strong> ${receiptData.time}</p>
+            ${receiptData.dueDate ? `<p style="margin: 5px 0; color: #111827;"><strong>Due Date:</strong> ${receiptData.dueDate}</p>` : ''}
           </div>
         </div>
         
@@ -50,6 +57,7 @@ export const printTemplates = {
             <tr style="background: #3B82F6; color: white;">
               <th style="padding: 14px 10px; text-align: left; font-weight: 600;">Item</th>
               <th style="padding: 14px 10px; text-align: center; font-weight: 600;">Qty</th>
+              <th style="padding: 14px 10px; text-align: center; font-weight: 600;">Unit</th>
               <th style="padding: 14px 10px; text-align: right; font-weight: 600;">Price</th>
               <th style="padding: 14px 10px; text-align: right; font-weight: 600;">Amount</th>
             </tr>
@@ -62,6 +70,9 @@ export const printTemplates = {
                   ${item.description ? `<div style="font-size: 12px; color: #6B7280; margin-top: 3px;">${item.description}</div>` : ''}
                 </td>
                 <td style="padding: 14px 10px; text-align: center; color: #374151;">${item.quantity}</td>
+                <td style="padding: 14px 10px; text-align: center; color: #374151;">
+                  ${item.unit && item.unit !== 'Piece' ? item.unit : '-'}
+                </td>
                 <td style="padding: 14px 10px; text-align: right; color: #374151;">${formatNaira(item.price)}</td>
                 <td style="padding: 14px 10px; text-align: right; font-weight: 600; color: #111827;">${formatNaira(item.price * item.quantity)}</td>
               </tr>
@@ -84,7 +95,7 @@ export const printTemplates = {
             ` : ''}
             ${receiptData.deliveryFee > 0 ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #F3F4F6;">
-                <span>Delivery:</span>
+                <span>Delivery Fee:</span>
                 <span>${formatNaira(receiptData.deliveryFee)}</span>
               </div>
             ` : ''}
@@ -119,6 +130,45 @@ export const printTemplates = {
           </div>
         </div>
         
+        <!-- Notes -->
+        ${receiptData.customerNotes ? `
+          <div style="background: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Notes:</h3>
+            <p style="color: #6B7280; font-size: 13px; line-height: 1.5;">${receiptData.customerNotes}</p>
+          </div>
+        ` : ''}
+        
+        <!-- Terms & Conditions -->
+        ${receiptData.includeTerms && receiptData.termsAndConditions ? `
+          <div style="border: 1px solid #E5E7EB; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Terms & Conditions:</h3>
+            <p style="color: #6B7280; font-size: 12px; line-height: 1.5; white-space: pre-line;">${receiptData.termsAndConditions}</p>
+          </div>
+        ` : ''}
+        
+        <!-- Signature -->
+        ${receiptData.includeSignature ? `
+          <div style="margin: 40px 0;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+              <div style="text-align: center;">
+                <div style="height: 60px; border-bottom: 2px solid #374151; margin-bottom: 10px; position: relative;">
+                  ${receiptData.signatureData ? `
+                    <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 50px; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
+                  ` : ''}
+                </div>
+                <div style="color: #6B7280; font-size: 12px;">AUTHORIZED SIGNATURE</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="height: 60px; border-bottom: 2px solid #374151; margin-bottom: 10px;"></div>
+                <div style="color: #6B7280; font-size: 12px;">Customer</div>
+              </div>
+            </div>
+            <div style="text-align: center; color: #9CA3AF; font-size: 11px; margin-top: 10px;">
+              Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+          </div>
+        ` : ''}
+        
         <!-- Footer -->
         <div style="text-align: center; margin-top: 40px; padding-top: 25px; border-top: 2px solid #E5E7EB; color: #6B7280; font-size: 12px;">
           <div style="display: flex; justify-content: center; gap: 2px; margin-bottom: 15px; height: 40px;">
@@ -146,14 +196,21 @@ export const printTemplates = {
           ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 50px; margin-bottom: 15px;">` : ''}
           <h1 style="color: #111827; margin: 10px 0; font-size: 22px; font-weight: 600; letter-spacing: -0.5px;">${receiptData.storeName}</h1>
           <p style="color: #4B5563; margin: 5px 0; font-size: 13px; font-weight: 400;">${receiptData.storeAddress}</p>
-          <p style="color: #4B5563; margin: 5px 0; font-size: 13px;">Tel: ${receiptData.storePhone}</p>
+          <p style="color: #4B5563; margin: 5px 0; font-size: 13px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• Email: ${receiptData.storeEmail}` : ''}</p>
+          ${receiptData.tinNumber ? `<p style="color: #4B5563; margin: 5px 0; font-size: 13px; font-weight: 600;">TIN: ${receiptData.tinNumber}</p>` : ''}
+          ${receiptData.rcNumber ? `<p style="color: #4B5563; margin: 5px 0; font-size: 13px;">RC: ${receiptData.rcNumber}</p>` : ''}
         </div>
         
         <!-- Document Info -->
         <div style="display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #E5E7EB;">
           <div>
             <p style="margin: 8px 0; color: #4B5563;"><strong>${receiptData.receiptType} #:</strong> ${receiptData.receiptNumber}</p>
+            ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
+              <p style="margin: 8px 0; color: #4B5563;"><strong>Invoice #:</strong> ${receiptData.invoiceNumber}</p>
+            ` : ''}
+            ${receiptData.poNumber ? `<p style="margin: 8px 0; color: #4B5563;"><strong>PO #:</strong> ${receiptData.poNumber}</p>` : ''}
             <p style="margin: 8px 0; color: #4B5563;"><strong>Date:</strong> ${receiptData.date}</p>
+            ${receiptData.dueDate ? `<p style="margin: 8px 0; color: #4B5563;"><strong>Due Date:</strong> ${receiptData.dueDate}</p>` : ''}
           </div>
           <div style="text-align: right;">
             <p style="margin: 8px 0; color: #4B5563;"><strong>Time:</strong> ${receiptData.time}</p>
@@ -161,12 +218,23 @@ export const printTemplates = {
           </div>
         </div>
         
+        <!-- Customer Info -->
+        ${receiptData.includeBillTo && receiptData.billToName ? `
+          <div style="background: #10B981; color: white; padding: 15px; border-radius: 6px; margin-bottom: 25px;">
+            <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">BILL TO</h3>
+            <p style="margin: 4px 0;"><strong>${receiptData.billToName}</strong></p>
+            ${receiptData.billToAddress ? `<p style="margin: 4px 0; font-size: 13px;">${receiptData.billToAddress}</p>` : ''}
+            ${receiptData.billToPhone ? `<p style="margin: 4px 0; font-size: 13px;">Tel: ${receiptData.billToPhone}</p>` : ''}
+          </div>
+        ` : ''}
+        
         <!-- Items Table -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px;">
           <thead>
             <tr>
               <th style="padding: 12px 10px; text-align: left; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981;">Description</th>
               <th style="padding: 12px 10px; text-align: center; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981;">Qty</th>
+              <th style="padding: 12px 10px; text-align: center; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981;">Unit</th>
               <th style="padding: 12px 10px; text-align: right; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981;">Unit Price</th>
               <th style="padding: 12px 10px; text-align: right; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981;">Amount</th>
             </tr>
@@ -179,6 +247,9 @@ export const printTemplates = {
                   ${item.description ? `<div style="font-size: 12px; color: #6B7280; margin-top: 3px;">${item.description}</div>` : ''}
                 </td>
                 <td style="padding: 14px 10px; text-align: center; color: #4B5563;">${item.quantity}</td>
+                <td style="padding: 14px 10px; text-align: center; color: #4B5563;">
+                  ${item.unit && item.unit !== 'Piece' ? item.unit : '-'}
+                </td>
                 <td style="padding: 14px 10px; text-align: right; color: #4B5563;">${formatNaira(item.price)}</td>
                 <td style="padding: 14px 10px; text-align: right; font-weight: 600; color: #111827;">${formatNaira(item.price * item.quantity)}</td>
               </tr>
@@ -197,6 +268,12 @@ export const printTemplates = {
               <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: #DC2626;">
                 <span>Discount:</span>
                 <span>-${formatNaira(discount)}</span>
+              </div>
+            ` : ''}
+            ${receiptData.deliveryFee > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span>Delivery Fee:</span>
+                <span>${formatNaira(receiptData.deliveryFee)}</span>
               </div>
             ` : ''}
             ${receiptData.includeVAT ? `
@@ -227,6 +304,50 @@ export const printTemplates = {
           </div>
         </div>
         
+        <!-- Notes -->
+        ${receiptData.customerNotes ? `
+          <div style="margin-bottom: 20px;">
+            <h3 style="color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Customer Notes:</h3>
+            <p style="color: #6B7280; font-size: 13px; line-height: 1.5; padding: 10px; background: #F9FAFB; border-radius: 4px;">
+              ${receiptData.customerNotes}
+            </p>
+          </div>
+        ` : ''}
+        
+        <!-- Terms & Conditions -->
+        ${receiptData.includeTerms && receiptData.termsAndConditions ? `
+          <div style="margin-bottom: 20px;">
+            <h3 style="color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Terms & Conditions:</h3>
+            <p style="color: #6B7280; font-size: 12px; line-height: 1.5; white-space: pre-line; padding: 10px; background: #F9FAFB; border-radius: 4px;">
+              ${receiptData.termsAndConditions}
+            </p>
+          </div>
+        ` : ''}
+        
+        <!-- Signature -->
+        ${receiptData.includeSignature ? `
+          <div style="margin: 30px 0;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+              <div style="text-align: center;">
+                <div style="height: 50px; border-bottom: 1px solid #D1D5DB; margin-bottom: 10px; position: relative;">
+                  ${receiptData.signatureData ? `
+                    <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 40px; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
+                  ` : ''}
+                </div>
+                <div style="color: #6B7280; font-size: 12px;">AUTHORIZED SIGNATURE</div>
+                <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px;">
+                  ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </div>
+              </div>
+              <div style="text-align: center;">
+                <div style="height: 50px; border-bottom: 1px solid #D1D5DB; margin-bottom: 10px;"></div>
+                <div style="color: #6B7280; font-size: 12px;">Customer</div>
+                <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px;">Date</div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+        
         <!-- Footer -->
         <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; color: #6B7280; font-size: 12px;">
           <p style="margin: 8px 0; color: #374151;"><strong>${receiptData.receiptNumber}</strong></p>
@@ -250,6 +371,8 @@ export const printTemplates = {
           ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 50px; margin-bottom: 15px; filter: brightness(0) invert(1);">` : ''}
           <h1 style="margin: 10px 0; font-size: 26px; font-weight: 700; letter-spacing: 1px;">${receiptData.storeName}</h1>
           <p style="margin: 5px 0; opacity: 0.9; font-size: 14px;">${receiptData.storeAddress}</p>
+          <p style="margin: 5px 0; opacity: 0.9; font-size: 13px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• ${receiptData.storeEmail}` : ''}</p>
+          ${receiptData.tinNumber ? `<p style="margin: 5px 0; opacity: 0.9; font-size: 13px;">TIN: ${receiptData.tinNumber}</p>` : ''}
         </div>
         
         <!-- Receipt Details -->
@@ -259,16 +382,33 @@ export const printTemplates = {
             <div style="text-align: center; flex: 1;">
               <div style="color: #8B5CF6; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 5px;">${receiptData.receiptType} Number</div>
               <div style="font-size: 18px; font-weight: 700; color: #111827;">${receiptData.receiptNumber}</div>
+              ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
+                <div style="color: #6B7280; font-size: 12px; margin-top: 3px;">Invoice: ${receiptData.invoiceNumber}</div>
+              ` : ''}
+              ${receiptData.poNumber ? `<div style="color: #6B7280; font-size: 12px; margin-top: 3px;">PO: ${receiptData.poNumber}</div>` : ''}
             </div>
             <div style="text-align: center; flex: 1;">
               <div style="color: #8B5CF6; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 5px;">Date & Time</div>
-              <div style="font-size: 14px; color: #4B5563;">${receiptData.date} • ${receiptData.time}</div>
+              <div style="font-size: 14px; color: #4B5563;">${receiptData.date}</div>
+              <div style="font-size: 14px; color: #4B5563;">${receiptData.time}</div>
+              ${receiptData.dueDate ? `<div style="color: #7C3AED; font-size: 12px; margin-top: 3px;">Due: ${receiptData.dueDate}</div>` : ''}
             </div>
             <div style="text-align: center; flex: 1;">
-              <div style="color: #8B5CF6; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 5px;">Cashier</div>
-              <div style="font-size: 14px; color: #4B5563;">${receiptData.cashierName}</div>
+              <div style="color: #8B5CF6; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 5px;">Details</div>
+              <div style="font-size: 14px; color: #4B5563;">Cashier: ${receiptData.cashierName}</div>
+              ${receiptData.rcNumber ? `<div style="font-size: 12px; color: #6B7280; margin-top: 3px;">RC: ${receiptData.rcNumber}</div>` : ''}
             </div>
           </div>
+          
+          <!-- Customer Info -->
+          ${receiptData.includeBillTo && receiptData.billToName ? `
+            <div style="background: linear-gradient(135deg, #F3E8FF, #E9D5FF); padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #8B5CF6;">
+              <h3 style="color: #7C3AED; font-size: 15px; font-weight: 600; margin-bottom: 8px;">BILL TO</h3>
+              <p style="color: #111827; margin: 4px 0; font-weight: 500;">${receiptData.billToName}</p>
+              ${receiptData.billToAddress ? `<p style="color: #6B7280; margin: 4px 0; font-size: 13px;">${receiptData.billToAddress}</p>` : ''}
+              ${receiptData.billToPhone ? `<p style="color: #6B7280; margin: 4px 0; font-size: 13px;">Tel: ${receiptData.billToPhone}</p>` : ''}
+            </div>
+          ` : ''}
           
           <!-- Items Table -->
           <div style="margin-bottom: 30px;">
@@ -277,6 +417,7 @@ export const printTemplates = {
                 <tr>
                   <th style="padding: 16px 12px; text-align: left; color: #7C3AED; font-weight: 600; border-bottom: 2px solid #7C3AED;">Item Description</th>
                   <th style="padding: 16px 12px; text-align: center; color: #7C3AED; font-weight: 600; border-bottom: 2px solid #7C3AED;">Qty</th>
+                  <th style="padding: 16px 12px; text-align: center; color: #7C3AED; font-weight: 600; border-bottom: 2px solid #7C3AED;">Unit</th>
                   <th style="padding: 16px 12px; text-align: right; color: #7C3AED; font-weight: 600; border-bottom: 2px solid #7C3AED;">Price</th>
                   <th style="padding: 16px 12px; text-align: right; color: #7C3AED; font-weight: 600; border-bottom: 2px solid #7C3AED;">Total</th>
                 </tr>
@@ -289,6 +430,9 @@ export const printTemplates = {
                       ${item.description ? `<div style="font-size: 13px; color: #6B7280; font-style: italic;">${item.description}</div>` : ''}
                     </td>
                     <td style="padding: 18px 12px; border-bottom: 1px solid #E5E7EB; text-align: center; color: #4B5563;">${item.quantity}</td>
+                    <td style="padding: 18px 12px; border-bottom: 1px solid #E5E7EB; text-align: center; color: #4B5563;">
+                      ${item.unit && item.unit !== 'Piece' ? item.unit : '-'}
+                    </td>
                     <td style="padding: 18px 12px; border-bottom: 1px solid #E5E7EB; text-align: right; color: #4B5563;">${formatNaira(item.price)}</td>
                     <td style="padding: 18px 12px; border-bottom: 1px solid #E5E7EB; text-align: right; font-weight: 600; color: #111827;">${formatNaira(item.price * item.quantity)}</td>
                   </tr>
@@ -311,6 +455,12 @@ export const printTemplates = {
                 <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #E5E7EB; color: #DC2626;">
                   <span>Discount</span>
                   <span>-${formatNaira(discount)}</span>
+                </div>
+              ` : ''}
+              ${receiptData.deliveryFee > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #E5E7EB;">
+                  <span>Delivery Fee</span>
+                  <span>${formatNaira(receiptData.deliveryFee)}</span>
                 </div>
               ` : ''}
               ${receiptData.includeVAT ? `
@@ -346,6 +496,46 @@ export const printTemplates = {
             ` : ''}
           </div>
           
+          <!-- Notes -->
+          ${receiptData.customerNotes ? `
+            <div style="background: #F5F3FF; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 3px solid #8B5CF6;">
+              <h3 style="color: #7C3AED; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Notes</h3>
+              <p style="color: #6B7280; font-size: 13px; line-height: 1.5; font-style: italic;">"${receiptData.customerNotes}"</p>
+            </div>
+          ` : ''}
+          
+          <!-- Terms & Conditions -->
+          ${receiptData.includeTerms && receiptData.termsAndConditions ? `
+            <div style="border: 1px solid #E5E7EB; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #4B5563; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Terms & Conditions</h3>
+              <p style="color: #6B7280; font-size: 12px; line-height: 1.5; white-space: pre-line;">${receiptData.termsAndConditions}</p>
+            </div>
+          ` : ''}
+          
+          <!-- Signature -->
+          ${receiptData.includeSignature ? `
+            <div style="margin: 40px 0;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div style="text-align: center;">
+                  <div style="height: 60px; border-bottom: 2px solid #7C3AED; margin-bottom: 10px; position: relative;">
+                    ${receiptData.signatureData ? `
+                      <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 50px; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
+                    ` : ''}
+                  </div>
+                  <div style="color: #7C3AED; font-size: 12px; font-weight: 500;">AUTHORIZED SIGNATURE</div>
+                  <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px;">
+                    ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="height: 60px; border-bottom: 2px solid #7C3AED; margin-bottom: 10px;"></div>
+                  <div style="color: #7C3AED; font-size: 12px; font-weight: 500;">Customer</div>
+                  <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px;">Date</div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+          
           <!-- Footer -->
           <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 3px double #8B5CF6; color: #6B7280; font-size: 13px;">
             <p style="margin: 10px 0; font-style: italic;">"${receiptData.footerMessage || 'Thank you for your gracious patronage.'}"</p>
@@ -369,19 +559,38 @@ export const printTemplates = {
           ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 40px; margin-bottom: 10px;">` : ''}
           <h1 style="color: #111827; margin: 5px 0; font-size: 18px; font-weight: 400;">${receiptData.storeName}</h1>
           <p style="color: #6B7280; margin: 3px 0; font-size: 12px;">${receiptData.storeAddress}</p>
-          <p style="color: #6B7280; margin: 3px 0; font-size: 12px;">${receiptData.storePhone}</p>
+          <p style="color: #6B7280; margin: 3px 0; font-size: 12px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• ${receiptData.storeEmail}` : ''}</p>
+          ${receiptData.tinNumber ? `<p style="color: #6B7280; margin: 3px 0; font-size: 11px; font-weight: 600;">TIN: ${receiptData.tinNumber}</p>` : ''}
+          ${receiptData.rcNumber ? `<p style="color: #6B7280; margin: 3px 0; font-size: 11px;">RC: ${receiptData.rcNumber}</p>` : ''}
         </div>
         
         <!-- Simple Info -->
         <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #F3F4F6;">
           <div style="display: flex; justify-content: space-between; font-size: 12px; color: #6B7280;">
             <span>${receiptData.receiptType} #${receiptData.receiptNumber}</span>
-            <span>${receiptData.date} ${receiptData.time}</span>
+            <span>${receiptData.date}</span>
           </div>
+          ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
+            <div style="font-size: 12px; color: #6B7280; margin-top: 5px;">
+              Invoice #: ${receiptData.invoiceNumber}
+            </div>
+          ` : ''}
+          ${receiptData.poNumber ? `<div style="font-size: 12px; color: #6B7280; margin-top: 5px;">PO #: ${receiptData.poNumber}</div>` : ''}
+          ${receiptData.dueDate ? `<div style="font-size: 12px; color: #6B7280; margin-top: 5px;">Due: ${receiptData.dueDate}</div>` : ''}
           <div style="font-size: 12px; color: #6B7280; margin-top: 5px;">
-            Cashier: ${receiptData.cashierName}
+            Cashier: ${receiptData.cashierName} • ${receiptData.time}
           </div>
         </div>
+        
+        <!-- Customer Info -->
+        ${receiptData.includeBillTo && receiptData.billToName ? `
+          <div style="margin-bottom: 20px; padding: 10px; background: #F9FAFB; border-radius: 4px;">
+            <div style="font-size: 12px; font-weight: 600; color: #4B5563; margin-bottom: 5px;">Bill To:</div>
+            <div style="font-size: 12px;">${receiptData.billToName}</div>
+            ${receiptData.billToAddress ? `<div style="font-size: 11px; color: #6B7280;">${receiptData.billToAddress}</div>` : ''}
+            ${receiptData.billToPhone ? `<div style="font-size: 11px; color: #6B7280;">Tel: ${receiptData.billToPhone}</div>` : ''}
+          </div>
+        ` : ''}
         
         <!-- Simple Items -->
         <div style="margin-bottom: 25px;">
@@ -389,7 +598,11 @@ export const printTemplates = {
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #F3F4F6;">
               <div style="flex: 1;">
                 <div style="font-size: 13px; color: #111827; margin-bottom: 3px;">${item.name}</div>
-                <div style="font-size: 11px; color: #6B7280;">${item.quantity} × ${formatNaira(item.price)}</div>
+                <div style="font-size: 11px; color: #6B7280;">
+                  ${item.quantity} × ${formatNaira(item.price)}
+                  ${item.unit && item.unit !== 'Piece' ? ` (${item.unit})` : ''}
+                  ${item.description ? `<div style="margin-top: 2px;">${item.description}</div>` : ''}
+                </div>
               </div>
               <div style="font-size: 13px; font-weight: 500; color: #111827;">
                 ${formatNaira(item.price * item.quantity)}
@@ -410,9 +623,15 @@ export const printTemplates = {
               <span>-${formatNaira(discount)}</span>
             </div>
           ` : ''}
+          ${receiptData.deliveryFee > 0 ? `
+            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #6B7280;">
+              <span>Delivery Fee</span>
+              <span>${formatNaira(receiptData.deliveryFee)}</span>
+            </div>
+          ` : ''}
           ${receiptData.includeVAT ? `
             <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #6B7280;">
-              <span>VAT</span>
+              <span>VAT (${receiptData.vatRate}%)</span>
               <span>${formatNaira(vat)}</span>
             </div>
           ` : ''}
@@ -433,10 +652,42 @@ export const printTemplates = {
           ` : ''}
         </div>
         
+        <!-- Notes -->
+        ${receiptData.customerNotes ? `
+          <div style="font-size: 11px; color: #6B7280; margin-bottom: 15px; padding: 10px; background: #F9FAFB; border-radius: 4px;">
+            <strong>Note:</strong> ${receiptData.customerNotes}
+          </div>
+        ` : ''}
+        
+        <!-- Terms & Conditions -->
+        ${receiptData.includeTerms && receiptData.termsAndConditions ? `
+          <div style="font-size: 10px; color: #6B7280; margin-bottom: 15px; padding: 10px; background: #F3F4F6; border-radius: 4px;">
+            <strong>Terms:</strong> ${receiptData.termsAndConditions}
+          </div>
+        ` : ''}
+        
+        <!-- Signature -->
+        ${receiptData.includeSignature ? `
+          <div style="margin: 20px 0; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+            <div style="text-align: center;">
+              <div style="height: 40px; border-bottom: 1px solid #9CA3AF; margin-bottom: 10px; position: relative;">
+                ${receiptData.signatureData ? `
+                  <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 30px; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
+                ` : ''}
+              </div>
+              <div style="font-size: 11px; color: #6B7280;">Customer</div>
+              <div style="font-size: 10px; color: #9CA3AF; margin-top: 5px;">
+                ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+              </div>
+            </div>
+          </div>
+        ` : ''}
+        
         <!-- Simple Footer -->
         <div style="text-align: center; padding-top: 20px; border-top: 1px solid #F3F4F6; color: #9CA3AF; font-size: 11px;">
           <div style="margin-bottom: 10px;">${receiptData.receiptNumber}</div>
-          <div>${receiptData.footerMessage || 'Thank you'}</div>
+          <div>${receiptData.footerMessage || 'Thank you for your business'}</div>
+          <div style="margin-top: 10px; font-size: 10px;">Generated ${new Date().toLocaleDateString()}</div>
         </div>
       </div>
     `;
@@ -452,6 +703,9 @@ export const printTemplates = {
           ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 60px; margin-bottom: 15px; filter: brightness(0) invert(1);">` : ''}
           <h1 style="margin: 10px 0; font-size: 28px; font-weight: 800; letter-spacing: -1px;">${receiptData.storeName}</h1>
           <p style="margin: 5px 0; opacity: 0.9; font-weight: 500;">${receiptData.storeAddress}</p>
+          <p style="margin: 5px 0; opacity: 0.9;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• ${receiptData.storeEmail}` : ''}</p>
+          ${receiptData.tinNumber ? `<p style="margin: 5px 0; opacity: 0.9; font-weight: 600;">TIN: ${receiptData.tinNumber}</p>` : ''}
+          ${receiptData.rcNumber ? `<p style="margin: 5px 0; opacity: 0.9;">RC: ${receiptData.rcNumber}</p>` : ''}
         </div>
         
         <!-- Bold Info -->
@@ -459,10 +713,16 @@ export const printTemplates = {
           <div style="text-align: center;">
             <div style="color: #DC2626; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">Receipt No.</div>
             <div style="font-size: 18px; font-weight: 800; color: #111827;">${receiptData.receiptNumber}</div>
+            ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
+              <div style="color: #6B7280; font-size: 12px; margin-top: 3px;">Inv: ${receiptData.invoiceNumber}</div>
+            ` : ''}
+            ${receiptData.poNumber ? `<div style="color: #6B7280; font-size: 12px; margin-top: 3px;">PO: ${receiptData.poNumber}</div>` : ''}
           </div>
           <div style="text-align: center;">
             <div style="color: #DC2626; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">Date</div>
             <div style="font-size: 14px; font-weight: 600; color: #374151;">${receiptData.date}</div>
+            <div style="font-size: 12px; color: #6B7280; margin-top: 3px;">${receiptData.time}</div>
+            ${receiptData.dueDate ? `<div style="color: #EF4444; font-size: 12px; font-weight: 600; margin-top: 3px;">Due: ${receiptData.dueDate}</div>` : ''}
           </div>
           <div style="text-align: center;">
             <div style="color: #DC2626; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">Cashier</div>
@@ -470,15 +730,28 @@ export const printTemplates = {
           </div>
         </div>
         
+        <!-- Customer Info -->
+        ${receiptData.includeBillTo && receiptData.billToName ? `
+          <div style="background: #FEE2E2; padding: 20px; margin: 0 20px 25px 20px; border-radius: 10px; border: 2px solid #EF4444;">
+            <div style="color: #DC2626; font-size: 14px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase;">BILL TO</div>
+            <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 5px;">${receiptData.billToName}</div>
+            ${receiptData.billToAddress ? `<div style="font-size: 13px; color: #6B7280;">${receiptData.billToAddress}</div>` : ''}
+            ${receiptData.billToPhone ? `<div style="font-size: 13px; color: #6B7280;">Tel: ${receiptData.billToPhone}</div>` : ''}
+          </div>
+        ` : ''}
+        
         <!-- Bold Items -->
         <div style="padding: 0 20px;">
           <div style="background: #FEE2E2; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-            <div style="color: #DC2626; font-size: 14px; font-weight: 700; margin-bottom: 20px; text-transform: uppercase;">Items Purchased</div>
+            <div style="color: #DC2626; font-size: 14px; font-weight: 700; margin-bottom: 20px; text-transform: uppercase;">ITEMS PURCHASED</div>
             ${receiptData.items.map((item, index) => `
               <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #FECACA;">
                 <div>
                   <div style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 3px;">${item.name}</div>
-                  <div style="font-size: 12px; color: #6B7280;">Qty: ${item.quantity}</div>
+                  <div style="font-size: 12px; color: #6B7280;">
+                    Qty: ${item.quantity} ${item.unit && item.unit !== 'Piece' ? `• Unit: ${item.unit}` : ''}
+                    ${item.description ? `<div style="margin-top: 2px;">${item.description}</div>` : ''}
+                  </div>
                 </div>
                 <div style="text-align: right;">
                   <div style="font-size: 14px; font-weight: 700; color: #111827;">${formatNaira(item.price * item.quantity)}</div>
@@ -491,23 +764,29 @@ export const printTemplates = {
           <!-- Bold Totals -->
           <div style="background: #111827; color: white; padding: 25px; border-radius: 10px; margin-bottom: 25px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-              <span style="color: #9CA3AF;">Subtotal</span>
+              <span style="color: #9CA3AF;">Subtotal:</span>
               <span style="font-weight: 600;">${formatNaira(subtotal)}</span>
             </div>
             ${receiptData.includeDiscount && receiptData.discount > 0 ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 15px; color: #F87171;">
-                <span>Discount</span>
+                <span>Discount:</span>
                 <span>-${formatNaira(discount)}</span>
+              </div>
+            ` : ''}
+            ${receiptData.deliveryFee > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <span style="color: #9CA3AF;">Delivery Fee:</span>
+                <span>${formatNaira(receiptData.deliveryFee)}</span>
               </div>
             ` : ''}
             ${receiptData.includeVAT ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                <span>VAT (${receiptData.vatRate}%)</span>
+                <span style="color: #9CA3AF;">VAT (${receiptData.vatRate}%):</span>
                 <span>${formatNaira(vat)}</span>
               </div>
             ` : ''}
             <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 800; margin-top: 20px; padding-top: 20px; border-top: 2px solid #EF4444;">
-              <span>TOTAL</span>
+              <span>TOTAL:</span>
               <span>${formatNaira(total)}</span>
             </div>
           </div>
@@ -531,6 +810,46 @@ export const printTemplates = {
               </div>
             ` : ''}
           </div>
+          
+          <!-- Notes -->
+          ${receiptData.customerNotes ? `
+            <div style="background: #F3F4F6; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #DC2626;">
+              <div style="color: #DC2626; font-size: 14px; font-weight: 700; margin-bottom: 10px;">NOTES</div>
+              <p style="color: #6B7280; font-size: 13px; line-height: 1.5;">${receiptData.customerNotes}</p>
+            </div>
+          ` : ''}
+          
+          <!-- Terms & Conditions -->
+          ${receiptData.includeTerms && receiptData.termsAndConditions ? `
+            <div style="background: #1F2937; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+              <div style="color: #F87171; font-size: 14px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase;">TERMS & CONDITIONS</div>
+              <p style="color: #D1D5DB; font-size: 12px; line-height: 1.5; white-space: pre-line;">${receiptData.termsAndConditions}</p>
+            </div>
+          ` : ''}
+          
+          <!-- Signature -->
+          ${receiptData.includeSignature ? `
+            <div style="margin: 30px 0;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div style="text-align: center;">
+                  <div style="height: 60px; border-bottom: 3px solid #EF4444; margin-bottom: 10px; position: relative;">
+                    ${receiptData.signatureData ? `
+                      <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 50px; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
+                    ` : ''}
+                  </div>
+                  <div style="color: #EF4444; font-size: 12px; font-weight: 700;">AUTHORIZED SIGNATURE</div>
+                  <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px;">
+                    ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="height: 60px; border-bottom: 3px solid #EF4444; margin-bottom: 10px;"></div>
+                  <div style="color: #EF4444; font-size: 12px; font-weight: 700;">Customer</div>
+                  <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px;">DATE</div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
           
           <!-- Bold Footer -->
           <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 3px solid #EF4444;">
@@ -556,6 +875,9 @@ export const printTemplates = {
           <h1 style="color: #111827; margin: 5px 0; font-size: 16px; font-weight: bold;">${receiptData.storeName}</h1>
           <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 5px 0; margin: 10px 0; font-size: 11px;">
             ${receiptData.storeAddress} • Tel: ${receiptData.storePhone}
+            ${receiptData.storeEmail ? `<br/>Email: ${receiptData.storeEmail}` : ''}
+            ${receiptData.tinNumber ? `<br/>TIN: ${receiptData.tinNumber}` : ''}
+            ${receiptData.rcNumber ? `<br/>RC: ${receiptData.rcNumber}` : ''}
           </div>
         </div>
         
@@ -565,11 +887,28 @@ export const printTemplates = {
             <span>${receiptData.receiptType.toUpperCase()}: ${receiptData.receiptNumber}</span>
             <span>${receiptData.date}</span>
           </div>
+          ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
+            <div style="font-size: 11px; margin-bottom: 5px;">
+              Invoice #: ${receiptData.invoiceNumber}
+            </div>
+          ` : ''}
+          ${receiptData.poNumber ? `<div style="font-size: 11px; margin-bottom: 5px;">PO #: ${receiptData.poNumber}</div>` : ''}
+          ${receiptData.dueDate ? `<div style="font-size: 11px; margin-bottom: 5px;">Due Date: ${receiptData.dueDate}</div>` : ''}
           <div style="display: flex; justify-content: space-between; font-size: 11px;">
             <span>Cashier: ${receiptData.cashierName}</span>
             <span>${receiptData.time}</span>
           </div>
         </div>
+        
+        <!-- Customer Info -->
+        ${receiptData.includeBillTo && receiptData.billToName ? `
+          <div style="margin-bottom: 20px; padding: 10px; border: 1px dashed #000;">
+            <div style="font-size: 11px; font-weight: bold; margin-bottom: 5px;">BILL TO:</div>
+            <div style="font-size: 11px;">${receiptData.billToName}</div>
+            ${receiptData.billToAddress ? `<div style="font-size: 10px;">${receiptData.billToAddress}</div>` : ''}
+            ${receiptData.billToPhone ? `<div style="font-size: 10px;">Tel: ${receiptData.billToPhone}</div>` : ''}
+          </div>
+        ` : ''}
         
         <!-- Separator -->
         <div style="border-top: 1px dashed #000; margin: 20px 0;"></div>
@@ -577,18 +916,27 @@ export const printTemplates = {
         <!-- Classic Items -->
         <div style="margin-bottom: 20px; font-size: 11px;">
           <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">
-            <span>ITEM</span>
-            <span>QTY</span>
-            <span>PRICE</span>
-            <span>AMOUNT</span>
+            <span style="flex: 2;">ITEM</span>
+            <span style="text-align: center; flex: 0.5;">QTY</span>
+            <span style="text-align: center; flex: 0.5;">UNIT</span>
+            <span style="text-align: right; flex: 1;">PRICE</span>
+            <span style="text-align: right; flex: 1;">AMOUNT</span>
           </div>
           ${receiptData.items.map((item, index) => `
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
               <span style="flex: 2;">${item.name}</span>
               <span style="text-align: center; flex: 0.5;">${item.quantity}</span>
+              <span style="text-align: center; flex: 0.5;">
+                ${item.unit && item.unit !== 'Piece' ? item.unit : '-'}
+              </span>
               <span style="text-align: right; flex: 1;">${formatNaira(item.price)}</span>
               <span style="text-align: right; flex: 1; font-weight: bold;">${formatNaira(item.price * item.quantity)}</span>
             </div>
+            ${item.description ? `
+              <div style="font-size: 10px; color: #666; margin-left: 10px; margin-bottom: 5px;">
+                ${item.description}
+              </div>
+            ` : ''}
           `).join('')}
         </div>
         
@@ -605,6 +953,12 @@ export const printTemplates = {
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <span>Discount:</span>
               <span>-${formatNaira(discount)}</span>
+            </div>
+          ` : ''}
+          ${receiptData.deliveryFee > 0 ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>Delivery Fee:</span>
+              <span>${formatNaira(receiptData.deliveryFee)}</span>
             </div>
           ` : ''}
           ${receiptData.includeVAT ? `
@@ -630,6 +984,45 @@ export const printTemplates = {
           ` : ''}
         </div>
         
+        <!-- Notes -->
+        ${receiptData.customerNotes ? `
+          <div style="margin-bottom: 15px; font-size: 10px;">
+            <div style="font-weight: bold; margin-bottom: 3px;">Notes:</div>
+            <div>${receiptData.customerNotes}</div>
+          </div>
+        ` : ''}
+        
+        <!-- Terms & Conditions -->
+        ${receiptData.includeTerms && receiptData.termsAndConditions ? `
+          <div style="margin-bottom: 15px; font-size: 9px;">
+            <div style="font-weight: bold; margin-bottom: 3px;">Terms & Conditions:</div>
+            <div style="white-space: pre-line;">${receiptData.termsAndConditions}</div>
+          </div>
+        ` : ''}
+        
+        <!-- Signature -->
+        ${receiptData.includeSignature ? `
+          <div style="margin: 25px 0;">
+            <div style="display: flex; justify-content: space-between;">
+              <div style="text-align: center; flex: 1;">
+                <div style="height: 40px; border-bottom: 1px solid #000; margin-bottom: 5px; position: relative;">
+                  ${receiptData.signatureData ? `
+                    <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 30px; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
+                  ` : ''}
+                </div>
+                <div style="font-size: 9px;">AUTHORIZED SIGNATURE</div>
+                <div style="font-size: 8px; color: #666;">
+                  ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div style="height: 40px; border-bottom: 1px solid #000; margin-bottom: 5px;"></div>
+                <div style="font-size: 9px;">Customer</div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+        
         <!-- Classic Footer -->
         <div style="text-align: center; margin-top: 30px; font-size: 10px;">
           <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0; margin: 10px 0;">
@@ -637,7 +1030,7 @@ export const printTemplates = {
           </div>
           <div style="margin-top: 15px;">
             <div>${receiptData.receiptNumber}</div>
-            <div style="margin-top: 5px; color: #6B7280;">
+            <div style="margin-top: 5px; color: #666;">
               ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
             </div>
           </div>
@@ -651,4 +1044,4 @@ export const printTemplates = {
 export const generatePrintHTML = (templateId, receiptData, companyLogo, formatNaira, calculations) => {
   const template = printTemplates[templateId] || printTemplates.modern;
   return template(receiptData, companyLogo, formatNaira, calculations);
-}; 
+};
