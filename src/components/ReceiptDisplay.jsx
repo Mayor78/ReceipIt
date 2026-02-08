@@ -3,6 +3,7 @@ import { FileText } from 'lucide-react';
 import { useReceipt } from '../context/ReceiptContext';
 import BuyMeACoffeeModal from './BuyMeACoffeeModal';
 import Swal from 'sweetalert2';
+import html2pdf from 'html2pdf.js';
 import TemplateSelector from './receiptTemplates/TemplateSelector';
 import TemplateRenderer from './receiptTemplates/TemplateRenderer';
 import ReceiptActions from './receiptDisplay/ReceiptActions';
@@ -256,15 +257,18 @@ const showCoffeeModalIfAllowed = () => {
           ` : ''}
           
           /* Print button styling */
-          .print-button, .share-button {
+          .print-button {
             display: none;
           }
           @media screen {
-            .print-button, .share-button {
+            .print-button {
               display: block;
               position: fixed;
               bottom: 20px;
+              right: 20px;
               padding: 12px 24px;
+              background: #059669;
+              color: white;
               border: none;
               border-radius: 8px;
               font-size: 16px;
@@ -273,140 +277,90 @@ const showCoffeeModalIfAllowed = () => {
               z-index: 1000;
               box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
-            .print-button { right: 20px; background: #059669; color: white; }
-            .share-button { right: 20px; bottom: 70px; background: #2563eb; color: white; }
           }
         </style>
       </head>
       <body>
-        <div id="receipt-content" style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
+        <div style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
           ${templateHtml}
         </div>
-        
         <button class="print-button" onclick="window.print()">
           🖨️ Print / Save PDF
         </button>
-        ${isAndroid ? `
-        <button class="share-button" id="share-btn" onclick="window.shareReceipt()">
-          📤 Share to Customer
-        </button>
-        ` : ''}
-        
         <script>
           window.addEventListener('afterprint', function() {
             setTimeout(function() { window.close(); }, 500);
           });
-          ${isAndroid ? `
-          window.shareReceipt = function() {
-            var btn = document.getElementById('share-btn');
-            if (btn) { btn.disabled = true; btn.textContent = '⏳ Preparing...'; }
-            var script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-            script.onload = function() {
-              html2canvas(document.getElementById('receipt-content'), { scale: 2, useCORS: true }).then(function(canvas) {
-                canvas.toBlob(function(blob) {
-                  var file = new File([blob], 'receipt-' + Date.now() + '.png', { type: 'image/png' });
-                  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({ title: 'Receipt', files: [file] }).then(function() {
-                      if (btn) { btn.disabled = false; btn.textContent = '📤 Share to Customer'; }
-                    }).catch(function(err) {
-                      if (btn) { btn.disabled = false; btn.textContent = '📤 Share to Customer'; }
-                      if (err.name !== 'AbortError') alert('Share failed. Try 3-dot menu → Share.');
-                    });
-                  } else {
-                    var a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = 'receipt.png';
-                    a.click();
-                    if (btn) { btn.disabled = false; btn.textContent = '📤 Share to Customer'; }
-                    alert('Saved receipt image. Use your gallery or file manager to share it.');
-                  }
-                }, 'image/png');
-              });
-            };
-            document.head.appendChild(script);
-          };
-          ` : ''}
         </script>
       </body>
       </html>
     `;
   };
 
-  /* ---------------- DOWNLOAD PDF (IMPROVED FOR ANDROID) ---------------- */
+  /* ---------------- DOWNLOAD PDF (html2pdf - works everywhere, crisp multi-page) ---------------- */
   const handleDownloadPDF = async () => {
     if (!isClient) {
-      Swal.fire({
-        title: "Error",
-        text: "Please refresh the page and try again.",
-        icon: "error",
-        confirmButtonText: "OK"
-      });
+      Swal.fire({ title: "Error", text: "Please refresh the page and try again.", icon: "error", confirmButtonText: "OK" });
       return;
     }
-
     try {
       setIsGenerating(true);
-      
+      const calculations = {
+        subtotal: calculateSubtotal(),
+        discount: calculateDiscount(),
+        vat: calculateVAT(),
+        total: calculateTotal(),
+        change: calculateChange(),
+        deliveryFee: receiptData.deliveryFee || 0
+      };
+      const templateHtml = generatePrintHTML(selectedTemplate, receiptData, companyLogo, formatNaira, calculations);
+      const printStyles = getPrintStyles();
+      const container = document.createElement('div');
+      container.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm;background:white;';
+      container.innerHTML = `${printStyles}<div id="pdf-receipt" style="max-width:210mm;margin:0 auto;padding:20mm;background:white;">${templateHtml}</div>`;
+      document.body.appendChild(container);
+      const el = container.querySelector('#pdf-receipt');
+      const imgs = el.querySelectorAll('img');
+      await Promise.all(Array.from(imgs).map(img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })));
+      const opt = {
+        margin: 10,
+        filename: `receipt-${receiptData.receiptNumber}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css'], before: '.page-break-before', after: '.page-break-after', avoid: 'img' }
+      };
+      const pdfOutput = await html2pdf().set(opt).from(el).toContainer().toCanvas().toImg().toPdf().outputPdf('blob');
+      const pdfBlob = pdfOutput instanceof Blob ? pdfOutput : new Blob([pdfOutput], { type: 'application/pdf' });
+      document.body.removeChild(container);
       const isAndroid = /Android/i.test(navigator.userAgent);
-      
-      const instructions = isAndroid ? `
-        <div style="text-align: left; font-size: 15px;">
-          <p style="margin-bottom: 15px; color: #4a5568;">📱 <strong>Android Instructions:</strong></p>
-          <div style="background: #f7fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #4299e1;">
-            <ol style="margin-left: 20px; color: #4a5568;">
-              <li style="margin-bottom: 8px;">Tap the <strong style="color: #2b6cb0;">"Print / Save as PDF"</strong> button</li>
-              <li style="margin-bottom: 8px;">In print preview, select <strong style="color: #2b6cb0;">"Save as PDF"</strong></li>
-              <li style="margin-bottom: 8px;">Or tap <strong style="color: #2b6cb0;">"⋮" menu → "Share" → Save to Drive/Files</strong></li>
-              <li style="margin-bottom: 8px;"><strong>Recommended:</strong> Use Chrome browser</li>
-            </ol>
-          </div>
-        </div>
-      ` : `
-        <div style="text-align: left; font-size: 15px;">
-          <p style="margin-bottom: 15px; color: #4a5568;">Opening print view to save your receipt as PDF...</p>
-          <div style="background: #f7fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #4299e1;">
-            <p style="font-weight: 600; color: #2d3748; margin-bottom: 10px;">📋 Instructions:</p>
-            <ol style="margin-left: 20px; color: #4a5568;">
-              <li style="margin-bottom: 8px;">Click <strong style="color: #2b6cb0;">"Print / Save as PDF"</strong> button</li>
-              <li style="margin-bottom: 8px;">Select <strong style="color: #2b6cb0;">"Save as PDF"</strong> as printer</li>
-              <li style="margin-bottom: 8px;">Choose location and save</li>
-            </ol>
-          </div>
-        </div>
-      `;
-      
-      await Swal.fire({
-        title: isAndroid ? "📱 Save PDF on Android" : "📄 Save as PDF",
-        html: instructions,
-        icon: "info",
-        showCancelButton: true,
-        confirmButtonText: isAndroid ? "Open Print View" : "Continue",
-        cancelButtonText: "Cancel",
-        confirmButtonColor: "#4299e1",
-        cancelButtonColor: "#a0aec0",
-        allowOutsideClick: false
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          if (isAndroid) {
-            await handleAndroidPrint();
-          } else {
-            await handleStandardPrint();
-          }
+      const file = new File([pdfBlob], `receipt-${receiptData.receiptNumber}.pdf`, { type: 'application/pdf' });
+      if (isAndroid && navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ title: 'Receipt', files: [file] });
+          await Swal.fire({ title: "✅ Shared!", text: "Receipt PDF shared successfully", icon: "success", confirmButtonText: "OK", timer: 2000 });
+        } catch (shareErr) {
+          if (shareErr.name !== 'AbortError') downloadBlob(pdfBlob, file.name);
         }
-      });
-      
+      } else {
+        downloadBlob(pdfBlob, file.name);
+        await Swal.fire({ title: "✅ Downloaded!", text: "Receipt saved as PDF", icon: "success", confirmButtonText: "OK", timer: 2000 });
+      }
+      showCoffeeModalIfAllowed();
     } catch (error) {
-      console.error("Download error:", error);
-      Swal.fire({
-        title: "Error",
-        text: "Failed to prepare download. Please try again.",
-        icon: "error",
-        confirmButtonText: "OK"
-      });
+      console.error("PDF error:", error);
+      Swal.fire({ title: "Error", text: "Failed to generate PDF. Please try again.", icon: "error", confirmButtonText: "OK" });
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const downloadBlob = (blob, filename) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   /* ---------------- PREVIEW PDF ---------------- */
@@ -614,7 +568,7 @@ Thank you for your business! 🎉
                 <p>
                   For best results on Android:
                   <ul className="list-disc ml-4 mt-1">
-                    <li>Use <strong>Share to Customer</strong> to send receipt via WhatsApp, etc.</li>
+                    <li>Use <strong>Download PDF</strong> for crisp, shareable receipts</li>
                     <li>Allow pop-ups for this site</li>
                     <li>Use Chrome browser</li>
                   </ul>
