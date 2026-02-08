@@ -33,6 +33,7 @@ const BoldReceipt = ({
           color: 'white'
         }}
       >
+      
         {companyLogo && (
           <img 
             src={companyLogo} 

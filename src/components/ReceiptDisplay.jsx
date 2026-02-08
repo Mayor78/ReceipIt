@@ -57,25 +57,19 @@ const ReceiptDisplay = () => {
 
   /* ---------------- COFFEE MODAL RESET ---------------- */
   useEffect(() => {
-    if (!isClient) return;
-    
-    const today = new Date().toDateString();
-    const lastShown = localStorage.getItem("coffeeModalLastShown");
+  setIsClient(true);
+  // Remove the daily reset logic if you want to show every time
+}, []);
 
-    if (lastShown !== today) {
-      localStorage.removeItem("coffeeModalShownToday");
-      localStorage.setItem("coffeeModalLastShown", today);
-    }
-  }, [isClient]);
-
-  const showCoffeeModalIfAllowed = () => {
-    if (!isClient) return;
-    
-    if (!localStorage.getItem("coffeeModalShownToday")) {
-      setTimeout(() => setShowCoffeeModal(true), 1500);
-      localStorage.setItem("coffeeModalShownToday", "true");
-    }
-  };
+const showCoffeeModalIfAllowed = () => {
+  if (!isClient) return;
+  
+  // Show modal every time (remove the localStorage check)
+  setTimeout(() => setShowCoffeeModal(true), 1500);
+  
+  // Optional: Still track that it was shown today, but don't prevent showing again
+  localStorage.setItem("coffeeModalShownToday", "true");
+};
 
   /* ---------------- IMPROVED PRINT FUNCTION ---------------- */
   const handlePrint = async () => {
