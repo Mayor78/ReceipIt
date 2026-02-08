@@ -244,13 +244,14 @@ const handleAndroidPrint = async () => {
     await loadingSwal.close();
     
     // For Android, use iframe method
+    // NOTE: Don't use visibility:hidden or opacity:0 - some printers skip hidden iframe content!
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '0';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
     iframe.style.border = 'none';
-    iframe.style.opacity = '0';
-    iframe.style.visibility = 'hidden';
     
     document.body.appendChild(iframe);
     

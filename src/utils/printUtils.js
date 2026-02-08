@@ -18,6 +18,7 @@ export const getPrintStyles = () => {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
+          color: #000 !important;
         }
         
         .no-print {
@@ -37,6 +38,39 @@ export const getPrintStyles = () => {
         /* Hide manual print button */
         .print-button {
           display: none !important;
+        }
+        
+        /* === FIX BLANK PAGES: Many printers skip background colors, making white text invisible === */
+        /* Force all text black - critical when "Background graphics" is off in print settings */
+        body, div, span, p, h1, h2, h3, h4, td, th, li, strong, label, a {
+          color: #000 !important;
+        }
+        
+        /* Table headers: light gray bg + black text (backgrounds often don't print) */
+        table thead tr,
+        table thead th {
+          background: #e5e7eb !important;
+          border: 1px solid #374151 !important;
+          color: #000 !important;
+        }
+        
+        /* Table cells: visible borders */
+        table td, table th {
+          border: 1px solid #9ca3af !important;
+          color: #000 !important;
+        }
+        
+        /* Override white text (e.g. BILL TO, headers on colored backgrounds) */
+        th, td, tr th, tr td {
+          color: #000 !important;
+        }
+        
+        /* Images: ensure they render */
+        img {
+          max-width: 150px !important;
+          height: auto !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
       }
       
