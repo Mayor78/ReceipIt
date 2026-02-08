@@ -116,8 +116,8 @@ const showCoffeeModalIfAllowed = () => {
     }
   };
 
-  /* ---------------- STANDARD PRINT (iOS/Desktop) ---------------- */
-  const handleStandardPrint = async () => {
+  /* ---------------- STANDARD PRINT (iOS/Desktop/Android) ---------------- */
+  const handleStandardPrint = async (isAndroid = false) => {
     const printWindow = window.open('', '_blank');
     
     if (!printWindow) {
@@ -149,8 +149,8 @@ const showCoffeeModalIfAllowed = () => {
       calculations
     );
     
-    // Create simplified print document for better compatibility
-    const printDocument = createPrintDocument(templateHtml, false);
+    // Create print document (pass isAndroid for Share button on Android)
+    const printDocument = createPrintDocument(templateHtml, isAndroid);
     
     printWindow.document.write(printDocument);
     printWindow.document.close();
@@ -205,246 +205,10 @@ const showCoffeeModalIfAllowed = () => {
   };
 
   /* ---------------- ANDROID PRINT SOLUTION ---------------- */
- /* ---------------- ANDROID PRINT SOLUTION ---------------- */
-const handleAndroidPrint = async () => {
-  setIsGenerating(true);
-  
-  try {
-    // Show loading message
-    const loadingSwal = Swal.fire({
-      title: "Preparing for Android...",
-      text: "Creating print-friendly document",
-      icon: "info",
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-    
-    // Calculate all values
-    const calculations = {
-      subtotal: calculateSubtotal(),
-      discount: calculateDiscount(),
-      vat: calculateVAT(),
-      total: calculateTotal(),
-      change: calculateChange(),
-      deliveryFee: receiptData.deliveryFee || 0
-    };
-    
-    // Generate the selected template HTML
-    const templateHtml = generatePrintHTML(
-      selectedTemplate,
-      receiptData,
-      companyLogo,
-      formatNaira,
-      calculations
-    );
-    
-    // Create Android-optimized print document
-    const printDocument = createPrintDocument(templateHtml, true);
-    
-    // Close loading
-    await loadingSwal.close();
-    
-    // For Android, use iframe method
-    // NOTE: Don't use visibility:hidden or opacity:0 - some printers skip hidden iframe content!
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '0';
-    iframe.style.width = '210mm';
-    iframe.style.height = '297mm';
-    iframe.style.border = 'none';
-    
-    document.body.appendChild(iframe);
-    
-    // FIXED: Proper iframe document handling
-    let iframeDoc;
-    try {
-      // Try to get the document from contentWindow first
-      if (iframe.contentWindow && iframe.contentWindow.document) {
-        iframeDoc = iframe.contentWindow.document;
-      } else if (iframe.contentDocument) {
-        iframeDoc = iframe.contentDocument;
-      } else {
-        throw new Error('Could not access iframe document');
-      }
-      
-      // Open and write to iframe
-      iframeDoc.open();
-      iframeDoc.write(printDocument);
-      iframeDoc.close();
-      
-    } catch (iframeError) {
-      console.error("Iframe document error:", iframeError);
-      // Fallback: use srcdoc attribute
-      iframe.srcdoc = printDocument;
-      await new Promise(resolve => {
-        iframe.onload = resolve;
-        iframe.onerror = resolve;
-        setTimeout(resolve, 1000);
-      });
-    }
-    
-    // Wait for iframe load + images before print (fixes blank PDF)
-    await new Promise(resolve => {
-      iframe.onload = resolve;
-      setTimeout(resolve, 2000); // fallback
-    });
-    
-    const waitForImages = (doc) => {
-      const imgs = doc.querySelectorAll('img');
-      return Promise.all(Array.from(imgs).map(img =>
-        img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
-      ));
-    };
-    
-    const iframeDocEl = iframe.contentDocument || iframe.contentWindow?.document;
-    if (iframeDocEl) await waitForImages(iframeDocEl);
-    await new Promise(r => setTimeout(r, 500)); // allow paint
-    
-    try {
-      // Try to print from iframe
-      if (iframe.contentWindow) {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-      }
-      
-      // Remove iframe after print attempt
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 5000);
-      
-      // Show success message with instructions
-      await Swal.fire({
-        title: "✅ Print Dialog Opened",
-        html: `
-          <div style="text-align: left;">
-            <p style="margin-bottom: 15px; color: #059669;">Print dialog should be visible now.</p>
-            <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-top: 15px;">
-              <p style="font-weight: 600; color: #0369a1; margin-bottom: 10px;">📱 Android Tips:</p>
-              <ul style="margin-left: 20px; color: #475569;">
-                <li>Select <strong>"Save as PDF"</strong> to save</li>
-                <li>Or choose a printer if connected</li>
-                <li>If dialog doesn't appear, use 3-dot menu → "Print"</li>
-              </ul>
-            </div>
-          </div>
-        `,
-        icon: "success",
-        confirmButtonText: "Got it",
-        showCancelButton: true,
-        cancelButtonText: "Try Download Instead",
-        confirmButtonColor: "#059669",
-        cancelButtonColor: "#4a5568",
-        timer: 10000
-      }).then((result) => {
-        if (result.dismiss === Swal.DismissReason.cancel) {
-          handleDownloadPDF();
-        }
-      });
-      
-    } catch (iframeError) {
-      console.error("Iframe print error:", iframeError);
-      
-      // Clean up iframe
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-      
-      // Fallback 1: Open in new window
-      try {
-        const fallbackWindow = window.open();
-        if (fallbackWindow) {
-          fallbackWindow.document.write(printDocument);
-          fallbackWindow.document.close();
-          
-          await Swal.fire({
-            title: "📄 Opened in New Tab",
-            html: `
-              <div style="text-align: left;">
-                <p>Receipt opened in new tab. Please:</p>
-                <ol style="margin-left: 20px;">
-                  <li>Tap the 3-dot menu (⋮) in top right</li>
-                  <li>Select "Print"</li>
-                  <li>Choose "Save as PDF" to save</li>
-                </ol>
-              </div>
-            `,
-            icon: "info",
-            confirmButtonText: "OK",
-            showCancelButton: true,
-            cancelButtonText: "Download PDF",
-            confirmButtonColor: "#3B82F6",
-            cancelButtonColor: "#059669"
-          }).then((result) => {
-            if (result.dismiss === Swal.DismissReason.cancel) {
-              handleDownloadPDF();
-            }
-          });
-        } else {
-          throw new Error('Could not open new window');
-        }
-      } catch (windowError) {
-        // Fallback 2: Direct download
-        await Swal.fire({
-          title: "⚠️ Print Not Available",
-          html: `
-            <div style="text-align: left;">
-              <p style="margin-bottom: 15px;">Your browser's pop-up blocker may be active.</p>
-              <p>Please try:</p>
-              <ol style="margin-left: 20px;">
-                <li>Allow pop-ups for this site</li>
-                <li>Or use the Download PDF option below</li>
-                <li>Use Chrome browser for best results</li>
-              </ol>
-            </div>
-          `,
-          icon: "warning",
-          confirmButtonText: "Download PDF",
-          cancelButtonText: "Cancel",
-          showCancelButton: true,
-          confirmButtonColor: "#059669"
-        }).then((result) => {
-          if (result.isConfirmed) {
-            handleDownloadPDF();
-          }
-        });
-      }
-    }
-    
-    showCoffeeModalIfAllowed();
-    
-  } catch (error) {
-    console.error("Android print error:", error);
-    await Swal.fire({
-      title: "Print Failed",
-      html: `
-        <div style="text-align: left;">
-          <p style="margin-bottom: 15px;">There was an error preparing the print.</p>
-          <div style="background: #fef2f2; padding: 15px; border-radius: 8px;">
-            <p style="color: #dc2626; font-weight: 600;">Suggested fix:</p>
-            <p>Use the "Download PDF" option for reliable saving.</p>
-          </div>
-        </div>
-      `,
-      icon: "error",
-      confirmButtonText: "Download PDF",
-      cancelButtonText: "Cancel",
-      showCancelButton: true,
-      confirmButtonColor: "#059669"
-    }).then((result) => {
-      if (result.isConfirmed) {
-        handleDownloadPDF();
-      }
-    });
-  } finally {
-    setIsGenerating(false);
-  }
-};
+  /* Use new window (same as PC) - adds Share button so users can share receipt to customer */
+  const handleAndroidPrint = async () => {
+    await handleStandardPrint(true);
+  };
   /* ---------------- CREATE PRINT DOCUMENT ---------------- */
   const createPrintDocument = (templateHtml, isAndroid = false) => {
     const printStyles = getPrintStyles();
@@ -492,18 +256,15 @@ const handleAndroidPrint = async () => {
           ` : ''}
           
           /* Print button styling */
-          .print-button {
+          .print-button, .share-button {
             display: none;
           }
           @media screen {
-            .print-button {
+            .print-button, .share-button {
               display: block;
               position: fixed;
               bottom: 20px;
-              right: 20px;
               padding: 12px 24px;
-              background: #059669;
-              color: white;
               border: none;
               border-radius: 8px;
               font-size: 16px;
@@ -512,24 +273,60 @@ const handleAndroidPrint = async () => {
               z-index: 1000;
               box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
+            .print-button { right: 20px; background: #059669; color: white; }
+            .share-button { right: 20px; bottom: 70px; background: #2563eb; color: white; }
           }
         </style>
       </head>
       <body>
-        <div style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
+        <div id="receipt-content" style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
           ${templateHtml}
         </div>
         
-        <!-- Manual print button (visible on screen only) -->
         <button class="print-button" onclick="window.print()">
           🖨️ Print / Save PDF
         </button>
+        ${isAndroid ? `
+        <button class="share-button" id="share-btn" onclick="window.shareReceipt()">
+          📤 Share to Customer
+        </button>
+        ` : ''}
         
         <script>
-          // Close window after user finishes print/PDF (print triggered by parent)
           window.addEventListener('afterprint', function() {
             setTimeout(function() { window.close(); }, 500);
           });
+          ${isAndroid ? `
+          window.shareReceipt = function() {
+            var btn = document.getElementById('share-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Preparing...'; }
+            var script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = function() {
+              html2canvas(document.getElementById('receipt-content'), { scale: 2, useCORS: true }).then(function(canvas) {
+                canvas.toBlob(function(blob) {
+                  var file = new File([blob], 'receipt-' + Date.now() + '.png', { type: 'image/png' });
+                  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({ title: 'Receipt', files: [file] }).then(function() {
+                      if (btn) { btn.disabled = false; btn.textContent = '📤 Share to Customer'; }
+                    }).catch(function(err) {
+                      if (btn) { btn.disabled = false; btn.textContent = '📤 Share to Customer'; }
+                      if (err.name !== 'AbortError') alert('Share failed. Try 3-dot menu → Share.');
+                    });
+                  } else {
+                    var a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'receipt.png';
+                    a.click();
+                    if (btn) { btn.disabled = false; btn.textContent = '📤 Share to Customer'; }
+                    alert('Saved receipt image. Use your gallery or file manager to share it.');
+                  }
+                }, 'image/png');
+              });
+            };
+            document.head.appendChild(script);
+          };
+          ` : ''}
         </script>
       </body>
       </html>
@@ -815,11 +612,11 @@ Thank you for your business! 🎉
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p>
-                  For best printing results on Android:
+                  For best results on Android:
                   <ul className="list-disc ml-4 mt-1">
-                    <li>Use Chrome browser</li>
+                    <li>Use <strong>Share to Customer</strong> to send receipt via WhatsApp, etc.</li>
                     <li>Allow pop-ups for this site</li>
-                    <li>Use "Download PDF" option if printing fails</li>
+                    <li>Use Chrome browser</li>
                   </ul>
                 </p>
               </div>
