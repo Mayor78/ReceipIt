@@ -46,7 +46,7 @@ export const useSubscription = () => {
         }
         
         const url = `${TRACKER_SCRIPT_URL}?${params.toString()}`;
-        console.log(`📤 Sending ${type} to:`, url.substring(0, 150) + '...');
+        // console.log(`📤 Sending ${type} to:`, url.substring(0, 150) + '...');
         
         // Use Image pixel method (works best with Google Apps Script)
         const pixel = new Image(1, 1);
