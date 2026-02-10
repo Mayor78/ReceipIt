@@ -114,7 +114,7 @@ const PWAInstallSection = () => {
               <button
                 onClick={handleInstallClick}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-3 rounded-lg hover:shadow-lg transition-all flex items-center justify-center space-x-2"
-              >
+             aria-label="install app" >
                 <Download size={18} />
                 <span>Install ReceiptIt App</span>
               </button>

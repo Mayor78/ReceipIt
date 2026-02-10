@@ -265,7 +265,7 @@ useEffect(() => {
                 <button
                   onClick={onGetStarted}
                   className="group bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center space-x-3"
-                >
+              aria-label="create Now"  >
                  <span>Create Receipt Free</span>
 
                   <ArrowRight className="group-hover:translate-x-2 transition-transform" size={20} />
@@ -273,7 +273,7 @@ useEffect(() => {
                 <button
                   onClick={onGetStarted}
                   className="bg-white border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow hover:shadow-lg flex items-center justify-center space-x-3"
-                >
+              aria-label="view template"  >
                   <Receipt size={20} />
                   <span>View Templates</span>
                 </button>

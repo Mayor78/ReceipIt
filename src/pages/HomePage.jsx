@@ -10,14 +10,16 @@ import CTASection from '../components/home/CTASection';
 import Footer from '../components/home/Footer';
 import PWAInstallSection from '../components/home/PWAInstallSection';
 import SimpleHeader from '../components/home/SimplaHeader';
+import FAQSection from '../components/home/FAQSection';
+import SEO from '../components/SEO';
 
 
 
 
 const HomePage = ({ onGetStarted }) => {
   return (
-    <div className="max-w-7xl mx-auto relative">
-    
+    <main className="max-w-7xl mx-auto relative">
+    <SEO/>
       <HeroSection onGetStarted={onGetStarted} />
       <FeaturesGrid />
       <PrivacySection />
@@ -26,9 +28,10 @@ const HomePage = ({ onGetStarted }) => {
       <HowItWorks />
       <WhyChooseUs />
       <Testimonials />
+      <FAQSection/>
       <CTASection onGetStarted={onGetStarted} />
       <Footer />
-    </div>
+    </main>
   );
 };
 
