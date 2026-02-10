@@ -11,15 +11,20 @@ import Footer from '../components/home/Footer';
 import PWAInstallSection from '../components/home/PWAInstallSection';
 import SimpleHeader from '../components/home/SimplaHeader';
 import FAQSection from '../components/home/FAQSection';
-import SEO from '../components/SEO';
+
+import usePageMeta from '../hooks/usePageMeta';
 
 
 
 
 const HomePage = ({ onGetStarted }) => {
+    usePageMeta(
+    "ReceiptIt - Free Online Receipt Generator",
+    "Generate professional receipts online for small businesses."
+  );
   return (
     <main className="max-w-7xl mx-auto relative">
-    <SEO/>
+   
       <HeroSection onGetStarted={onGetStarted} />
       <FeaturesGrid />
       <PrivacySection />
