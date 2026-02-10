@@ -10,6 +10,17 @@ const HeroSection = ({ onGetStarted }) => {
     }, 2000);
     return () => clearInterval(interval);
   }, []);
+ const prefersReducedMotion =
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const [canAnimate, setCanAnimate] = useState(false);
+
+useEffect(() => {
+  const timeout = setTimeout(() => setCanAnimate(true), 1200);
+  return () => clearTimeout(timeout);
+}, []);
+
 
   // Phone SVG Component with animated receipt
   const PhoneWithReceipt = ({ rotation, translateX, translateY, delay, zIndex }) => {
@@ -190,7 +201,9 @@ const HeroSection = ({ onGetStarted }) => {
   };
 
   return (
-    <div className="relative overflow-hidden">
+
+
+    <section aria-labelledby="hero-heading" className="relative overflow-hidden">
       {/* Background Gradient Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 -left-20 w-96 h-96 bg-green-400/20 rounded-full blur-3xl animate-pulse"></div>
@@ -198,7 +211,7 @@ const HeroSection = ({ onGetStarted }) => {
         <div className="absolute -bottom-20 left-1/2 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
-      <div className="relative px-4 py-12 md:py-20">
+      <div className="relative px-4 py-2">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Column - Content */}
@@ -210,20 +223,26 @@ const HeroSection = ({ onGetStarted }) => {
               </div>
 
               {/* Heading */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                <span className="bg-gradient-to-r from-green-700 via-emerald-700 to-teal-600 bg-clip-text text-transparent">
-                  Professional Receipts
-                </span>
-                <span className="block text-gray-900 mt-2">
-                  in Seconds, Not Hours
-                </span>
-              </h1>
+           <h1 id="hero-heading" className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+  <span className="bg-gradient-to-r from-green-700 via-emerald-700 to-teal-600 bg-clip-text text-transparent">
+    Free Online Receipt Generator
+  </span>
+  <span className="block text-gray-900 mt-2">
+    for Small Businesses
+  </span>
+</h1>
 
               {/* Subtitle */}
-              <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                Create beautiful receipts, invoices, and quotes with Nigerian Naira (₦), 
-                VAT calculations, and professional templates. No sign-up needed!
-              </p>
+          <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0">
+  ReceiptIt helps small business owners create clean, professional receipts online
+  with Nigerian Naira (₦), automatic VAT calculations, and print-ready templates.
+  No sign-up required.
+</p>
+<p className="sr-only">
+  ReceiptIt is a free receipt generator for small businesses, vendors, and freelancers.
+  Create printable digital receipts online and download as PDF or PNG.
+</p>
+
 
               {/* Feature Pills */}
               <div className="flex flex-wrap gap-3 justify-center lg:justify-start mb-8">
@@ -247,7 +266,8 @@ const HeroSection = ({ onGetStarted }) => {
                   onClick={onGetStarted}
                   className="group bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center space-x-3"
                 >
-                  <span>Create Receipt Now</span>
+                 <span>Create Receipt Free</span>
+
                   <ArrowRight className="group-hover:translate-x-2 transition-transform" size={20} />
                 </button>
                 <button
@@ -310,33 +330,36 @@ const HeroSection = ({ onGetStarted }) => {
               {/* 3 Stacked Phones Container */}
               <div className="relative mx-auto" style={{ maxWidth: '350px', height: '600px' }}>
                 {/* Phone 1 - Back (Blue theme) */}
-                <PhoneWithReceipt 
-                  rotation={-8}
-                  translateX={-30}
-                  translateY={20}
-                  delay={0}
-                  zIndex={1}
-                />
+              {canAnimate && !prefersReducedMotion && (
+  <>
+    <PhoneWithReceipt 
+      rotation={-8}
+      translateX={-30}
+      translateY={20}
+      delay={0}
+      zIndex={1}
+    />
 
-                {/* Phone 2 - Middle (Green theme) */}
-                <PhoneWithReceipt 
-                  rotation={2}
-                  translateX={0}
-                  translateY={0}
-                  delay={1}
-                  zIndex={2}
-                />
+    {/* Phone 2 - Middle (Green theme) */}
+    <PhoneWithReceipt 
+      rotation={2}
+      translateX={0}
+      translateY={0}
+      delay={1}
+      zIndex={2}
+    />
 
-                {/* Phone 3 - Front (Red theme) */}
-                <PhoneWithReceipt 
-                  rotation={8}
-                  translateX={25}
-                  translateY={-15}
-                  delay={2}
-                  zIndex={3}
-                />
+    {/* Phone 3 - Front (Red theme) */}
+    <PhoneWithReceipt 
+      rotation={8}
+      translateX={25}
+      translateY={-15}
+      delay={2}
+      zIndex={3}
+    />
+  </>
+)}
 
-              
 
                 {/* Floating "NEW" badge */}
                 <div className="absolute top-4 -left-8 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full shadow-xl flex items-center space-x-2 animate-bounce-slow z-30">
@@ -418,7 +441,7 @@ const HeroSection = ({ onGetStarted }) => {
           animation-delay: 1000ms;
         }
       `}</style>
-    </div>
+    </section>
   );
 };
 

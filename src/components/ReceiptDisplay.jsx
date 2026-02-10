@@ -29,7 +29,7 @@ const ReceiptDisplay = () => {
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [platform, setPlatform] = useState('desktop');
-  const printableRef = useRef();
+  
 
   /* ---------------- CHECK ENVIRONMENT ---------------- */
   useEffect(() => {
