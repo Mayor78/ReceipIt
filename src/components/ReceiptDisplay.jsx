@@ -1,14 +1,28 @@
+// ReceiptDisplay.jsx - ENHANCED VERSION WITH CATEGORY DATA SUPPORT
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Package, Smartphone, Book, Wheat, Scissors, Droplets, Truck, Home, Shirt, Coffee } from 'lucide-react';
 import { useReceipt } from '../context/ReceiptContext';
 import BuyMeACoffeeModal from './BuyMeACoffeeModal';
 import Swal from 'sweetalert2';
 import html2pdf from 'html2pdf.js';
-import TemplateSelector from './receiptTemplates/TemplateSelector';
-import TemplateRenderer from './receiptTemplates/TemplateRenderer';
 import ReceiptActions from './receiptDisplay/ReceiptActions';
 import { generatePrintHTML } from './receiptTemplates/printTemplates';
 import { getPrintStyles, detectPlatform } from '../utils/printUtils';
+import TemplateRenderer from "../components/receiptTemplates/TemplateRenderer"
+
+// Category icons mapping
+const CATEGORY_ICONS = {
+  electronics: Smartphone,
+  books: Book,
+  agriculture: Wheat,
+  clothing: Shirt,
+  food: Coffee,
+  services: Scissors,
+  liquids: Droplets,
+  construction: Home,
+  logistics: Truck,
+  general: Package
+};
 
 const ReceiptDisplay = () => {
   const {
@@ -29,7 +43,7 @@ const ReceiptDisplay = () => {
   const [showCoffeeModal, setShowCoffeeModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [platform, setPlatform] = useState('desktop');
-  
+  const [isClient, setIsClient] = useState(false);
 
   /* ---------------- CHECK ENVIRONMENT ---------------- */
   useEffect(() => {
@@ -40,7 +54,6 @@ const ReceiptDisplay = () => {
       const isMobileDevice = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
       setIsMobile(isMobileDevice);
       
-      // Detect specific platform
       const detectedPlatform = detectPlatform();
       setPlatform(detectedPlatform);
     };
@@ -50,29 +63,84 @@ const ReceiptDisplay = () => {
     return () => window.removeEventListener("resize", checkDevice);
   }, []);
 
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   /* ---------------- COFFEE MODAL RESET ---------------- */
-  useEffect(() => {
-  setIsClient(true);
-  // Remove the daily reset logic if you want to show every time
-}, []);
+  const showCoffeeModalIfAllowed = () => {
+    if (!isClient) return;
+    setTimeout(() => setShowCoffeeModal(true), 1500);
+    localStorage.setItem("coffeeModalShownToday", "true");
+  };
 
-const showCoffeeModalIfAllowed = () => {
-  if (!isClient) return;
+  /* ---------------- ENHANCED DATA PROCESSING ---------------- */
   
-  // Show modal every time (remove the localStorage check)
-  setTimeout(() => setShowCoffeeModal(true), 1500);
-  
-  // Optional: Still track that it was shown today, but don't prevent showing again
-  localStorage.setItem("coffeeModalShownToday", "true");
-};
+  // Get category icon for an item
+  const getCategoryIcon = (category = 'general') => {
+    const IconComponent = CATEGORY_ICONS[category] || Package;
+    return <IconComponent size={14} />;
+  };
 
-  /* ---------------- PRINT (iOS/PC only - Print hidden on Android) ---------------- */
+  // Format custom fields for display
+  const formatCustomFields = (customFields) => {
+    if (!customFields || Object.keys(customFields).length === 0) return null;
+    
+    return Object.entries(customFields)
+      .filter(([key, value]) => value && value.toString().trim() !== '')
+      .map(([key, value]) => ({
+        key: key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' '),
+        value: value.toString()
+      }));
+  };
+
+  // Enhanced receipt data with category information
+  const getEnhancedReceiptData = () => {
+    const baseData = { ...receiptData };
+    
+    // Add category information to items
+    const enhancedItems = baseData.items.map(item => ({
+      ...item,
+      categoryIcon: getCategoryIcon(item.category),
+      formattedCustomFields: formatCustomFields(item.customFields),
+      categoryName: item.category ? 
+        item.category.charAt(0).toUpperCase() + item.category.slice(1) : 
+        'General'
+    }));
+    
+    return {
+      ...baseData,
+      items: enhancedItems,
+      hasCategoryData: enhancedItems.some(item => 
+        item.category && item.category !== 'general'
+      ),
+      hasCustomFields: enhancedItems.some(item => 
+        item.customFields && Object.keys(item.customFields).length > 0
+      )
+    };
+  };
+
+  // Get important custom fields summary
+  const getImportantFieldsSummary = () => {
+    const fields = [];
+    const enhancedData = getEnhancedReceiptData();
+    
+    enhancedData.items.forEach((item, index) => {
+      if (item.formattedCustomFields) {
+        item.formattedCustomFields.forEach(field => {
+          // Only show critical fields
+          if (['IMEI', 'Serial', 'Warranty', 'Expiry', 'Weight', 'Size'].includes(field.key)) {
+            fields.push({
+              itemIndex: index + 1,
+              itemName: item.name,
+              field: field.key,
+              value: field.value
+            });
+          }
+        });
+      }
+    });
+    
+    return fields;
+  };
+
+  /* ---------------- PRINT FUNCTIONS ---------------- */
   const handlePrint = async () => {
     if (!isClient) {
       Swal.fire({ title: "Error", text: "Please refresh the page and try again.", icon: "error", confirmButtonText: "OK" });
@@ -80,7 +148,6 @@ const showCoffeeModalIfAllowed = () => {
     }
     try {
       await handleStandardPrint(false);
-      
     } catch (error) {
       console.error("Print error:", error);
       Swal.fire({
@@ -101,7 +168,7 @@ const showCoffeeModalIfAllowed = () => {
     }
   };
 
-  /* ---------------- STANDARD PRINT (iOS/Desktop/Android) ---------------- */
+  /* ---------------- STANDARD PRINT ---------------- */
   const handleStandardPrint = async (isAndroid = false) => {
     const printWindow = window.open('', '_blank');
     
@@ -115,7 +182,7 @@ const showCoffeeModalIfAllowed = () => {
       return;
     }
     
-    // Calculate all values
+    const enhancedData = getEnhancedReceiptData();
     const calculations = {
       subtotal: calculateSubtotal(),
       discount: calculateDiscount(),
@@ -125,13 +192,14 @@ const showCoffeeModalIfAllowed = () => {
       deliveryFee: receiptData.deliveryFee || 0
     };
     
-    // Generate the selected template HTML
+    // Generate template with enhanced data
     const templateHtml = generatePrintHTML(
       selectedTemplate,
-      receiptData,
+      enhancedData,
       companyLogo,
       formatNaira,
-      calculations
+      calculations,
+      getImportantFieldsSummary()
     );
     
     const printDocument = createPrintDocument(templateHtml, { isAndroid });
@@ -139,7 +207,6 @@ const showCoffeeModalIfAllowed = () => {
     printWindow.document.write(printDocument);
     printWindow.document.close();
     
-    // CRITICAL: Wait for full load + images before print - fixes blank PDF
     const triggerPrint = () => {
       printWindow.focus();
       try {
@@ -165,7 +232,6 @@ const showCoffeeModalIfAllowed = () => {
       }
     };
 
-    // Wait for document load, then images, then paint - prevents blank PDF
     const doPrintWhenReady = () => {
       const doc = printWindow.document;
       const imgs = doc.querySelectorAll('img');
@@ -173,7 +239,6 @@ const showCoffeeModalIfAllowed = () => {
         img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
       );
       Promise.all(imgPromises).then(() => {
-        // Extra delay for layout/paint - Chrome PDF capture needs content fully rendered
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             setTimeout(triggerPrint, 500);
@@ -183,20 +248,33 @@ const showCoffeeModalIfAllowed = () => {
     };
     
     printWindow.onload = doPrintWhenReady;
-    
-    // Show coffee modal on main page
     showCoffeeModalIfAllowed();
   };
 
-  /* ---------------- ANDROID VIEW (receipt in new tab with Download button - print doesn't work on Android) ---------------- */
+  /* ---------------- ANDROID VIEW ---------------- */
   const handleAndroidView = () => {
     const viewWindow = window.open('', '_blank');
     if (!viewWindow) {
       Swal.fire({ title: "Pop-up Blocked", text: "Please allow pop-ups for this site.", icon: "warning", confirmButtonText: "OK" });
       return;
     }
-    const calculations = { subtotal: calculateSubtotal(), discount: calculateDiscount(), vat: calculateVAT(), total: calculateTotal(), change: calculateChange(), deliveryFee: receiptData.deliveryFee || 0 };
-    const templateHtml = generatePrintHTML(selectedTemplate, receiptData, companyLogo, formatNaira, calculations);
+    const enhancedData = getEnhancedReceiptData();
+    const calculations = { 
+      subtotal: calculateSubtotal(), 
+      discount: calculateDiscount(), 
+      vat: calculateVAT(), 
+      total: calculateTotal(), 
+      change: calculateChange(), 
+      deliveryFee: receiptData.deliveryFee || 0 
+    };
+    const templateHtml = generatePrintHTML(
+      selectedTemplate, 
+      enhancedData, 
+      companyLogo, 
+      formatNaira, 
+      calculations,
+      getImportantFieldsSummary()
+    );
     const doc = createPrintDocument(templateHtml, { isAndroid: true, showDownloadInsteadOfPrint: true });
     viewWindow.document.write(doc);
     viewWindow.document.close();
@@ -207,19 +285,18 @@ const showCoffeeModalIfAllowed = () => {
   const createPrintDocument = (templateHtml, options = {}) => {
     const { isAndroid = false, showDownloadInsteadOfPrint = false } = typeof options === 'boolean' ? { isAndroid: options } : options;
     const printStyles = getPrintStyles();
+    const enhancedData = getEnhancedReceiptData();
     
-    // Simplified HTML structure for better compatibility
     return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}</title>
-        <meta name="description" content="Receipt generated by ReceiptIt">
+        <title>${enhancedData.receiptType.toUpperCase()} ${enhancedData.receiptNumber}</title>
+        <meta name="description" content="Receipt generated by ReceiptIt - Professional Business Receipts">
         ${printStyles}
         <style>
-          /* Additional print-safe styles */
           @media print {
             body {
               margin: 0 !important;
@@ -234,7 +311,6 @@ const showCoffeeModalIfAllowed = () => {
             }
           }
           
-          /* Android-specific optimizations */
           ${isAndroid ? `
             body {
               font-size: 14px !important;
@@ -244,13 +320,8 @@ const showCoffeeModalIfAllowed = () => {
               max-width: 100% !important;
               height: auto !important;
             }
-            table {
-              width: 100% !important;
-              table-layout: fixed !important;
-            }
           ` : ''}
           
-          /* Print button styling */
           .print-button {
             display: none;
           }
@@ -271,6 +342,33 @@ const showCoffeeModalIfAllowed = () => {
               z-index: 1000;
               box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
+          }
+          
+          /* Category styling in print */
+          .category-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            color: #6b7280;
+            margin-left: 6px;
+          }
+          
+          .custom-fields {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #4b5563;
+          }
+          
+          .custom-field {
+            display: inline-block;
+            margin-right: 8px;
+            padding: 1px 4px;
+            background: #f9fafb;
+            border-radius: 3px;
+            border-left: 2px solid #059669;
           }
         </style>
       </head>
@@ -297,7 +395,7 @@ const showCoffeeModalIfAllowed = () => {
     `;
   };
 
-  /* ---------------- DOWNLOAD PDF (html2pdf - works everywhere, crisp multi-page) ---------------- */
+  /* ---------------- DOWNLOAD PDF ---------------- */
   const handleDownloadPDF = async () => {
     if (!isClient) {
       Swal.fire({ title: "Error", text: "Please refresh the page and try again.", icon: "error", confirmButtonText: "OK" });
@@ -305,6 +403,7 @@ const showCoffeeModalIfAllowed = () => {
     }
     try {
       setIsGenerating(true);
+      const enhancedData = getEnhancedReceiptData();
       const calculations = {
         subtotal: calculateSubtotal(),
         discount: calculateDiscount(),
@@ -313,7 +412,16 @@ const showCoffeeModalIfAllowed = () => {
         change: calculateChange(),
         deliveryFee: receiptData.deliveryFee || 0
       };
-      const templateHtml = generatePrintHTML(selectedTemplate, receiptData, companyLogo, formatNaira, calculations);
+      
+      const templateHtml = generatePrintHTML(
+        selectedTemplate, 
+        enhancedData, 
+        companyLogo, 
+        formatNaira, 
+        calculations,
+        getImportantFieldsSummary()
+      );
+      
       const printStyles = getPrintStyles();
       const container = document.createElement('div');
       container.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm;background:white;';
@@ -321,20 +429,27 @@ const showCoffeeModalIfAllowed = () => {
       document.body.appendChild(container);
       const el = container.querySelector('#pdf-receipt');
       const imgs = el.querySelectorAll('img');
-      await Promise.all(Array.from(imgs).map(img => img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })));
+      
+      await Promise.all(Array.from(imgs).map(img => 
+        img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
+      ));
+      
       const opt = {
         margin: 10,
-        filename: `receipt-${receiptData.receiptNumber}.pdf`,
+        filename: `receipt-${enhancedData.receiptNumber}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, letterRendering: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css'], before: '.page-break-before', after: '.page-break-after', avoid: 'img' }
+        pagebreak: { mode: ['avoid-all', 'css'] }
       };
+      
       const pdfOutput = await html2pdf().set(opt).from(el).toContainer().toCanvas().toImg().toPdf().outputPdf('blob');
       const pdfBlob = pdfOutput instanceof Blob ? pdfOutput : new Blob([pdfOutput], { type: 'application/pdf' });
       document.body.removeChild(container);
+      
       const isAndroid = /Android/i.test(navigator.userAgent);
-      const file = new File([pdfBlob], `receipt-${receiptData.receiptNumber}.pdf`, { type: 'application/pdf' });
+      const file = new File([pdfBlob], `receipt-${enhancedData.receiptNumber}.pdf`, { type: 'application/pdf' });
+      
       if (isAndroid && navigator.share && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ title: 'Receipt', files: [file] });
@@ -363,17 +478,6 @@ const showCoffeeModalIfAllowed = () => {
     URL.revokeObjectURL(a.href);
   };
 
-  /* ---------------- Listen for Download PDF from Android view window ---------------- */
-  const handleDownloadPDFRef = useRef(() => {});
-  handleDownloadPDFRef.current = handleDownloadPDF;
-  useEffect(() => {
-    const onMessage = (e) => {
-      if (e.data?.type === 'receiptit-download-pdf') handleDownloadPDFRef.current();
-    };
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, []);
-
   /* ---------------- PREVIEW PDF ---------------- */
   const handlePreviewPDF = async () => {
     if (!isClient) {
@@ -386,7 +490,6 @@ const showCoffeeModalIfAllowed = () => {
         handleAndroidView();
         return;
       } else {
-        // Show loading for desktop/iOS
         await Swal.fire({
           title: "Opening Preview...",
           text: "Preparing receipt for viewing",
@@ -397,7 +500,6 @@ const showCoffeeModalIfAllowed = () => {
         
         await handleStandardPrint();
       }
-      
     } catch (error) {
       console.error("Preview error:", error);
       Swal.fire({
@@ -409,7 +511,7 @@ const showCoffeeModalIfAllowed = () => {
     }
   };
 
-  /* ---------------- COPY TO CLIPBOARD ---------------- */
+  /* ---------------- COPY TO CLIPBOARD (ENHANCED) ---------------- */
   const copyToClipboard = async () => {
     if (!isClient) {
       Swal.fire({
@@ -422,31 +524,63 @@ const showCoffeeModalIfAllowed = () => {
     }
 
     try {
-      const text = `
-${receiptData.storeName}
-${receiptData.receiptType.toUpperCase()}: ${receiptData.receiptNumber}
-Date: ${receiptData.date} | Time: ${receiptData.time}
-Cashier: ${receiptData.cashierName}
+      const enhancedData = getEnhancedReceiptData();
+      
+      let text = `
+${enhancedData.storeName}
+${enhancedData.receiptType.toUpperCase()}: ${enhancedData.receiptNumber}
+Date: ${enhancedData.date} | Time: ${enhancedData.time}
+Cashier: ${enhancedData.cashierName}
 Template: ${selectedTemplate.toUpperCase()}
 
 ITEMS:
-${receiptData.items.map(item => 
-  `${item.quantity}x ${item.name} @ ${formatNaira(item.price)} = ${formatNaira(item.price * item.quantity)}`
-).join('\n')}
+`;
 
+      // Add items with category info
+      enhancedData.items.forEach((item, index) => {
+        text += `${index + 1}. ${item.quantity}x ${item.name}`;
+        
+        if (item.category && item.category !== 'general') {
+          text += ` [${item.categoryName}]`;
+        }
+        
+        text += ` @ ${formatNaira(item.price)} = ${formatNaira(item.price * item.quantity)}\n`;
+        
+        // Add custom fields
+        if (item.formattedCustomFields && item.formattedCustomFields.length > 0) {
+          item.formattedCustomFields.forEach(field => {
+            text += `   ${field.key}: ${field.value}\n`;
+          });
+        }
+      });
+
+      text += `
 Subtotal: ${formatNaira(calculateSubtotal())}
-${receiptData.includeDiscount ? `Discount: -${formatNaira(calculateDiscount())}\n` : ''}
-${receiptData.includeVAT ? `VAT: ${formatNaira(calculateVAT())}\n` : ''}
+${enhancedData.includeDiscount ? `Discount: -${formatNaira(calculateDiscount())}\n` : ''}
+${enhancedData.includeVAT ? `VAT: ${formatNaira(calculateVAT())}\n` : ''}
 Total: ${formatNaira(calculateTotal())}
 
-Payment: ${receiptData.paymentMethod}
-${receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 ? 
-  `Amount Paid: ${formatNaira(receiptData.amountPaid)}\nChange: ${formatNaira(calculateChange())}\n` : ''}
+Payment: ${enhancedData.paymentMethod}
+${enhancedData.paymentMethod === 'Cash' && enhancedData.amountPaid > 0 ? 
+  `Amount Paid: ${formatNaira(enhancedData.amountPaid)}\nChange: ${formatNaira(calculateChange())}\n` : ''}
 
-${receiptData.customerNotes}
+${enhancedData.customerNotes}
 
-${receiptData.includeSignature ? 'Signed: _________________' : ''}
+${enhancedData.includeSignature ? 'Signed: _________________' : ''}
 
+--- IMPORTANT DETAILS ---
+`;
+
+      // Add important custom fields summary
+      const importantFields = getImportantFieldsSummary();
+      if (importantFields.length > 0) {
+        text += `\nImportant Item Details:\n`;
+        importantFields.forEach(field => {
+          text += `Item ${field.itemIndex} (${field.itemName}): ${field.field} = ${field.value}\n`;
+        });
+      }
+
+      text += `
 Thank you for your business!
       `.trim();
 
@@ -454,7 +588,7 @@ Thank you for your business!
       
       await Swal.fire({
         title: "✅ Copied!",
-        text: "Receipt text copied to clipboard",
+        text: "Enhanced receipt text copied to clipboard",
         icon: "success",
         confirmButtonText: "OK",
         timer: 2000
@@ -473,7 +607,7 @@ Thank you for your business!
     }
   };
 
-  /* ---------------- SHARE ON WHATSAPP ---------------- */
+  /* ---------------- SHARE ON WHATSAPP (ENHANCED) ---------------- */
   const shareOnWhatsApp = async () => {
     if (!isClient) {
       Swal.fire({
@@ -486,35 +620,67 @@ Thank you for your business!
     }
 
     try {
-      const itemsList = receiptData.items.map(item =>
-        `${item.quantity}x ${item.name} - ${formatNaira(item.price * item.quantity)}`
-      ).join('\n');
-
-      const text = encodeURIComponent(`
-*${receiptData.receiptType.toUpperCase()} from ${receiptData.storeName}*
-📄 Receipt: ${receiptData.receiptNumber}
+      const enhancedData = getEnhancedReceiptData();
+      const importantFields = getImportantFieldsSummary();
+      
+      let text = `
+*${enhancedData.receiptType.toUpperCase()} from ${enhancedData.storeName}*
+📄 Receipt: ${enhancedData.receiptNumber}
 🎨 Template: ${selectedTemplate.toUpperCase()}
-📅 Date: ${receiptData.date}
-⏰ Time: ${receiptData.time}
-👤 Cashier: ${receiptData.cashierName}
+📅 Date: ${enhancedData.date}
+⏰ Time: ${enhancedData.time}
+👤 Cashier: ${enhancedData.cashierName}
 
-🛒 Items:
-${itemsList}
+🛒 Items:`;
 
-💰 Total: ${formatNaira(calculateTotal())}
+      enhancedData.items.forEach((item, index) => {
+        text += `
+${index + 1}. ${item.quantity}x ${item.name}`;
+        
+        if (item.category && item.category !== 'general') {
+          text += ` (${item.categoryName})`;
+        }
+        
+        text += ` - ${formatNaira(item.price * item.quantity)}`;
+        
+        // Add key custom fields inline
+        if (item.formattedCustomFields) {
+          const keyFields = item.formattedCustomFields.filter(f => 
+            ['IMEI', 'Serial', 'Warranty', 'Size'].includes(f.key)
+          ).slice(0, 2);
+          
+          if (keyFields.length > 0) {
+            text += ` [${keyFields.map(f => `${f.key}: ${f.value}`).join(', ')}]`;
+          }
+        }
+      });
 
-${receiptData.customerNotes}
+      text += `
 
-${receiptData.includeSignature ? '✍️ Signed' : ''}
+💰 Total: ${formatNaira(calculateTotal())}`;
+
+      // Add important fields summary
+      if (importantFields.length > 0) {
+        text += `\n\n🔍 Important Details:`;
+        importantFields.forEach(field => {
+          text += `\n• ${field.field}: ${field.value}`;
+        });
+      }
+
+      text += `
+
+${enhancedData.customerNotes}
+
+${enhancedData.includeSignature ? '✍️ Signed' : ''}
 
 Thank you for your business! 🎉
-      `.trim());
+      `.trim();
 
-      window.open(`https://wa.me/?text=${text}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       
       await Swal.fire({
         title: "✅ Shared!",
-        text: "WhatsApp share opened",
+        text: "Enhanced receipt shared on WhatsApp",
         icon: "success",
         confirmButtonText: "OK",
         timer: 2000
@@ -533,6 +699,17 @@ Thank you for your business! 🎉
     }
   };
 
+  /* ---------------- LISTEN FOR DOWNLOAD PDF ---------------- */
+  const handleDownloadPDFRef = useRef(() => {});
+  handleDownloadPDFRef.current = handleDownloadPDF;
+  useEffect(() => {
+    const onMessage = (e) => {
+      if (e.data?.type === 'receiptit-download-pdf') handleDownloadPDFRef.current();
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   /* ---------------- DON'T RENDER UNTIL CLIENT-SIDE ---------------- */
   if (!isClient) {
     return (
@@ -545,6 +722,9 @@ Thank you for your business! 🎉
     );
   }
 
+  const enhancedData = getEnhancedReceiptData();
+  const importantFields = getImportantFieldsSummary();
+
   return (
     <div className="space-y-6">
       {/* Buy Me a Coffee Modal */}
@@ -553,7 +733,46 @@ Thank you for your business! 🎉
         onClose={() => setShowCoffeeModal(false)}
       />
 
-      
+      {/* Category Data Summary */}
+      {enhancedData.hasCategoryData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">
+                📋 Category Details Included
+              </h3>
+              <div className="mt-2">
+                <p className="text-sm text-blue-700 mb-2">
+                  Your receipt includes category-specific information. This will appear in prints and PDFs.
+                </p>
+                {importantFields.length > 0 && (
+                  <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                    <strong>Important details:</strong>
+                    <div className="mt-1 space-y-1">
+                      {importantFields.slice(0, 3).map((field, idx) => (
+                        <div key={idx} className="flex items-center">
+                          <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                          <span>Item {field.itemIndex}: <strong>{field.field}</strong> = {field.value}</span>
+                        </div>
+                      ))}
+                      {importantFields.length > 3 && (
+                        <div className="text-blue-500 text-[10px]">
+                          +{importantFields.length - 3} more details
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Platform-specific notice */}
       {platform === 'android' && (
@@ -583,7 +802,7 @@ Thank you for your business! 🎉
         </div>
       )}
 
-      {/* Action Buttons Component */}
+      {/* Action Buttons */}
       <ReceiptActions
         onPrint={handlePrint}
         onDownload={handleDownloadPDF}
@@ -593,37 +812,49 @@ Thank you for your business! 🎉
         isGenerating={isGenerating}
         isMobile={isMobile}
         platform={platform}
-        receiptData={receiptData}
+        receiptData={enhancedData}
         savedReceipts={savedReceipts}
         formatNaira={formatNaira}
         calculateTotal={calculateTotal}
         setActionCount={() => {}}
       />
 
-      {/* Visible Preview */}
+      {/* Enhanced Preview */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
           <h3 className="font-bold text-gray-800 flex items-center gap-2">
             <FileText size={18} className="text-blue-600" />
-           <span className="text-sm font-medium text-gray-800"> Live Preview</span>
+            <span className="text-sm font-medium text-gray-800">Enhanced Live Preview</span>
             <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-md">
-              {receiptData.receiptType.toUpperCase()}
+              {enhancedData.receiptType.toUpperCase()}
             </span>
-            <span className="text-center px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-md">
+            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-md">
               {selectedTemplate.toUpperCase()} TEMPLATE
             </span>
+            {enhancedData.hasCategoryData && (
+              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-md">
+                CATEGORY DATA
+              </span>
+            )}
             {platform === 'android' && (
-              <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-md">
+              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-md">
                 ANDROID
               </span>
             )}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            {platform === 'android' ? 'Use View to preview, then Download or Share' : 'This is how your receipt will look when printed'}
+            {enhancedData.hasCategoryData 
+              ? 'Category-specific details included in this receipt' 
+              : platform === 'android' 
+                ? 'Use View to preview, then Download or Share' 
+                : 'This is how your receipt will look when printed'}
           </p>
         </div>
+        
+        {/* Custom Template Renderer - You'll need to update TemplateRenderer to accept enhancedData */}
         <div className="p-4 sm:p-6">
-          <TemplateRenderer
+       
+             <TemplateRenderer
             receiptData={receiptData}
             companyLogo={companyLogo}
             formatNaira={formatNaira}
@@ -633,9 +864,45 @@ Thank you for your business! 🎉
             calculateTotal={calculateTotal}
             calculateChange={calculateChange}
             isMobile={isMobile}
+             showCategoryData={enhancedData}
           />
+          {/* Quick summary of category data */}
+          {enhancedData.hasCategoryData && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 className="text-xs font-bold text-gray-700 mb-2">📋 Included Category Details:</h4>
+              <div className="space-y-2">
+                {enhancedData.items.map((item, idx) => (
+                  item.formattedCustomFields && item.formattedCustomFields.length > 0 && (
+                    <div key={idx} className="text-xs">
+                      <div className="font-medium text-gray-800">{item.name}:</div>
+                      <div className="ml-3 text-gray-600">
+                        {item.formattedCustomFields.slice(0, 2).map((field, fIdx) => (
+                          <div key={fIdx} className="flex items-center">
+                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2"></span>
+                            <span>{field.key}: <strong>{field.value}</strong></span>
+                          </div>
+                        ))}
+                        {item.formattedCustomFields.length > 2 && (
+                          <div className="text-gray-500 text-[10px] mt-1">
+                            +{item.formattedCustomFields.length - 2} more details
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-            <p>{platform === 'android' ? 'Use View, Download PDF, or Share above' : 'Preview only • Click buttons above to print, save, or share'}</p>
+            <p>
+              {enhancedData.hasCategoryData 
+                ? 'All category details will appear in print/PDF/download' 
+                : platform === 'android' 
+                  ? 'Use View, Download PDF, or Share above' 
+                  : 'Preview only • Click buttons above to print, save, or share'}
+            </p>
           </div>
         </div>
       </div>

@@ -47,7 +47,7 @@ const LogoUpload = () => {
   };
 
   return (
-    <div className={`transition-all duration-300 rounded-[24px] border border-gray-100 bg-white shadow-sm overflow-hidden ${expanded ? 'ring-1 ring-blue-100' : ''}`}>
+    <div className={`transition-all duration-300 rounded-md border border-gray-100 bg-white shadow-sm overflow-hidden ${expanded ? 'ring-1 ring-blue-100' : ''}`}>
       {/* HEADER: Always Visible */}
       <div 
         className="p-3 sm:p-4 flex items-center justify-between cursor-pointer active:bg-gray-50 transition-colors"

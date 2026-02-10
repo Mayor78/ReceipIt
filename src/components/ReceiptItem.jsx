@@ -1,6 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trash2, Minus, Plus, Edit2, CheckCircle, AlertCircle, Clock, Save, X } from 'lucide-react';
+import { 
+  Trash2, Minus, Plus, Edit2, CheckCircle, AlertCircle, 
+  Save, X, Package, Smartphone, Book, Wheat, Scissors, 
+  Droplets, Truck, Home, Shirt, Coffee, Activity 
+} from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const PRODUCT_CATEGORIES = [
+  { id: 'electronics', name: '📱 Electronics', icon: Smartphone, fields: ['imei', 'serial', 'model', 'warranty'] },
+  { id: 'books', name: '📚 Books & Media', icon: Book, fields: ['isbn', 'author', 'publisher', 'edition'] },
+  { id: 'agriculture', name: '🌾 Agriculture', icon: Wheat, fields: ['weight', 'grade', 'moisture', 'origin'] },
+  { id: 'clothing', name: '👕 Clothing', icon: Shirt, fields: ['size', 'color', 'material', 'brand'] },
+  { id: 'food', name: '🍞 Food Items', icon: Coffee, fields: ['weight', 'expiry', 'batch', 'ingredients'] },
+  { id: 'services', name: '✂️ Services', icon: Scissors, fields: ['duration', 'service_type', 'professional', 'notes'] },
+  { id: 'liquids', name: '💧 Liquids', icon: Droplets, fields: ['volume', 'container', 'density', 'ph'] },
+  { id: 'construction', name: '🏗️ Construction', icon: Home, fields: ['dimensions', 'material', 'grade', 'coating'] },
+  { id: 'logistics', name: '🚚 Logistics', icon: Truck, fields: ['weight', 'distance', 'vehicle', 'insurance'] },
+  { id: 'general', name: '📦 General Goods', icon: Package, fields: ['description'] }
+];
+
+const UNIT_OPTIONS = {
+  general: ['pcs', 'box', 'pack', 'set', 'dozen'],
+  electronics: ['pcs', 'set', 'unit', 'pair'],
+  books: ['pcs', 'set', 'volume', 'series'],
+  agriculture: ['kg', 'bag', 'ton', 'bundle', 'crate'],
+  clothing: ['pcs', 'pair', 'set', 'dozen'],
+  food: ['kg', 'g', 'litre', 'ml', 'pack', 'bottle'],
+  services: ['hour', 'session', 'project', 'visit'],
+  liquids: ['litre', 'ml', 'gallon', 'barrel', 'bottle'],
+  construction: ['pcs', 'kg', 'bag', 'ton', 'sheet'],
+  logistics: ['kg', 'km', 'trip', 'container']
+};
 
 const ReceiptItem = ({ 
   item, 
@@ -10,14 +40,18 @@ const ReceiptItem = ({
   forceSave = false,
   onSaveComplete 
 }) => {
-  const [localItem, setLocalItem] = useState({ ...item });
+  const [localItem, setLocalItem] = useState({ 
+    ...item,
+    category: item.category || 'general',
+    customFields: item.customFields || {}
+  });
+  
   const [isEditing, setIsEditing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [saveTimer, setSaveTimer] = useState(0);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   
   const nameInputRef = useRef(null);
-  const priceInputRef = useRef(null);
-  const saveTimerIntervalRef = useRef(null);
+  const categoryRef = useRef(null);
 
   useEffect(() => {
     if ((!item.name || item.name === "") && item.price === 0 && isFirstItem) {
@@ -26,10 +60,22 @@ const ReceiptItem = ({
   }, [isFirstItem]);
 
   useEffect(() => {
-    setLocalItem({ ...item });
+    setLocalItem({ 
+      ...item,
+      category: item.category || 'general',
+      customFields: item.customFields || {}
+    });
     setHasUnsavedChanges(false);
-    clearTimers();
   }, [item]);
+
+  // Get current category details
+  const currentCategory = PRODUCT_CATEGORIES.find(cat => cat.id === localItem.category) || PRODUCT_CATEGORIES[0];
+  const IconComponent = currentCategory.icon || Package;
+
+  // Get unit options for current category
+  const getUnitOptions = () => {
+    return UNIT_OPTIONS[localItem.category] || UNIT_OPTIONS.general;
+  };
 
   const formatNaira = (amount) => {
     return new Intl.NumberFormat('en-NG').format(amount);
@@ -45,21 +91,26 @@ const ReceiptItem = ({
     setTimeout(() => nameInputRef.current?.focus(), 100);
   };
 
-  const clearTimers = () => {
-    if (saveTimerIntervalRef.current) clearInterval(saveTimerIntervalRef.current);
-    setSaveTimer(0);
-  };
-
   const saveItem = () => {
     if (!isItemValid(localItem)) {
       toast.error('Enter a name and price > 0');
       return false;
     }
 
-    updateItem(item.id, 'name', localItem.name.trim());
-    updateItem(item.id, 'price', parseFloat(localItem.price));
-    updateItem(item.id, 'quantity', parseInt(localItem.quantity));
-    updateItem(item.id, 'unit', localItem.unit);
+    // Save all data
+    const updatedItem = {
+      name: localItem.name.trim(),
+      price: parseFloat(localItem.price),
+      quantity: parseInt(localItem.quantity),
+      unit: localItem.unit || 'pcs',
+      category: localItem.category,
+      customFields: localItem.customFields
+    };
+
+    // Update parent with all fields
+    Object.keys(updatedItem).forEach(field => {
+      updateItem(item.id, field, updatedItem[field]);
+    });
     
     setIsEditing(false);
     setHasUnsavedChanges(false);
@@ -69,8 +120,23 @@ const ReceiptItem = ({
   };
 
   const handleChange = (field, value) => {
-    setLocalItem(prev => ({ ...prev, [field]: value }));
-    updateItem(item.id, field, value); // Real-time sync to prevent "Add Item" alerts
+    setLocalItem(prev => ({ 
+      ...prev, 
+      [field]: value,
+      // Reset unit when category changes
+      ...(field === 'category' ? { unit: getUnitOptions()[0] } : {})
+    }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleCustomFieldChange = (field, value) => {
+    setLocalItem(prev => ({
+      ...prev,
+      customFields: {
+        ...prev.customFields,
+        [field]: value
+      }
+    }));
     setHasUnsavedChanges(true);
   };
 
@@ -79,8 +145,94 @@ const ReceiptItem = ({
     handleChange('quantity', newQty);
   };
 
+  const selectCategory = (categoryId) => {
+    handleChange('category', categoryId);
+    setShowCategoryMenu(false);
+  };
+
   const isValid = isItemValid(item);
   const total = item.price * item.quantity;
+
+  // Render custom fields based on category
+  const renderCustomFields = () => {
+    const fields = currentCategory.fields;
+    
+    if (!fields || fields.length === 0) return null;
+
+    return (
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <h4 className="text-xs font-bold text-gray-700 mb-3 flex items-center">
+          <Activity size={12} className="mr-1" />
+          {currentCategory.name} Details
+        </h4>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {fields.map(field => {
+            const fieldLabel = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
+            const fieldValue = localItem.customFields?.[field] || '';
+            
+            // Special handling for certain field types
+            const isIMEI = field === 'imei';
+            const isWeight = field === 'weight' || field === 'volume';
+            const isExpiry = field === 'expiry';
+            
+            return (
+              <div key={field}>
+                <label className="text-[10px] font-bold text-gray-400 uppercase">
+                  {fieldLabel}
+                  {isIMEI && ' (15 digits)'}
+                  {isWeight && ` (${localItem.unit === 'kg' ? 'kg' : 'g'})`}
+                </label>
+                
+                {isExpiry ? (
+                  <input
+                    type="date"
+                    value={fieldValue}
+                    onChange={(e) => handleCustomFieldChange(field, e.target.value)}
+                    className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                  />
+                ) : (
+                  <input
+                    type={isIMEI ? 'text' : 'text'}
+                    value={fieldValue}
+                    onChange={(e) => handleCustomFieldChange(field, e.target.value)}
+                    className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    placeholder={getPlaceholder(field)}
+                    maxLength={isIMEI ? 15 : undefined}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const getPlaceholder = (field) => {
+    const placeholders = {
+      imei: 'Enter 15-digit IMEI',
+      serial: 'Serial number',
+      model: 'Model number',
+      warranty: 'Warranty period',
+      isbn: 'ISBN number',
+      author: 'Author name',
+      publisher: 'Publisher',
+      weight: 'Weight in kg',
+      grade: 'Quality grade',
+      size: 'Size (S, M, L)',
+      color: 'Color',
+      material: 'Material type',
+      volume: 'Volume',
+      expiry: 'Expiry date',
+      batch: 'Batch number',
+      duration: 'Service duration',
+      service_type: 'Type of service',
+      dimensions: 'Dimensions (L×W×H)',
+      distance: 'Distance in km'
+    };
+    return placeholders[field] || `Enter ${field}`;
+  };
 
   return (
     <div className={`group relative p-4 rounded-xl border transition-all duration-200 shadow-sm ${
@@ -106,9 +258,14 @@ const ReceiptItem = ({
 
         <div className="flex items-center space-x-2">
           {isEditing ? (
-            <button onClick={saveItem} className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-              <Save size={16} />
-            </button>
+            <>
+              <button onClick={saveItem} className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <Save size={16} />
+              </button>
+              <button onClick={() => setIsEditing(false)} className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg">
+                <X size={16} />
+              </button>
+            </>
           ) : (
             <>
               <button onClick={startEditing} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
@@ -123,22 +280,58 @@ const ReceiptItem = ({
       </div>
 
       {isEditing ? (
-        /* EDIT MODE: Responsive Grid */
+        /* EDIT MODE: Category-based Dynamic Form */
         <div className="space-y-4">
-          <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Item Name</label>
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={localItem.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              className="w-full mt-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-              placeholder="What are you selling?"
-            />
+          {/* CATEGORY SELECTOR */}
+          <div className="relative" ref={categoryRef}>
+            <label className="text-[10px] font-bold text-gray-400 uppercase">Product Category</label>
+            <button
+              onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+              className="w-full mt-1 flex items-center justify-between px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center">
+                <IconComponent size={16} className="mr-2" />
+                <span className="text-sm font-medium">{currentCategory.name}</span>
+              </div>
+              <span className="text-gray-400 text-xs">▼</span>
+            </button>
+            
+            {showCategoryMenu && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {PRODUCT_CATEGORIES.map(category => {
+                  const CatIcon = category.icon;
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => selectCategory(category.id)}
+                      className={`w-full flex items-center px-3 py-2.5 hover:bg-gray-50 ${
+                        localItem.category === category.id ? 'bg-blue-50 text-blue-600' : ''
+                      }`}
+                    >
+                      <CatIcon size={16} className="mr-2" />
+                      <span className="text-sm">{category.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="col-span-2 sm:col-span-1">
+          {/* BASIC INFO */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Item Name</label>
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={localItem.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                className="w-full mt-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                placeholder={`${currentCategory.name} name...`}
+              />
+            </div>
+
+            <div>
               <label className="text-[10px] font-bold text-gray-400 uppercase">Price (₦)</label>
               <input
                 type="number"
@@ -146,44 +339,88 @@ const ReceiptItem = ({
                 onChange={(e) => handleChange('price', e.target.value)}
                 className="w-full mt-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold"
                 placeholder="0.00"
+                min="0"
+                step="0.01"
               />
             </div>
+          </div>
 
+          {/* QUANTITY & UNIT */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase">Qty</label>
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Quantity</label>
               <div className="flex items-center mt-1 bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                <button onClick={() => handleQuantityChange(-1)} className="p-2.5 hover:bg-gray-200"><Minus size={14}/></button>
+                <button 
+                  onClick={() => handleQuantityChange(-1)} 
+                  className="p-2.5 hover:bg-gray-200"
+                >
+                  <Minus size={14}/>
+                </button>
                 <span className="flex-1 text-center text-sm font-bold">{localItem.quantity}</span>
-                <button onClick={() => handleQuantityChange(1)} className="p-2.5 hover:bg-gray-200"><Plus size={14}/></button>
+                <button 
+                  onClick={() => handleQuantityChange(1)} 
+                  className="p-2.5 hover:bg-gray-200"
+                >
+                  <Plus size={14}/>
+                </button>
               </div>
             </div>
 
-            <div className="col-span-1">
+            <div>
               <label className="text-[10px] font-bold text-gray-400 uppercase">Unit</label>
               <select
-                value={localItem.unit}
+                value={localItem.unit || getUnitOptions()[0]}
                 onChange={(e) => handleChange('unit', e.target.value)}
-                className="w-full mt-1 px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none text-sm"
+                className="w-full mt-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none text-sm"
               >
-                <option value="pcs">Pcs</option>
-                <option value="kg">Kg</option>
-                <option value="pack">Pack</option>
-                <option value="carton">Ctn</option>
+                {getUnitOptions().map(unit => (
+                  <option key={unit} value={unit}>
+                    {unit.toUpperCase()}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
+
+          {/* CATEGORY-SPECIFIC FIELDS */}
+          {renderCustomFields()}
         </div>
       ) : (
-        /* VIEW MODE: Minimal & Clean */
-        <div className="flex items-center justify-between group-hover:opacity-90 transition-opacity" onClick={startEditing}>
+        /* VIEW MODE: Minimal Display */
+        <div 
+          className="flex items-center justify-between group-hover:opacity-90 transition-opacity cursor-pointer" 
+          onClick={startEditing}
+        >
           <div className="flex-1 min-w-0 pr-4">
-            <h4 className="text-sm font-bold text-gray-900 truncate">
-              {item.name || <span className="text-amber-400 italic font-normal">Tap to set name...</span>}
-            </h4>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {item.quantity} {item.unit} × ₦{formatNaira(item.price)}
-            </p>
+            <div className="flex items-center mb-1">
+              <IconComponent size={14} className="mr-2 text-gray-400" />
+              <h4 className="text-sm font-bold text-gray-900 truncate">
+                {item.name || <span className="text-amber-400 italic font-normal">Tap to set name...</span>}
+              </h4>
+            </div>
+            <div className="flex items-center text-xs text-gray-500 space-x-3">
+              <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px]">
+                {currentCategory.name.split(' ')[0]}
+              </span>
+              <span>
+                {item.quantity} {item.unit} × ₦{formatNaira(item.price)}
+              </span>
+            </div>
+            
+            {/* Show important custom fields in view mode */}
+            {item.customFields && Object.keys(item.customFields).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {Object.entries(item.customFields).slice(0, 2).map(([key, value]) => (
+                  value && (
+                    <span key={key} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                      {key}: {value}
+                    </span>
+                  )
+                ))}
+              </div>
+            )}
           </div>
+          
           <div className="text-right">
             <div className="text-sm font-black text-blue-700">
               ₦{formatNaira(total)}

@@ -27,7 +27,7 @@ const ItemsSection = ({
   const totalValue = completeItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
       <SectionHeader 
         title="Items" 
         icon={Package} 

@@ -48,7 +48,7 @@ const ReceiptForm = () => {
   );
 
   return (
-    <div className="ma-w-5xl mx-auto pb-2 space-y-8 ">
+    <div className="ma-w-7xl mx-auto pb-2 space-y-8 ">
       {showDraftPrompt && (
         <DraftPrompt onRestore={restoreDraft} onDiscard={discardDraft} />
       )}
