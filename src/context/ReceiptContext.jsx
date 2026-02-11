@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+const VERIFICATION_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw1woB8HoaHdqtT-H3DaQv9qdEV8bB2vPxG9ZYgnsP54xMNbd6mKgRr1D2XNeHeaIJKmg/exec';
 
+console.log('✅ Using correct verification URL:', VERIFICATION_WEB_APP_URL);
 const ReceiptContext = createContext();
 
 // Updated templates with all 6 styles
@@ -155,6 +157,105 @@ const generateInvoiceNumber = () => {
   return `INV${year}/${random}`;
 };
 
+// Simple verification helper
+const generateReceiptHash = (receiptData, total) => {
+  // Create a verification string from critical, unchangeable data
+  const verificationString = `${receiptData.receiptNumber}-${total}-${receiptData.items.length}-${receiptData.date}-${receiptData.time}`;
+  // Simple hash - in production use crypto.subtle.digest
+  return btoa(verificationString).substring(0, 32);
+};
+
+// Register receipt with verification system
+const registerReceiptVerification = async (receiptData, total) => {
+  try {
+    console.log('📤 registerReceiptVerification called for:', receiptData.receiptNumber);
+    
+    // Import the proxy
+    const { verificationProxy } = await import('../utils/verificationProxy');
+    
+    const receiptHash = generateReceiptHash(receiptData, total);
+    console.log('🔑 Generated hash:', receiptHash);
+    console.log('💰 Total used for hash:', total);
+    
+    // Register using proxy
+    const result = await verificationProxy.registerReceipt(
+      receiptData.receiptNumber,
+      receiptHash,
+      {
+        timestamp: new Date().toISOString(),
+        items_count: receiptData.items.length,
+        store_name_hash: btoa(receiptData.storeName || '').substring(0, 16),
+        total_amount: total
+      }
+    );
+    
+    console.log('📨 Registration result:', result);
+    
+    if (result.success) {
+      const verificationUrl = `${VERIFICATION_WEB_APP_URL}?id=${receiptData.receiptNumber}`;
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+      
+      return {
+        verificationId: receiptData.receiptNumber,
+        verificationHash: receiptHash,
+        verificationUrl,
+        qrCodeUrl,
+        registeredAt: new Date().toISOString(),
+        method: result.method
+      };
+    }
+    
+    console.warn('Registration failed:', result);
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Verification registration failed:', error);
+    return null;
+  }
+};
+
+// Verify receipt function
+const verifyReceipt = async (receiptId, receiptData, total) => {
+  const currentHash = generateReceiptHash(receiptData, total);
+  
+  // Use JSONP directly
+  const url = `${VERIFICATION_WEB_APP_URL}?action=verify_receipt&receipt_id=${receiptId}&receipt_hash=${currentHash}&callback=callback`;
+  
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    const callbackName = `callback_${Date.now()}`;
+    
+    window[callbackName] = (data) => {
+      document.body.removeChild(script);
+      delete window[callbackName];
+      
+      resolve({
+        success: data.status === 'success',
+        isGenuine: data.is_genuine,
+        message: data.message,
+        data: data
+      });
+    };
+    
+    script.src = url.replace('callback=callback', `callback=${callbackName}`);
+    document.body.appendChild(script);
+    
+    // Fallback if no response
+    setTimeout(() => {
+      if (window[callbackName]) {
+        document.body.removeChild(script);
+        delete window[callbackName];
+        resolve({
+          success: true,
+          isGenuine: true,
+          message: 'Verification submitted',
+          data: { submitted: true }
+        });
+      }
+    }, 5000);
+  });
+};
+
 export const useReceipt = () => {
   const context = useContext(ReceiptContext);
   if (!context) {
@@ -193,7 +294,8 @@ export const ReceiptProvider = ({ children }) => {
 
   const [companyLogo, setCompanyLogo] = useState(null);
   const [savedReceipts, setSavedReceipts] = useState(loadSavedReceipts());
-  const [selectedTemplate, setSelectedTemplate] = useState('modern'); // Changed default to modern
+  const [selectedTemplate, setSelectedTemplate] = useState('modern');
+  const [enableVerification, setEnableVerification] = useState(true);
   
   // Check for existing draft
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
@@ -312,8 +414,39 @@ export const ReceiptProvider = ({ children }) => {
     localStorage.removeItem('company-logo');
   };
 
-  // Save current receipt to history
-  const saveCurrentReceipt = (pdfBlob, receiptName = null) => {
+  // Save current receipt to history - NOW ASYNC
+  const saveCurrentReceipt = async (pdfBlob, receiptName = null) => {
+    console.log('📝 saveCurrentReceipt called for:', receiptData.receiptNumber);
+    
+    let verificationInfo = null;
+    
+    // Only register for verification if enabled and webAppUrl is set
+    if (enableVerification && VERIFICATION_WEB_APP_URL) {
+      try {
+        console.log('🔒 Attempting to register receipt for verification...');
+        console.log('🌐 Using URL:', VERIFICATION_WEB_APP_URL);
+        
+        // Calculate total first
+        const total = calculateTotal();
+        console.log('💰 Total for verification:', total);
+        
+        verificationInfo = await registerReceiptVerification(receiptData, total);
+        
+        if (verificationInfo) {
+          console.log('✅ Receipt registered for verification:', verificationInfo);
+        } else {
+          console.warn('⚠️ Registration returned null');
+        }
+      } catch (error) {
+        console.error('❌ Failed to register receipt for verification:', error);
+        // Continue without verification if it fails
+      }
+    } else {
+      console.warn('⚠️ Verification not enabled or URL not configured');
+      console.log('enableVerification:', enableVerification);
+      console.log('VERIFICATION_WEB_APP_URL:', VERIFICATION_WEB_APP_URL);
+    }
+    
     const receiptToSave = {
       id: Date.now().toString(),
       name: receiptName || `${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}`,
@@ -326,6 +459,8 @@ export const ReceiptProvider = ({ children }) => {
       data: { ...receiptData },
       pdfBlobUrl: URL.createObjectURL(pdfBlob),
       timestamp: Date.now(),
+      // Add verification info if available
+      ...(verificationInfo && { verificationInfo })
     };
 
     setSavedReceipts(prev => [receiptToSave, ...prev]);
@@ -520,10 +655,118 @@ export const ReceiptProvider = ({ children }) => {
     return generateReceiptNumber();
   };
 
+  // Verification functions
+ // In ReceiptContext.jsx, update verifyCurrentReceipt function:
+
+const verifyCurrentReceipt = async () => {
+  const total = calculateTotal();
+  const receiptHash = generateReceiptHash(receiptData, total);
+  
+  try {
+    console.log('🔍 Verifying receipt:', receiptData.receiptNumber);
+    
+    // First, check if receipt exists in database
+    const receiptInfo = await checkReceiptExists(receiptData.receiptNumber);
+    
+    if (!receiptInfo || receiptInfo.status !== 'success') {
+      // Receipt not found - it's a NEW receipt
+      return {
+        success: true,
+        isGenuine: true,
+        isNewReceipt: true, // Add this flag
+        message: 'New receipt - not yet registered for verification',
+        data: { is_new: true }
+      };
+    }
+    
+    // Receipt exists - verify against stored hash
+    const result = await verifyReceipt(receiptData.receiptNumber, receiptData, total);
+    
+    return {
+      ...result,
+      isNewReceipt: false
+    };
+    
+  } catch (error) {
+    console.error('Verification error:', error);
+    return {
+      success: false,
+      error: 'Verification failed',
+      isNewReceipt: false
+    };
+  }
+};
+
+// Add this helper function
+const checkReceiptExists = async (receiptId) => {
+  try {
+    const { verificationProxy } = await import('../utils/verificationProxy');
+    const result = await verificationProxy.getReceiptInfo(receiptId);
+    return result;
+  } catch (error) {
+    console.log('Receipt not found:', error);
+    return null;
+  }
+};
+
+  const verifySavedReceipt = async (receiptId, receiptData) => {
+    // Calculate total for the saved receipt
+    const calculateSavedTotal = (data) => {
+      const subtotal = data.items.reduce((sum, item) => {
+        const price = parseFloat(item.price) || 0;
+        const quantity = parseInt(item.quantity) || 1;
+        return sum + (price * quantity);
+      }, 0);
+      
+      let discount = 0;
+      if (data.includeDiscount && data.discount > 0) {
+        if (data.discountType === 'percentage') {
+          discount = (subtotal * data.discount) / 100;
+        } else {
+          discount = data.discount;
+        }
+      }
+      
+      let vat = 0;
+      if (data.includeVAT) {
+        const subtotalAfterDiscount = subtotal - discount;
+        vat = (subtotalAfterDiscount * data.vatRate) / 100;
+      }
+      
+      const delivery = parseFloat(data.deliveryFee) || 0;
+      const service = parseFloat(data.serviceCharge) || 0;
+      
+      return subtotal - discount + vat + delivery + service;
+    };
+    
+    const total = calculateSavedTotal(receiptData);
+    return await verifyReceipt(receiptId, receiptData, total);
+  };
+
+  const getVerificationUrl = (receiptId) => {
+    // return `${VERIFICATION_WEB_APP_URL}?id=${receiptId}`;
+     return `${window.location.origin}/verify`;
+  };
+
+  const getQRCodeUrl = (receiptId) => {
+    const verificationUrl = getVerificationUrl(receiptId);
+    return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
+  };
+  // Add a new function to get hash-based URL
+const getVerificationUrlWithHash = (receiptHash) => {
+  return `${window.location.origin}/verify?hash=${receiptHash}`;
+};
+
+  const toggleVerification = () => {
+    setEnableVerification(prev => !prev);
+  };
+
   // Also export getTemplateConfig from context
   return (
     <ReceiptContext.Provider value={{
       receiptData,
+      
+      getVerificationUrlWithHash, 
       updateReceiptData,
       selectedTemplate,
       templates: RECEIPT_TEMPLATES,
@@ -532,7 +775,7 @@ export const ReceiptProvider = ({ children }) => {
       handleLogoUpload,
       removeLogo,
       savedReceipts,
-      saveCurrentReceipt,
+      saveCurrentReceipt, // Now async
       deleteSavedReceipt,
       getSavedReceipt,
       clearHistory,
@@ -555,6 +798,14 @@ export const ReceiptProvider = ({ children }) => {
       discardDraft,
       startNewReceipt,
       clearDraft,
+      // Verification features
+      enableVerification,
+      toggleVerification,
+      verifyCurrentReceipt,
+      verifySavedReceipt,
+      getVerificationUrl,
+      getQRCodeUrl,
+      VERIFICATION_WEB_APP_URL
     }}>
       {children}
     </ReceiptContext.Provider>

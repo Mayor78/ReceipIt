@@ -1,6 +1,6 @@
-// ReceiptDisplay.jsx - ENHANCED VERSION WITH CATEGORY DATA SUPPORT
+// ReceiptDisplay.jsx - ENHANCED VERSION WITH CATEGORY DATA SUPPORT AND VERIFICATION
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, Package, Smartphone, Book, Wheat, Scissors, Droplets, Truck, Home, Shirt, Coffee } from 'lucide-react';
+import { FileText, Package, Smartphone, Book, Wheat, Scissors, Droplets, Truck, Home, Shirt, Coffee, Shield, QrCode } from 'lucide-react';
 import { useReceipt } from '../context/ReceiptContext';
 import BuyMeACoffeeModal from './BuyMeACoffeeModal';
 import Swal from 'sweetalert2';
@@ -8,7 +8,7 @@ import html2pdf from 'html2pdf.js';
 import ReceiptActions from './receiptDisplay/ReceiptActions';
 import { generatePrintHTML } from './receiptTemplates/printTemplates';
 import { getPrintStyles, detectPlatform } from '../utils/printUtils';
-import TemplateRenderer from "../components/receiptTemplates/TemplateRenderer"
+import TemplateRenderer from "../components/receiptTemplates/TemplateRenderer";
 
 // Category icons mapping
 const CATEGORY_ICONS = {
@@ -36,7 +36,12 @@ const ReceiptDisplay = () => {
     calculateTotal,
     calculateChange,
     formatNaira,
-    selectedTemplate
+    selectedTemplate,
+    enableVerification,
+    verifyCurrentReceipt,
+    getVerificationUrl,
+    getQRCodeUrl,
+    VERIFICATION_WEB_APP_URL
   } = useReceipt();
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -44,6 +49,9 @@ const ReceiptDisplay = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [platform, setPlatform] = useState('desktop');
   const [isClient, setIsClient] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [showVerificationQR, setShowVerificationQR] = useState(false);
 
   /* ---------------- CHECK ENVIRONMENT ---------------- */
   useEffect(() => {
@@ -62,6 +70,112 @@ const ReceiptDisplay = () => {
     window.addEventListener("resize", checkDevice);
     return () => window.removeEventListener("resize", checkDevice);
   }, []);
+
+  /* ---------------- VERIFICATION FUNCTIONS ---------------- */
+  const getCurrentReceiptHash = () => {
+  // Use the same hash generation as in ReceiptContext
+  const total = calculateTotal();
+  const verificationString = `${receiptData.receiptNumber}-${total}-${receiptData.items.length}-${receiptData.date}-${receiptData.time}`;
+  return btoa(verificationString).substring(0, 32);
+};
+ /* ---------------- VERIFICATION FUNCTIONS ---------------- */
+const handleVerifyReceipt = async () => {
+  setIsVerifying(true);
+  try {
+    const result = await verifyCurrentReceipt();
+    setVerificationResult(result);
+    
+    if (result.success) {
+      if (result.data?.offline) {
+        // Pixel-only submission (no immediate verification)
+        await Swal.fire({
+          title: "📤 Verification Submitted",
+          html: `
+            <div style="text-align: center; padding: 10px;">
+              <div style="font-size: 60px; color: #4a86e8;">📤</div>
+              <p style="font-size: 16px; margin: 15px 0;">Verification request sent to server.</p>
+              <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 5px 0;"><strong>Receipt:</strong> ${receiptData.receiptNumber}</p>
+                <p style="margin: 5px 0;"><strong>Status:</strong> ⏳ PENDING VERIFICATION</p>
+                <p style="margin: 5px 0;"><small>Check verification link for final status</small></p>
+              </div>
+            </div>
+          `,
+          icon: "info",
+          confirmButtonText: "OK"
+        });
+      } else if (result.isGenuine) {
+        // Genuine receipt
+        await Swal.fire({
+          title: "✅ GENUINE RECEIPT",
+          html: `
+            <div style="text-align: center; padding: 10px;">
+              <div style="font-size: 60px; color: #28a745;">✓</div>
+              <p style="font-size: 16px; margin: 15px 0;">This receipt matches the original record.</p>
+              <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 5px 0;"><strong>Receipt:</strong> ${receiptData.receiptNumber}</p>
+                <p style="margin: 5px 0;"><strong>Total:</strong> ${formatNaira(calculateTotal())}</p>
+                <p style="margin: 5px 0;"><strong>Status:</strong> ✅ VERIFIED</p>
+              </div>
+            </div>
+          `,
+          icon: "success",
+          confirmButtonText: "OK"
+        });
+      } else {
+        // Modified receipt
+        await Swal.fire({
+          title: "⚠️ MODIFIED RECEIPT",
+          html: `
+            <div style="text-align: center; padding: 10px;">
+              <div style="font-size: 60px; color: #dc3545;">⚠️</div>
+              <p style="font-size: 16px; margin: 15px 0;">This receipt has been altered from the original.</p>
+              <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin: 5px 0;"><strong>Receipt:</strong> ${receiptData.receiptNumber}</p>
+                <p style="margin: 5px 0;"><strong>Warning:</strong> Amounts or items may have been changed</p>
+                <p style="margin: 5px 0;"><strong>Status:</strong> ⚠️ FRAUD DETECTED</p>
+              </div>
+              <p style="font-size: 12px; color: #666; margin-top: 15px;">
+                Contact the store for original receipt
+              </p>
+            </div>
+          `,
+          icon: "warning",
+          confirmButtonText: "Got it"
+        });
+      }
+    } else {
+      await Swal.fire({
+        title: "❌ Verification Failed",
+        text: result.error || "Could not verify receipt",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+    }
+  } catch (error) {
+    console.error("Verification error:", error);
+    await Swal.fire({
+      title: "❌ Error",
+      text: "Failed to verify receipt. Please try again.",
+      icon: "error",
+      confirmButtonText: "OK"
+    });
+  } finally {
+    setIsVerifying(false);
+  }
+};
+  const handleShowVerificationQR = () => {
+    if (!VERIFICATION_WEB_APP_URL || VERIFICATION_WEB_APP_URL.includes('ABCD1234')) {
+      Swal.fire({
+        title: "⚠️ Not Configured",
+        text: "Please set up verification system first",
+        icon: "warning",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+    setShowVerificationQR(true);
+  };
 
   /* ---------------- COFFEE MODAL RESET ---------------- */
   const showCoffeeModalIfAllowed = () => {
@@ -192,14 +306,15 @@ const ReceiptDisplay = () => {
       deliveryFee: receiptData.deliveryFee || 0
     };
     
-    // Generate template with enhanced data
+    // Generate template with enhanced data including verification
     const templateHtml = generatePrintHTML(
       selectedTemplate,
       enhancedData,
       companyLogo,
       formatNaira,
       calculations,
-      getImportantFieldsSummary()
+      getImportantFieldsSummary(),
+      enableVerification ? getVerificationUrl(receiptData.receiptNumber) : null
     );
     
     const printDocument = createPrintDocument(templateHtml, { isAndroid });
@@ -273,7 +388,8 @@ const ReceiptDisplay = () => {
       companyLogo, 
       formatNaira, 
       calculations,
-      getImportantFieldsSummary()
+      getImportantFieldsSummary(),
+      enableVerification ? getVerificationUrl(receiptData.receiptNumber) : null
     );
     const doc = createPrintDocument(templateHtml, { isAndroid: true, showDownloadInsteadOfPrint: true });
     viewWindow.document.write(doc);
@@ -286,6 +402,8 @@ const ReceiptDisplay = () => {
     const { isAndroid = false, showDownloadInsteadOfPrint = false } = typeof options === 'boolean' ? { isAndroid: options } : options;
     const printStyles = getPrintStyles();
     const enhancedData = getEnhancedReceiptData();
+   const verificationUrl = enableVerification ? `${window.location.origin}/verify?hash=${getCurrentReceiptHash()}` : null;
+    const qrCodeUrl = verificationUrl ? getQRCodeUrl(receiptData.receiptNumber) : null;
     
     return `
       <!DOCTYPE html>
@@ -370,11 +488,72 @@ const ReceiptDisplay = () => {
             border-radius: 3px;
             border-left: 2px solid #059669;
           }
+          
+          /* Verification section */
+          .verification-section {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4a86e8;
+            font-size: 11px;
+          }
+          
+          .verification-qr {
+            text-align: center;
+            margin: 10px 0;
+          }
+          
+          .verification-qr img {
+            width: 80px;
+            height: 80px;
+          }
+          
+          .verification-link {
+            word-break: break-all;
+            font-size: 10px;
+            color: #4a86e8;
+            text-decoration: none;
+          }
+          
+          .verification-note {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+          }
         </style>
       </head>
       <body>
         <div style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
           ${templateHtml}
+          
+          ${verificationUrl ? `
+          <div class="verification-section">
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+              <svg style="width: 12px; height: 12px; margin-right: 5px;" fill="#4a86e8" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <strong style="font-size: 11px;">ANTI-FRAUD VERIFICATION</strong>
+            </div>
+            
+            ${qrCodeUrl ? `
+            <div class="verification-qr">
+              <img src="${qrCodeUrl}" alt="Verify Receipt QR Code">
+              <div class="verification-note">Scan to verify authenticity</div>
+            </div>
+            ` : ''}
+            
+            <div style="margin-top: 8px;">
+              <div style="font-weight: bold; font-size: 10px;">Verify online:</div>
+              <a href="${verificationUrl}" class="verification-link" target="_blank">
+                ${verificationUrl}
+              </a>
+              <div class="verification-note">
+                Compare digital fingerprint with original record
+              </div>
+            </div>
+          </div>
+          ` : ''}
         </div>
         ${showDownloadInsteadOfPrint ? `
         <button class="print-button" onclick="if(window.opener){window.opener.postMessage({type:'receiptit-download-pdf'},'*');}">
@@ -413,19 +592,43 @@ const ReceiptDisplay = () => {
         deliveryFee: receiptData.deliveryFee || 0
       };
       
+      // Generate template with verification info
       const templateHtml = generatePrintHTML(
         selectedTemplate, 
         enhancedData, 
         companyLogo, 
         formatNaira, 
         calculations,
-        getImportantFieldsSummary()
+        getImportantFieldsSummary(),
+        enableVerification ? getVerificationUrl(receiptData.receiptNumber) : null
       );
       
       const printStyles = getPrintStyles();
       const container = document.createElement('div');
       container.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm;background:white;';
-      container.innerHTML = `${printStyles}<div id="pdf-receipt" style="max-width:210mm;margin:0 auto;padding:20mm;background:white;">${templateHtml}</div>`;
+      
+      // Add verification section to container
+      const verificationSection = enableVerification ? `
+        <div class="verification-section" style="margin-top:20px;padding:10px;background:#f8f9fa;border-radius:8px;border-left:4px solid #4a86e8;font-size:11px;">
+          <div style="display:flex;align-items:center;margin-bottom:8px;">
+            <svg style="width:12px;height:12px;margin-right:5px;" fill="#4a86e8" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <strong style="font-size:11px;">ANTI-FRAUD VERIFICATION</strong>
+          </div>
+          <div style="margin-top:8px;">
+            <div style="font-weight:bold;font-size:10px;">Verify online:</div>
+            <div style="word-break:break-all;font-size:10px;color:#4a86e8;">
+              ${getVerificationUrl(receiptData.receiptNumber)}
+            </div>
+            <div style="font-size:10px;color:#666;margin-top:5px;">
+              Compare digital fingerprint with original record
+            </div>
+          </div>
+        </div>
+      ` : '';
+      
+      container.innerHTML = `${printStyles}<div id="pdf-receipt" style="max-width:210mm;margin:0 auto;padding:20mm;background:white;">${templateHtml}${verificationSection}</div>`;
       document.body.appendChild(container);
       const el = container.querySelector('#pdf-receipt');
       const imgs = el.querySelectorAll('img');
@@ -446,6 +649,14 @@ const ReceiptDisplay = () => {
       const pdfOutput = await html2pdf().set(opt).from(el).toContainer().toCanvas().toImg().toPdf().outputPdf('blob');
       const pdfBlob = pdfOutput instanceof Blob ? pdfOutput : new Blob([pdfOutput], { type: 'application/pdf' });
       document.body.removeChild(container);
+      
+      // Save to history with verification
+      try {
+        const savedReceipt = await saveCurrentReceipt(pdfBlob, 'Receipt');
+        console.log('Receipt saved with verification:', savedReceipt);
+      } catch (saveError) {
+        console.error('Failed to save receipt to history:', saveError);
+      }
       
       const isAndroid = /Android/i.test(navigator.userAgent);
       const file = new File([pdfBlob], `receipt-${enhancedData.receiptNumber}.pdf`, { type: 'application/pdf' });
@@ -511,7 +722,7 @@ const ReceiptDisplay = () => {
     }
   };
 
-  /* ---------------- COPY TO CLIPBOARD (ENHANCED) ---------------- */
+  /* ---------------- COPY TO CLIPBOARD (ENHANCED WITH VERIFICATION) ---------------- */
   const copyToClipboard = async () => {
     if (!isClient) {
       Swal.fire({
@@ -525,8 +736,9 @@ const ReceiptDisplay = () => {
 
     try {
       const enhancedData = getEnhancedReceiptData();
+      const verificationUrl = enableVerification ? getVerificationUrl(receiptData.receiptNumber) : null;
       
-      let text = `
+      let text = `                          
 ${enhancedData.storeName}
 ${enhancedData.receiptType.toUpperCase()}: ${enhancedData.receiptNumber}
 Date: ${enhancedData.date} | Time: ${enhancedData.time}
@@ -567,9 +779,16 @@ ${enhancedData.paymentMethod === 'Cash' && enhancedData.amountPaid > 0 ?
 ${enhancedData.customerNotes}
 
 ${enhancedData.includeSignature ? 'Signed: _________________' : ''}
-
---- IMPORTANT DETAILS ---
 `;
+
+      // Add verification info if enabled
+      if (verificationUrl) {
+        text += `
+--- ANTI-FRAUD VERIFICATION ---
+Verify authenticity: ${verificationUrl}
+Scan QR code or visit link to confirm receipt is genuine
+`;
+      }
 
       // Add important custom fields summary
       const importantFields = getImportantFieldsSummary();
@@ -588,7 +807,7 @@ Thank you for your business!
       
       await Swal.fire({
         title: "✅ Copied!",
-        text: "Enhanced receipt text copied to clipboard",
+        text: verificationUrl ? "Receipt with verification link copied" : "Enhanced receipt text copied to clipboard",
         icon: "success",
         confirmButtonText: "OK",
         timer: 2000
@@ -607,7 +826,7 @@ Thank you for your business!
     }
   };
 
-  /* ---------------- SHARE ON WHATSAPP (ENHANCED) ---------------- */
+  /* ---------------- SHARE ON WHATSAPP (ENHANCED WITH VERIFICATION) ---------------- */
   const shareOnWhatsApp = async () => {
     if (!isClient) {
       Swal.fire({
@@ -622,6 +841,7 @@ Thank you for your business!
     try {
       const enhancedData = getEnhancedReceiptData();
       const importantFields = getImportantFieldsSummary();
+      const verificationUrl = enableVerification ? getVerificationUrl(receiptData.receiptNumber) : null;
       
       let text = `
 *${enhancedData.receiptType.toUpperCase()} from ${enhancedData.storeName}*
@@ -658,6 +878,15 @@ ${index + 1}. ${item.quantity}x ${item.name}`;
       text += `
 
 💰 Total: ${formatNaira(calculateTotal())}`;
+
+      // Add verification info
+      if (verificationUrl) {
+        text += `
+
+🔒 ANTI-FRAUD VERIFICATION
+Verify: ${verificationUrl}
+Scan QR or visit link to confirm receipt is genuine`;
+      }
 
       // Add important fields summary
       if (importantFields.length > 0) {
@@ -724,14 +953,107 @@ Thank you for your business! 🎉
 
   const enhancedData = getEnhancedReceiptData();
   const importantFields = getImportantFieldsSummary();
+  const verificationUrl = enableVerification ? getVerificationUrl(receiptData.receiptNumber) : null;
+  const qrCodeUrl = verificationUrl ? getQRCodeUrl(receiptData.receiptNumber) : null;
 
   return (
     <div className="space-y-6">
+      {/* Verification QR Modal */}
+      {showVerificationQR && qrCodeUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">🔒 Verify Receipt</h3>
+              <button 
+                onClick={() => setShowVerificationQR(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="text-center">
+              <div className="mb-4">
+                <img 
+                  src={qrCodeUrl} 
+                  alt="Verification QR Code" 
+                  className="w-48 h-48 mx-auto"
+                />
+              </div>
+              <p className="text-sm text-gray-600 mb-2">Scan to verify this receipt's authenticity</p>
+              <div className="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg break-all">
+                {verificationUrl}
+              </div>
+              <div className="mt-4 flex space-x-2">
+                <button
+                  onClick={() => window.open(verificationUrl, '_blank')}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                >
+                  Open Link
+                </button>
+                <button
+                  onClick={() => setShowVerificationQR(false)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Buy Me a Coffee Modal */}
       <BuyMeACoffeeModal
         isOpen={showCoffeeModal}
         onClose={() => setShowCoffeeModal(false)}
       />
+
+      {/* Verification Status Banner */}
+      {enableVerification && verificationUrl && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Shield className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="ml-3 flex-1">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-medium text-blue-800">
+                  🔒 Anti-Fraud Protection Enabled
+                </h3>
+                <button
+                  onClick={handleVerifyReceipt}
+                  disabled={isVerifying}
+                  className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isVerifying ? 'Verifying...' : 'Verify Now'}
+                </button>
+              </div>
+              <div className="mt-2">
+                <p className="text-sm text-blue-700">
+                  This receipt is protected against fraud. Anyone can verify its authenticity.
+                </p>
+                <div className="mt-2 flex items-center space-x-4">
+                  <button
+                    onClick={handleShowVerificationQR}
+                    className="text-xs flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    <QrCode size={14} className="mr-1" />
+                    Show QR Code
+                  </button>
+                  <a
+                    href={verificationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    📍 Verification Link
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Category Data Summary */}
       {enhancedData.hasCategoryData && (
@@ -802,13 +1124,15 @@ Thank you for your business! 🎉
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Pass verification props */}
       <ReceiptActions
         onPrint={handlePrint}
         onDownload={handleDownloadPDF}
         onPreview={handlePreviewPDF}
         onShare={shareOnWhatsApp}
         onCopy={copyToClipboard}
+        onVerify={handleVerifyReceipt}
+        onShowQR={handleShowVerificationQR}
         isGenerating={isGenerating}
         isMobile={isMobile}
         platform={platform}
@@ -817,20 +1141,29 @@ Thank you for your business! 🎉
         formatNaira={formatNaira}
         calculateTotal={calculateTotal}
         setActionCount={() => {}}
+        enableVerification={enableVerification}
+        isVerifying={isVerifying}
+        verificationUrl={verificationUrl}
       />
 
       {/* Enhanced Preview */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2">
+          <h3 className="font-bold text-gray-800 flex flex-wrap items-center gap-2">
             <FileText size={18} className="text-blue-600" />
-            <span className="text-sm font-medium text-gray-800">Enhanced Live Preview</span>
+            <span className="text-sm font-medium text-gray-800">Preview</span>
             <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-md">
               {enhancedData.receiptType.toUpperCase()}
             </span>
             <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-md">
               {selectedTemplate.toUpperCase()} TEMPLATE
             </span>
+            {enableVerification && verificationUrl && (
+              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-md flex items-center">
+                <Shield size={10} className="mr-1" />
+                ANTI-FRAUD
+              </span>
+            )}
             {enhancedData.hasCategoryData && (
               <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-md">
                 CATEGORY DATA
@@ -843,18 +1176,19 @@ Thank you for your business! 🎉
             )}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            {enhancedData.hasCategoryData 
-              ? 'Category-specific details included in this receipt' 
-              : platform === 'android' 
-                ? 'Use View to preview, then Download or Share' 
-                : 'This is how your receipt will look when printed'}
+            {enableVerification 
+              ? 'This receipt is protected against fraud with digital verification' 
+              : enhancedData.hasCategoryData 
+                ? 'Category-specific details included in this receipt' 
+                : platform === 'android' 
+                  ? 'Use View to preview, then Download or Share' 
+                  : 'This is how your receipt will look when printed'}
           </p>
         </div>
         
-        {/* Custom Template Renderer - You'll need to update TemplateRenderer to accept enhancedData */}
+        {/* Custom Template Renderer */}
         <div className="p-4 sm:p-6">
-       
-             <TemplateRenderer
+          <TemplateRenderer
             receiptData={receiptData}
             companyLogo={companyLogo}
             formatNaira={formatNaira}
@@ -864,8 +1198,40 @@ Thank you for your business! 🎉
             calculateTotal={calculateTotal}
             calculateChange={calculateChange}
             isMobile={isMobile}
-             showCategoryData={enhancedData}
+            showCategoryData={enhancedData}
           />
+          
+          {/* Verification section in preview */}
+          {enableVerification && verificationUrl && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center mb-2">
+                <Shield size={16} className="text-blue-600 mr-2" />
+                <h4 className="text-sm font-bold text-blue-800">🔒 Anti-Fraud Verification</h4>
+              </div>
+              <p className="text-xs text-blue-700 mb-2">
+                This receipt is registered for verification. Anyone can check if it's been modified.
+              </p>
+              <div className="text-xs text-blue-600 bg-white p-2 rounded border border-blue-100 break-all">
+                <strong>Verify at:</strong> <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="underline">{verificationUrl}</a>
+              </div>
+              <div className="mt-2 flex space-x-2">
+                <button
+                  onClick={handleVerifyReceipt}
+                  disabled={isVerifying}
+                  className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isVerifying ? 'Verifying...' : 'Check Authenticity'}
+                </button>
+                <button
+                  onClick={handleShowVerificationQR}
+                  className="text-xs border border-blue-600 text-blue-600 px-3 py-1 rounded hover:bg-blue-50"
+                >
+                  Show QR Code
+                </button>
+              </div>
+            </div>
+          )}
+          
           {/* Quick summary of category data */}
           {enhancedData.hasCategoryData && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -897,11 +1263,13 @@ Thank you for your business! 🎉
           
           <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
             <p>
-              {enhancedData.hasCategoryData 
-                ? 'All category details will appear in print/PDF/download' 
-                : platform === 'android' 
-                  ? 'Use View, Download PDF, or Share above' 
-                  : 'Preview only • Click buttons above to print, save, or share'}
+              {enableVerification 
+                ? 'All prints and PDFs will include verification QR codes and links' 
+                : enhancedData.hasCategoryData 
+                  ? 'All category details will appear in print/PDF/download' 
+                  : platform === 'android' 
+                    ? 'Use View, Download PDF, or Share above' 
+                    : 'Preview only • Click buttons above to print, save, or share'}
             </p>
           </div>
         </div>

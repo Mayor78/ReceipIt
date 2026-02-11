@@ -18,6 +18,7 @@ import usePageMeta from '../hooks/usePageMeta';
 
 
 const HomePage = ({ onGetStarted }) => {
+  
     usePageMeta(
     "ReceiptIt - Free Online Receipt Generator",
     "Generate professional receipts online for small businesses."
@@ -26,6 +27,7 @@ const HomePage = ({ onGetStarted }) => {
     <main className="max-w-7xl mx-auto relative">
    
       <HeroSection onGetStarted={onGetStarted} />
+      
       <FeaturesGrid />
       <PrivacySection />
    
@@ -35,6 +37,8 @@ const HomePage = ({ onGetStarted }) => {
       <Testimonials />
       <FAQSection/>
       <CTASection onGetStarted={onGetStarted} />
+
+      
       <Footer />
     </main>
   );

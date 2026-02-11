@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Receipt } from 'lucide-react';
+import { Receipt, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
-      // Check if scrolled more than 10px
       const scrolled = window.scrollY > 10;
       setIsScrolled(scrolled);
     };
 
-    // Add scroll listener
     window.addEventListener('scroll', handleScroll);
-    
-    // Check initial scroll position
     handleScroll();
     
-    // Cleanup
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  const handleVerifyClick = () => {
+    navigate('/verify');
+  };
+
+  const handleHomeClick = () => {
+    navigate('/');
+  };
 
   return (
     <div className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -30,10 +36,12 @@ const Header = () => {
         : 'bg-white border-b border-gray-100'
     }`}>
       <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-center sm:justify-start">
-          {/* Logo */}
-          <div className="flex items-center space-x-3">
-            {/* Icon with subtle animation */}
+        <div className="flex items-center justify-between">
+          {/* Logo - Clickable to go home */}
+          <button 
+            onClick={handleHomeClick}
+            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+          >
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-green-500/30 to-emerald-600/30 rounded-xl blur-md"></div>
               <div className={`relative p-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ${
@@ -45,7 +53,6 @@ const Header = () => {
               </div>
             </div>
             
-            {/* Brand */}
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                 <span className={`bg-gradient-to-r transition-all duration-300 ${
@@ -62,7 +69,20 @@ const Header = () => {
                 Receipt Generator
               </p>
             </div>
-          </div>
+          </button>
+
+          {/* Verification Button */}
+          <button
+            onClick={handleVerifyClick}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg transition-all duration-300 ${
+              isScrolled
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 hover:from-green-100 hover:to-emerald-100'
+                : 'bg-gradient-to-r from-green-100 to-emerald-100 border border-green-200 text-green-800 hover:from-green-200 hover:to-emerald-200'
+            } shadow-sm hover:shadow`}
+          >
+            <Shield className="w-4 h-4" />
+            <span className="font-medium text-sm">Verify Receipt</span>
+          </button>
         </div>
       </div>
     </div>
