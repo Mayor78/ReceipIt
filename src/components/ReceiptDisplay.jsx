@@ -1,3 +1,5 @@
+
+
 // ReceiptDisplay.jsx - FIXED VERSION
 import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { FileText, Package, Smartphone, Book, Wheat, Scissors, Droplets, Truck, Home, Shirt, Coffee, Shield, QrCode } from 'lucide-react';
@@ -26,7 +28,7 @@ const CATEGORY_ICONS = {
 };
 
 const ReceiptDisplay = () => {
-  const {
+const {
     receiptData,
     companyLogo,
     savedReceipts,
@@ -73,37 +75,10 @@ const ReceiptDisplay = () => {
     return () => window.removeEventListener("resize", checkDevice);
   }, []);
 
-  /* ---------------- FIXED: Get Current Receipt Hash ---------------- */
-  const getCurrentReceiptHash = async () => {
-    // First try to get from localStorage saved hashes
-    try {
-      const savedHashes = JSON.parse(localStorage.getItem('receipt_hashes') || '{}');
-      const savedHash = savedHashes[receiptData.receiptNumber];
-      if (savedHash) {
-        return savedHash;
-      }
-    } catch (e) {
-      console.error('Error reading saved hash:', e);
-    }
-    
-    // If not found and we have a store, generate a new one
-    if (currentStore) {
-      try {
-        const total = calculateTotal();
-        const newHash = await generateReceiptHash(receiptData, currentStore.id, total);
-        
-        // Save it for next time
-        const savedHashes = JSON.parse(localStorage.getItem('receipt_hashes') || '{}');
-        savedHashes[receiptData.receiptNumber] = newHash;
-        localStorage.setItem('receipt_hashes', JSON.stringify(savedHashes));
-        
-        return newHash;
-      } catch (error) {
-        console.error('Error generating hash:', error);
-      }
-    }
-    
-    return null;
+  /* ---------------- FIXED: Get Current Receipt Number ---------------- */
+  const getCurrentReceiptNumber = () => {
+    // Just return the receipt number - it's already unique!
+    return receiptData.receiptNumber;
   };
 
   /* ---------------- VERIFICATION FUNCTIONS ---------------- */
@@ -186,12 +161,12 @@ const ReceiptDisplay = () => {
     }
   };
 
-  const handleShowVerificationQR = async () => {
-    const receiptHash = await getCurrentReceiptHash();
-    if (!receiptHash) {
+  const handleShowVerificationQR = () => {
+    const receiptNumber = getCurrentReceiptNumber();
+    if (!receiptNumber) {
       Swal.fire({
-        title: "⚠️ No Hash Available",
-        text: "Save the receipt first to generate a verification hash",
+        title: "⚠️ No Receipt Number",
+        text: "Unable to generate QR code",
         icon: "warning",
         confirmButtonText: "OK"
       });
@@ -329,10 +304,10 @@ const ReceiptDisplay = () => {
       deliveryFee: receiptData.deliveryFee || 0
     };
     
-    // Get the correct hash
-    const receiptHash = await getCurrentReceiptHash();
-    const verificationUrl = receiptHash ? `${window.location.origin}/verify?hash=${receiptHash}` : null;
-    const qrCodeUrl = receiptHash ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}` : null;
+    // Get the receipt number
+    const receiptNumber = getCurrentReceiptNumber();
+    const verificationUrl = receiptNumber ? `${window.location.origin}/verify?id=${receiptNumber}` : null;
+    const qrCodeUrl = receiptNumber ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}` : null;
     
     // Generate template with enhanced data including verification
     const templateHtml = generatePrintHTML(
@@ -344,10 +319,10 @@ const ReceiptDisplay = () => {
       getImportantFieldsSummary(),
       verificationUrl,
       qrCodeUrl,
-      receiptHash
+      receiptNumber
     );
     
-    const printDocument = createPrintDocument(templateHtml, { isAndroid, receiptHash, verificationUrl, qrCodeUrl });
+    const printDocument = createPrintDocument(templateHtml, { isAndroid, receiptNumber, verificationUrl, qrCodeUrl });
     
     printWindow.document.write(printDocument);
     printWindow.document.close();
@@ -434,7 +409,7 @@ const ReceiptDisplay = () => {
     const { 
       isAndroid = false, 
       showDownloadInsteadOfPrint = false,
-      receiptHash = null,
+      receiptNumber = null,
       verificationUrl = null,
       qrCodeUrl = null
     } = options;
@@ -557,7 +532,7 @@ const ReceiptDisplay = () => {
             margin-top: 5px;
           }
           
-          .receipt-hash {
+          .receipt-number {
             font-family: monospace;
             font-size: 9px;
             color: #666;
@@ -572,10 +547,10 @@ const ReceiptDisplay = () => {
         <div style="max-width: 210mm; margin: 0 auto; padding: ${isAndroid ? '10mm' : '20mm'};">
           ${templateHtml}
           
-          ${receiptHash ? `
-          <div class="receipt-hash">
-            <strong>Verification Hash:</strong><br>
-            ${receiptHash}
+          ${receiptNumber ? `
+          <div class="receipt-number">
+            <strong>Receipt Number:</strong><br>
+            ${receiptNumber}
           </div>
           ` : ''}
           
@@ -585,13 +560,13 @@ const ReceiptDisplay = () => {
               <svg style="width: 12px; height: 12px; margin-right: 5px;" fill="#4a86e8" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
               </svg>
-              <strong style="font-size: 11px;">ANTI-FRAUD VERIFICATION</strong>
+              <strong style="font-size: 11px;">VERIFY THIS RECEIPT</strong>
             </div>
             
             ${qrCodeUrl ? `
             <div class="verification-qr">
               <img src="${qrCodeUrl}" alt="Verify Receipt QR Code">
-              <div class="verification-note">Scan to verify authenticity</div>
+              <div class="verification-note">Scan to verify</div>
             </div>
             ` : ''}
             
@@ -600,9 +575,6 @@ const ReceiptDisplay = () => {
               <a href="${verificationUrl}" class="verification-link" target="_blank">
                 ${verificationUrl}
               </a>
-              <div class="verification-note">
-                Compare digital fingerprint with original record
-              </div>
             </div>
           </div>
           ` : ''}
@@ -644,12 +616,12 @@ const ReceiptDisplay = () => {
         deliveryFee: receiptData.deliveryFee || 0
       };
       
-      // Get the correct hash
-      const receiptHash = await getCurrentReceiptHash();
-      console.log('🔑 Using receipt hash for PDF:', receiptHash);
+      // Get the receipt number
+      const receiptNumber = getCurrentReceiptNumber();
+      console.log('🔑 Using receipt number for PDF:', receiptNumber);
       
-      const verificationUrl = receiptHash ? `${window.location.origin}/verify?hash=${receiptHash}` : null;
-      const qrCodeUrl = receiptHash ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}` : null;
+      const verificationUrl = receiptNumber ? `${window.location.origin}/verify?id=${receiptNumber}` : null;
+      const qrCodeUrl = receiptNumber ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}` : null;
       
       // Generate template with verification info
       const templateHtml = generatePrintHTML(
@@ -661,20 +633,20 @@ const ReceiptDisplay = () => {
         getImportantFieldsSummary(),
         verificationUrl,
         qrCodeUrl,
-        receiptHash
+        receiptNumber
       );
       
       const printStyles = getPrintStyles();
       const container = document.createElement('div');
       container.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm;background:white;';
       
-      const verificationSection = receiptHash ? `
+      const verificationSection = receiptNumber ? `
         <div class="verification-section" style="margin-top:20px;padding:15px;background:#f8f9fa;border-radius:8px;border-left:4px solid #4a86e8;font-family:Arial,sans-serif;">
           <div style="display:flex;align-items:center;margin-bottom:12px;">
             <svg style="width:16px;height:16px;margin-right:6px;" fill="#4a86e8" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
-            <strong style="font-size:12px;color:#1a1a1a;">🔐 CRYPTOGRAPHIC VERIFICATION</strong>
+            <strong style="font-size:12px;color:#1a1a1a;">🔐 VERIFY THIS RECEIPT</strong>
           </div>
           
           <div style="display:flex;flex-wrap:wrap;gap:15px;">
@@ -687,10 +659,10 @@ const ReceiptDisplay = () => {
             
             <div style="flex:1;">
               <div style="font-weight:bold;font-size:11px;color:#333;margin-bottom:6px;">
-                🔑 Receipt Fingerprint:
+                🔑 Receipt Number:
               </div>
               <div style="font-family:'Courier New',monospace;font-size:10px;color:#4a86e8;background:#fff;padding:6px;border-radius:4px;border:1px solid #e0e0e0;margin-bottom:8px;word-break:break-all;">
-                ${receiptHash}
+                ${receiptNumber}
               </div>
               <div style="font-size:10px;color:#666;margin-bottom:4px;">
                 <span style="font-weight:bold;">Verify online:</span>
@@ -701,9 +673,6 @@ const ReceiptDisplay = () => {
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div style="font-size:9px;color:#666;">
                   📅 Generated: ${new Date().toLocaleString()}
-                </div>
-                <div style="font-size:9px;color:#4a86e8;font-weight:bold;">
-                  ✓ Stored in Registry
                 </div>
               </div>
             </div>
@@ -740,7 +709,7 @@ const ReceiptDisplay = () => {
       
       const opt = {
         margin: 10,
-        filename: `receipt-${receiptHash ? receiptHash.substring(0, 8) : enhancedData.receiptNumber}.pdf`,
+        filename: `receipt-${receiptNumber || enhancedData.receiptNumber}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, letterRendering: true, allowTaint: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -751,31 +720,26 @@ const ReceiptDisplay = () => {
       const pdfBlob = pdfOutput instanceof Blob ? pdfOutput : new Blob([pdfOutput], { type: 'application/pdf' });
       document.body.removeChild(container);
       
-      // Save to history with verification hash
+      // Save to history
       try {
-        const savedReceipt = await saveCurrentReceipt(pdfBlob, 'Receipt', {
-          verificationHash: receiptHash,
-          verificationUrl,
-          qrCodeUrl,
-          verificationEnabled: enableVerification
-        });
-        console.log('Receipt saved with verification hash:', savedReceipt);
+        const savedReceipt = await saveCurrentReceipt(pdfBlob, 'Receipt');
+        console.log('Receipt saved:', savedReceipt);
       } catch (saveError) {
         console.error('Failed to save receipt to history:', saveError);
       }
       
       const isAndroid = /Android/i.test(navigator.userAgent);
-      const fileName = `receipt-${receiptHash ? receiptHash.substring(0, 8) : enhancedData.receiptNumber}.pdf`;
+      const fileName = `receipt-${receiptNumber || enhancedData.receiptNumber}.pdf`;
       const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
       
       if (isAndroid && navigator.share && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ 
-            title: 'Verified Receipt', 
-            text: receiptHash ? `🔐 Verification Hash: ${receiptHash.substring(0, 16)}...` : 'Receipt',
+            title: 'Receipt', 
+            text: `Receipt Number: ${receiptNumber}`,
             files: [file] 
           });
-          await Swal.fire({ title: "✅ Shared!", text: "Verified receipt PDF shared successfully", icon: "success", confirmButtonText: "OK", timer: 2000 });
+          await Swal.fire({ title: "✅ Shared!", text: "Receipt PDF shared successfully", icon: "success", confirmButtonText: "OK", timer: 2000 });
         } catch (shareErr) {
           if (shareErr.name !== 'AbortError') downloadBlob(pdfBlob, fileName);
         }
@@ -783,7 +747,7 @@ const ReceiptDisplay = () => {
         downloadBlob(pdfBlob, fileName);
         await Swal.fire({ 
           title: "✅ Downloaded!", 
-          text: receiptHash ? "🔐 Verified receipt saved as PDF" : "Receipt saved as PDF", 
+          text: "Receipt saved as PDF", 
           icon: "success", 
           confirmButtonText: "OK", 
           timer: 2000 
@@ -855,8 +819,8 @@ const ReceiptDisplay = () => {
 
     try {
       const enhancedData = getEnhancedReceiptData();
-      const receiptHash = await getCurrentReceiptHash();
-      const verificationUrl = receiptHash ? `${window.location.origin}/verify?hash=${receiptHash}` : null;
+      const receiptNumber = getCurrentReceiptNumber();
+      const verificationUrl = receiptNumber ? `${window.location.origin}/verify?id=${receiptNumber}` : null;
       
       let text = `                          
 ${enhancedData.storeName}
@@ -904,10 +868,10 @@ ${enhancedData.includeSignature ? 'Signed: _________________' : ''}
       // Add verification info if enabled
       if (verificationUrl) {
         text += `
---- ANTI-FRAUD VERIFICATION ---
-Verify authenticity: ${verificationUrl}
-Hash: ${receiptHash}
-Scan QR code or visit link to confirm receipt is genuine
+--- VERIFY THIS RECEIPT ---
+Verify online: ${verificationUrl}
+Receipt Number: ${receiptNumber}
+Scan QR code or visit link to verify
 `;
       }
 
@@ -928,7 +892,7 @@ Thank you for your business!
       
       await Swal.fire({
         title: "✅ Copied!",
-        text: verificationUrl ? "Receipt with verification link copied" : "Enhanced receipt text copied to clipboard",
+        text: verificationUrl ? "Receipt with verification link copied" : "Receipt text copied to clipboard",
         icon: "success",
         confirmButtonText: "OK",
         timer: 2000
@@ -962,8 +926,8 @@ Thank you for your business!
     try {
       const enhancedData = getEnhancedReceiptData();
       const importantFields = getImportantFieldsSummary();
-      const receiptHash = await getCurrentReceiptHash();
-      const verificationUrl = receiptHash ? `${window.location.origin}/verify?hash=${receiptHash}` : null;
+      const receiptNumber = getCurrentReceiptNumber();
+      const verificationUrl = receiptNumber ? `${window.location.origin}/verify?id=${receiptNumber}` : null;
       
       let text = `
 *${enhancedData.receiptType.toUpperCase()} from ${enhancedData.storeName}*
@@ -1005,8 +969,8 @@ ${index + 1}. ${item.quantity}x ${item.name}`;
       if (verificationUrl) {
         text += `
 
-🔒 ANTI-FRAUD VERIFICATION
-Hash: ${receiptHash?.substring(0, 16)}...
+🔒 VERIFY THIS RECEIPT
+Receipt: ${receiptNumber}
 Verify: ${verificationUrl}`;
       }
 
@@ -1031,7 +995,7 @@ Thank you for your business! 🎉
       
       await Swal.fire({
         title: "✅ Shared!",
-        text: "Enhanced receipt shared on WhatsApp",
+        text: "Receipt shared on WhatsApp",
         icon: "success",
         confirmButtonText: "OK",
         timer: 2000
@@ -1062,6 +1026,12 @@ Thank you for your business! 🎉
   }, []);
 
   /* ---------------- DON'T RENDER UNTIL CLIENT-SIDE ---------------- */
+
+
+  const enhancedData = getEnhancedReceiptData();
+  const importantFields = getImportantFieldsSummary();
+  const receiptNumber = getCurrentReceiptNumber();
+  /* ---------------- DON'T RENDER UNTIL CLIENT-SIDE ---------------- */
   if (!isClient) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -1073,8 +1043,8 @@ Thank you for your business! 🎉
     );
   }
 
-  const enhancedData = getEnhancedReceiptData();
-  const importantFields = getImportantFieldsSummary();
+  // const enhancedData = getEnhancedReceiptData();
+ 
 
   return (
     <div className="space-y-6">
@@ -1094,18 +1064,18 @@ Thank you for your business! 🎉
             <div className="text-center">
               <div className="mb-4">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/verify?hash=${receiptHash}`)}`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/verify?hash=${receiptNumber}`)}`} 
                   alt="Verification QR Code" 
                   className="w-48 h-48 mx-auto"
                 />
               </div>
               <p className="text-sm text-gray-600 mb-2">Scan to verify this receipt's authenticity</p>
               <div className="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg break-all">
-                {`${window.location.origin}/verify?hash=${receiptHash}`}
+                {`${window.location.origin}/verify?hash=${receiptNumber}`}
               </div>
               <div className="mt-4 flex space-x-2">
                 <button
-                  onClick={() => window.open(`${window.location.origin}/verify?hash=${receiptHash}`, '_blank')}
+                  onClick={() => window.open(`${window.location.origin}/verify?hash=${receiptNumber}`, '_blank')}
                   className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
                 >
                   Open Link

@@ -161,39 +161,7 @@ const generateInvoiceNumber = () => {
 
 // ============================================
 // UPDATED: Generate receipt hash using HMAC-SHA256
-// ============================================
-const generateReceiptHash = async (receiptData, storeId, total) => {
-  try {
-    // Create deterministic input from critical data
-    const hashInput = `${storeId}|${receiptData.receiptNumber}|${receiptData.date}|${receiptData.time}|${total}`;
-    
-    // Use Web Crypto API for HMAC-SHA256
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode('receipt-it-secret-key'), // In production, use env variable
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(hashInput)
-    );
-    
-    // Convert to hex string
-    return Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  } catch (error) {
-    console.error('Hash generation error:', error);
-    // Fallback to simple hash
-    const fallbackString = `${storeId}-${receiptData.receiptNumber}-${total}-${Date.now()}`;
-    return btoa(fallbackString).substring(0, 64);
-  }
-};
+
 
 // ============================================
 // UPDATED: Save receipt to Supabase
@@ -486,105 +454,153 @@ export const ReceiptProvider = ({ children }) => {
     localStorage.removeItem('company-logo');
   };
 
-  // ============================================
-  // UPDATED: Save current receipt to Supabase and history
-  // ============================================
+  
 
-  // In ReceiptContext.jsx - UPDATE the generateReceiptHash function
 
 // ============================================
-// FIXED: Generate receipt hash using HMAC-SHA256 (matches verification service)
+// FIXED: Generate receipt identifier (simplified - uses receipt number)
 // ============================================
 const generateReceiptHash = useCallback(async (receiptData, storeId, total) => {
   try {
-    // Create deterministic input from critical data
-    const hashInput = `${storeId}|${receiptData.receiptNumber}|${receiptData.date}|${receiptData.time}|${total}`;
+    // We're now using the receipt number as the identifier
+    // It's already unique and includes timestamp + random
+    const receiptIdentifier = receiptData.receiptNumber;
     
-    // Use Web Crypto API for HMAC-SHA256
-    const encoder = new TextEncoder();
-    
-    // Use the same secret key as in verificationService
-    const secretKey = import.meta.env.VITE_RECEIPT_HMAC_SECRET || 'receipt-it-default-secret';
-    
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secretKey),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(hashInput)
-    );
-    
-    // Convert to hex string (64 characters)
-    const hashHex = Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    
-    console.log('✅ Generated HMAC hash:', hashHex.substring(0, 16) + '...');
-    return hashHex;
+    console.log('✅ Using receipt number as identifier:', receiptIdentifier);
+    return receiptIdentifier;
     
   } catch (error) {
-    console.error('Hash generation error:', error);
-    // Fallback - but this should match the fallback in verificationService
-    const fallbackString = `${storeId}-${receiptData.receiptNumber}-${total}-${Date.now()}`;
-    return btoa(fallbackString).substring(0, 64);
+    console.error('Receipt identifier error:', error);
+    // Ultimate fallback - timestamp + random
+    return `RCT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   }
 }, []);
-  const saveCurrentReceipt = async (pdfBlob, receiptName = null, options = {}) => {
-    console.log('📝 saveCurrentReceipt called for:', receiptData.receiptNumber);
-    
-    let verificationInfo = null;
-    const total = calculateTotal();
-      let receiptHash = null;
-    
-    // Only save to Supabase if user is logged in and has a store
-    if (currentUser && currentStore && enableVerification) {
-      try {
-        // Generate hash
-        receiptHash = await generateReceiptHash(receiptData, currentStore.id, total);
-        
-        // Save to Supabase
-        const result = await saveReceiptToSupabase(receiptData, currentStore.id, receiptHash, total);
-        
-        if (result.success) {
-          verificationInfo = {
-            receiptHash,
-            verified: true,
-            storeId: currentStore.id,
-            savedAt: new Date().toISOString()
-          };
-          
-          console.log('✅ Receipt saved to Supabase with hash:', receiptHash);
-        }
-      } catch (error) {
-        console.error('❌ Failed to save receipt to Supabase:', error);
-      }
-    }
-    
-    // Save to localStorage history (always)
-    const receiptToSave = {
-      id: Date.now().toString(),
-      name: receiptName || `${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}`,
-      receiptNumber: receiptData.receiptNumber,
-      date: new Date().toISOString(),
-      storeName: receiptData.storeName,
-      total: total,
-      itemsCount: receiptData.items.length,
-      template: selectedTemplate,
-      data: { ...receiptData },
-      pdfBlobUrl: URL.createObjectURL(pdfBlob),
-      timestamp: Date.now(),
-      ...(verificationInfo && { verificationInfo })
-    };
 
-    setSavedReceipts(prev => [receiptToSave, ...prev]);
-    return receiptToSave;
+ const saveReceiptToSupabase = async (receiptData, storeId, total) => {
+  try {
+    const { data, error } = await supabase
+      .from('receipts')
+      .insert([{
+        store_id: storeId,
+        receipt_id: receiptData.receiptNumber, // Use receipt number as ID
+        receipt_data: receiptData,
+        total_amount: total,
+        issued_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error saving receipt to Supabase:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================
+// UPDATED: saveCurrentReceipt - simplified
+// ============================================
+const saveCurrentReceipt = async (pdfBlob, receiptName = null) => {
+  console.log('📝 saveCurrentReceipt called for:', receiptData.receiptNumber);
+  
+  let verificationInfo = null;
+  const total = calculateTotal();
+  
+  // Only save to Supabase if user is logged in and has a store
+  if (currentUser && currentStore && enableVerification) {
+    try {
+      // Save to Supabase using receipt number
+      const result = await saveReceiptToSupabase(receiptData, currentStore.id, total);
+      
+      if (result.success) {
+        verificationInfo = {
+          receiptNumber: receiptData.receiptNumber,
+          verified: true,
+          storeId: currentStore.id,
+          savedAt: new Date().toISOString()
+        };
+        
+        console.log('✅ Receipt saved to Supabase with number:', receiptData.receiptNumber);
+      }
+    } catch (error) {
+      console.error('❌ Failed to save receipt to Supabase:', error);
+    }
+  }
+  
+  // Save to localStorage history
+  const receiptToSave = {
+    id: Date.now().toString(),
+    name: receiptName || `${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}`,
+    receiptNumber: receiptData.receiptNumber,
+    date: new Date().toISOString(),
+    storeName: receiptData.storeName,
+    total: total,
+    itemsCount: receiptData.items.length,
+    template: selectedTemplate,
+    data: { ...receiptData },
+    pdfBlobUrl: URL.createObjectURL(pdfBlob),
+    timestamp: Date.now(),
+    ...(verificationInfo && { verificationInfo })
   };
+
+  setSavedReceipts(prev => [receiptToSave, ...prev]);
+  return receiptToSave;
+};
+
+// ============================================
+// UPDATED: Verify receipt with Supabase (using receipt_id)
+// ============================================
+const verifyReceiptWithSupabase = async (receiptNumber) => {
+  try {
+    const { data, error } = await supabase
+      .from('public_receipt_verification')
+      .select('store_name, total_amount, issued_at')
+      .eq('receipt_id', receiptNumber) // Use receipt_id, not receipt_hash
+      .maybeSingle();
+    
+    if (error) throw error;
+    
+    if (data) {
+      return {
+        success: true,
+        isGenuine: true,
+        data: {
+          storeName: data.store_name,
+          totalAmount: data.total_amount,
+          issuedAt: data.issued_at
+        }
+      };
+    } else {
+      return {
+        success: true,
+        isGenuine: false,
+        message: 'Receipt not found in verification system'
+      };
+    }
+  } catch (error) {
+    console.error('Verification error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// ============================================
+// Make sure receipt number is generated with time
+// ============================================
+const initializeNewReceipt = () => {
+  const { date, time } = getCurrentDateTime();
+  return {
+    ...initialReceiptData,
+    receiptNumber: generateReceiptNumber(), // This now includes time!
+    invoiceNumber: generateInvoiceNumber(),
+    date,
+    time,
+    items: [],
+  };
+};
 
   // Delete a saved receipt
   const deleteSavedReceipt = (id) => {
