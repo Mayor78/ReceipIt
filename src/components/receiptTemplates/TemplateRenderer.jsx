@@ -1,15 +1,15 @@
-import React from 'react';
-
-// Import all template components
-import ModernReceipt from '../receiptTemplates/ModernReceipt';
-import ProfessionalReceipt from '../receiptTemplates/ProfessionalReceipt';
-import ElegantReceipt from '../receiptTemplates/ElegantReceipt';
-import MinimalReceipt from '../receiptTemplates/MinimalReceipt';
-import BoldReceipt from '../receiptTemplates/BoldReceipt';
-import ClassicReceipt from '../receiptTemplates/ClassicReceipt';
+import React, { lazy, Suspense } from 'react';
 import { useReceipt } from '../../context/ReceiptContext';
 
-// Category icons mapping - same as in ReceiptDisplay
+// ✅ LAZY LOAD all template components - they load ONLY when selected
+const ModernReceipt = lazy(() => import('../receiptTemplates/ModernReceipt'));
+const ProfessionalReceipt = lazy(() => import('../receiptTemplates/ProfessionalReceipt'));
+const ElegantReceipt = lazy(() => import('../receiptTemplates/ElegantReceipt'));
+const MinimalReceipt = lazy(() => import('../receiptTemplates/MinimalReceipt'));
+const BoldReceipt = lazy(() => import('../receiptTemplates/BoldReceipt'));
+const ClassicReceipt = lazy(() => import('../receiptTemplates/ClassicReceipt'));
+
+// Category icons mapping - keep as is (small, no need to lazy load)
 const CATEGORY_ICONS = {
   electronics: () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -79,6 +79,19 @@ const CATEGORY_ICONS = {
   )
 };
 
+// ✅ Loading fallback component
+const TemplateSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+    <div className="space-y-4">
+      <div className="h-4 bg-gray-200 rounded w-full"></div>
+      <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+      <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+      <div className="h-32 bg-gray-200 rounded w-full mt-6"></div>
+    </div>
+  </div>
+);
+
 const TemplateRenderer = ({
   receiptData,
   companyLogo,
@@ -89,17 +102,17 @@ const TemplateRenderer = ({
   calculateTotal,
   calculateChange,
   isMobile,
-  showCategoryData = true // New prop to control category display
+  showCategoryData = true
 }) => {
   const { selectedTemplate } = useReceipt();
 
-  // Enhanced data processing similar to ReceiptDisplay
-  const getCategoryIcon = (category = 'general') => {
+  // ✅ Memoize expensive calculations
+  const getCategoryIcon = React.useCallback((category = 'general') => {
     const IconComponent = CATEGORY_ICONS[category] || CATEGORY_ICONS.general;
     return <IconComponent />;
-  };
+  }, []);
 
-  const formatCustomFields = (customFields) => {
+  const formatCustomFields = React.useCallback((customFields) => {
     if (!customFields || Object.keys(customFields).length === 0) return null;
     
     return Object.entries(customFields)
@@ -108,10 +121,10 @@ const TemplateRenderer = ({
         key: key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' '),
         value: value.toString()
       }));
-  };
+  }, []);
 
-  // Process receipt data with category information
-  const getEnhancedReceiptData = () => {
+  // ✅ Memoize enhanced data
+  const enhancedData = React.useMemo(() => {
     const baseData = { ...receiptData };
     
     const enhancedItems = baseData.items.map(item => ({
@@ -151,35 +164,42 @@ const TemplateRenderer = ({
         return acc;
       }, [])
     };
-  };
+  }, [receiptData, getCategoryIcon, formatCustomFields]);
 
-  // Template component mapping
-  const templateComponents = {
-    modern: ModernReceipt,
-    professional: ProfessionalReceipt,
-    elegant: ElegantReceipt,
-    minimal: MinimalReceipt,
-    bold: BoldReceipt,
-    classic: ClassicReceipt,
-  };
+  // ✅ Template mapping with lazy loading
+  const TemplateComponent = React.useMemo(() => {
+    const templates = {
+      modern: ModernReceipt,
+      professional: ProfessionalReceipt,
+      elegant: ElegantReceipt,
+      minimal: MinimalReceipt,
+      bold: BoldReceipt,
+      classic: ClassicReceipt,
+    };
+    
+    return templates[selectedTemplate] || ModernReceipt;
+  }, [selectedTemplate]);
 
-  const SelectedTemplate = templateComponents[selectedTemplate] || ModernReceipt;
-
-  const enhancedData = getEnhancedReceiptData();
+  // ✅ Don't render if no data
+  if (!receiptData) {
+    return <TemplateSkeleton />;
+  }
 
   return (
-    <SelectedTemplate
-      receiptData={enhancedData}
-      companyLogo={companyLogo}
-      formatNaira={formatNaira}
-      calculateSubtotal={calculateSubtotal}
-      calculateDiscount={calculateDiscount}
-      calculateVAT={calculateVAT}
-      calculateTotal={calculateTotal}
-      calculateChange={calculateChange}
-      isMobile={isMobile}
-      showCategoryData={showCategoryData}
-    />
+    <Suspense fallback={<TemplateSkeleton />}>
+      <TemplateComponent
+        receiptData={enhancedData}
+        companyLogo={companyLogo}
+        formatNaira={formatNaira}
+        calculateSubtotal={calculateSubtotal}
+        calculateDiscount={calculateDiscount}
+        calculateVAT={calculateVAT}
+        calculateTotal={calculateTotal}
+        calculateChange={calculateChange}
+        isMobile={isMobile}
+        showCategoryData={showCategoryData}
+      />
+    </Suspense>
   );
 };
 

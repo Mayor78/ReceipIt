@@ -38,7 +38,8 @@ const ReceiptItem = ({
   removeItem, 
   isFirstItem = false, 
   forceSave = false,
-  onSaveComplete 
+  onSaveComplete,
+  keepFormOpen = false  // NEW PROP
 }) => {
   const [localItem, setLocalItem] = useState({ 
     ...item,
@@ -68,11 +69,9 @@ const ReceiptItem = ({
     setHasUnsavedChanges(false);
   }, [item]);
 
-  // Get current category details
   const currentCategory = PRODUCT_CATEGORIES.find(cat => cat.id === localItem.category) || PRODUCT_CATEGORIES[0];
   const IconComponent = currentCategory.icon || Package;
 
-  // Get unit options for current category
   const getUnitOptions = () => {
     return UNIT_OPTIONS[localItem.category] || UNIT_OPTIONS.general;
   };
@@ -97,7 +96,6 @@ const ReceiptItem = ({
       return false;
     }
 
-    // Save all data
     const updatedItem = {
       name: localItem.name.trim(),
       price: parseFloat(localItem.price),
@@ -107,13 +105,27 @@ const ReceiptItem = ({
       customFields: localItem.customFields
     };
 
-    // Update parent with all fields
     Object.keys(updatedItem).forEach(field => {
       updateItem(item.id, field, updatedItem[field]);
     });
     
-    setIsEditing(false);
-    setHasUnsavedChanges(false);
+    // If keepFormOpen is true, clear the form but stay in edit mode
+    if (keepFormOpen) {
+      setLocalItem({
+        name: '',
+        price: '',
+        quantity: 1,
+        unit: 'pcs',
+        category: 'general',
+        customFields: {}
+      });
+      setHasUnsavedChanges(false);
+      setTimeout(() => nameInputRef.current?.focus(), 100);
+    } else {
+      setIsEditing(false);
+      setHasUnsavedChanges(false);
+    }
+    
     toast.success('Saved');
     if (onSaveComplete) onSaveComplete();
     return true;
@@ -123,7 +135,6 @@ const ReceiptItem = ({
     setLocalItem(prev => ({ 
       ...prev, 
       [field]: value,
-      // Reset unit when category changes
       ...(field === 'category' ? { unit: getUnitOptions()[0] } : {})
     }));
     setHasUnsavedChanges(true);
@@ -153,7 +164,6 @@ const ReceiptItem = ({
   const isValid = isItemValid(item);
   const total = item.price * item.quantity;
 
-  // Render custom fields based on category
   const renderCustomFields = () => {
     const fields = currentCategory.fields;
     
@@ -171,7 +181,6 @@ const ReceiptItem = ({
             const fieldLabel = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
             const fieldValue = localItem.customFields?.[field] || '';
             
-            // Special handling for certain field types
             const isIMEI = field === 'imei';
             const isWeight = field === 'weight' || field === 'volume';
             const isExpiry = field === 'expiry';
@@ -193,7 +202,7 @@ const ReceiptItem = ({
                   />
                 ) : (
                   <input
-                    type={isIMEI ? 'text' : 'text'}
+                    type="text"
                     value={fieldValue}
                     onChange={(e) => handleCustomFieldChange(field, e.target.value)}
                     className="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
@@ -243,7 +252,7 @@ const ReceiptItem = ({
           : 'border-amber-300 bg-amber-50 animate-pulse-slow'
     }`}>
       
-      {/* HEADER: Status and Top Actions */}
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-2">
           {isValid ? (
@@ -258,14 +267,9 @@ const ReceiptItem = ({
 
         <div className="flex items-center space-x-2">
           {isEditing ? (
-            <>
-              <button onClick={saveItem} className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <Save size={16} />
-              </button>
-              <button onClick={() => setIsEditing(false)} className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-                <X size={16} />
-              </button>
-            </>
+            <div className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+              Editing...
+            </div>
           ) : (
             <>
               <button onClick={startEditing} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
@@ -280,7 +284,7 @@ const ReceiptItem = ({
       </div>
 
       {isEditing ? (
-        /* EDIT MODE: Category-based Dynamic Form */
+        /* EDIT MODE */
         <div className="space-y-4">
           {/* CATEGORY SELECTOR */}
           <div className="relative" ref={categoryRef}>
@@ -384,9 +388,29 @@ const ReceiptItem = ({
 
           {/* CATEGORY-SPECIFIC FIELDS */}
           {renderCustomFields()}
+
+          {/* SAVE BUTTONS AT BOTTOM */}
+          <div className="flex gap-3 pt-4 border-t">
+            <button
+              onClick={saveItem}
+              className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold shadow-sm transition-colors"
+            >
+              <Save size={18} />
+              <span>Save Item</span>
+            </button>
+            
+            {!keepFormOpen && (
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
       ) : (
-        /* VIEW MODE: Minimal Display */
+        /* VIEW MODE */
         <div 
           className="flex items-center justify-between group-hover:opacity-90 transition-opacity cursor-pointer" 
           onClick={startEditing}
@@ -407,7 +431,6 @@ const ReceiptItem = ({
               </span>
             </div>
             
-            {/* Show important custom fields in view mode */}
             {item.customFields && Object.keys(item.customFields).length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {Object.entries(item.customFields).slice(0, 2).map(([key, value]) => (

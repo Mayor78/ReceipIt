@@ -1,36 +1,44 @@
 /**
  * Verification Service for Receipt Anti-Fraud System
- * Uses Google Apps Script as backend
+ * Uses Supabase as backend
  */
 
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw1woB8HoaHdqtT-H3DaQv9qdEV8bB2vPxG9ZYgnsP54xMNbd6mKgRr1D2XNeHeaIJKmg/exec'; // Replace with your web app URL
+import { supabase } from '../lib/supabaseClient';
 
-// Generate a secure hash from receipt data
-export async function generateReceiptHash(receiptData) {
+// Generate a secure hash from receipt data (HMAC-SHA256)
+export async function generateReceiptHash(receiptData, storeId) {
   try {
-    // Extract verification-critical data (exclude editable fields)
-    const verificationData = {
-      receiptNumber: receiptData.receiptNumber,
-      invoiceNumber: receiptData.invoiceNumber,
-      total: calculateTotalFromReceipt(receiptData),
-      itemsCount: receiptData.items.length,
-      date: receiptData.date,
-      time: receiptData.time,
-      storeName: receiptData.storeName,
-      // Add other critical fields that shouldn't change
-    };
+    // Calculate total
+    const total = calculateTotalFromReceipt(receiptData);
     
-    // Convert to string and hash
-    const dataString = JSON.stringify(verificationData);
+    // Create deterministic input from critical data (same as server would use)
+    const hashInput = `${storeId}|${receiptData.receiptNumber}|${receiptData.date}|${receiptData.time}|${total}`;
+    
+    // Use Web Crypto API for HMAC-SHA256
     const encoder = new TextEncoder();
-    const data = encoder.encode(dataString);
     
-    // Use Web Crypto API for secure hashing
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // In production, use a proper secret key from environment
+    // This should match the server-side secret
+    const secretKey = import.meta.env.VITE_RECEIPT_HMAC_SECRET || 'receipt-it-default-secret';
     
-    return hashHex;
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secretKey),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(hashInput)
+    );
+    
+    // Convert to hex string
+    return Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
     
   } catch (error) {
     console.error('Hash generation error:', error);
@@ -41,7 +49,7 @@ export async function generateReceiptHash(receiptData) {
 }
 
 // Helper function to calculate total from receipt data
-function calculateTotalFromReceipt(receiptData) {
+export function calculateTotalFromReceipt(receiptData) {
   const subtotal = receiptData.items.reduce((sum, item) => {
     const price = parseFloat(item.price) || 0;
     const quantity = parseInt(item.quantity) || 1;
@@ -69,39 +77,35 @@ function calculateTotalFromReceipt(receiptData) {
   return subtotal - discount + vat + delivery + service;
 }
 
-// Register receipt with verification system
-export async function registerReceiptForVerification(receiptData, receiptId) {
+// Register receipt with Supabase
+export async function registerReceiptForVerification(receiptData, storeId) {
   try {
-    const receiptHash = await generateReceiptHash(receiptData);
+    const receiptHash = await generateReceiptHash(receiptData, storeId);
+    const receiptId = receiptData.receiptNumber;
+    const total = calculateTotalFromReceipt(receiptData);
     
-    // Create store hash (anonymous identifier for the store)
-    const storeHash = generateStoreHash(receiptData.storeName, receiptData.storeAddress);
-    
-    const response = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'register_receipt',
-        receipt_id: receiptId,
+    // Insert into Supabase
+    const { data, error } = await supabase
+      .from('receipts')
+      .insert([{
+        store_id: storeId,
         receipt_hash: receiptHash,
-        store_hash: storeHash,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          items_count: receiptData.items.length,
-          total_amount: calculateTotalFromReceipt(receiptData),
-          // Don't store sensitive data
-        }
-      }),
-    });
+        receipt_data: receiptData,
+        total_amount: total,
+        issued_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
     
-    const result = await response.json();
+    if (error) throw error;
+    
     return {
-      success: result.status === 'success',
-      data: result,
+      success: true,
+      data,
       receiptHash,
-      verificationUrl: `${WEB_APP_URL}?id=${receiptId}`
+      receiptId,
+      verificationUrl: `${window.location.origin}/verify?hash=${receiptHash}`,
+      qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/verify?hash=${receiptHash}`)}`
     };
     
   } catch (error) {
@@ -113,56 +117,62 @@ export async function registerReceiptForVerification(receiptData, receiptId) {
   }
 }
 
-// Verify a receipt
-export async function verifyReceipt(receiptId, receiptHash) {
+// Verify a receipt by hash
+export async function verifyReceipt(receiptHash) {
   try {
-    const response = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'verify_receipt',
-        receipt_id: receiptId,
-        receipt_hash: receiptHash
-      }),
-    });
+    // Use the public verification view
+    const { data, error } = await supabase
+      .from('public_receipt_verification')
+      .select('store_name, total_amount, issued_at')
+      .eq('receipt_hash', receiptHash)
+      .maybeSingle();
     
-    const result = await response.json();
-    return {
-      success: result.status === 'success',
-      isGenuine: result.is_genuine,
-      message: result.message,
-      data: result
-    };
+    if (error) throw error;
+    
+    if (data) {
+      return {
+        success: true,
+        isGenuine: true,
+        message: 'Receipt is genuine',
+        data: {
+          storeName: data.store_name,
+          totalAmount: data.total_amount,
+          issuedAt: data.issued_at
+        }
+      };
+    } else {
+      return {
+        success: true,
+        isGenuine: false,
+        message: 'Receipt not found in verification system',
+        data: null
+      };
+    }
     
   } catch (error) {
     console.error('Verification error:', error);
     return {
       success: false,
+      isGenuine: false,
       error: error.message
     };
   }
 }
 
-// Get receipt verification info
-export async function getReceiptVerification(receiptId) {
+// Get receipt verification info by hash
+export async function getReceiptVerification(receiptHash) {
   try {
-    const response = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'get_receipt',
-        receipt_id: receiptId
-      }),
-    });
+    const { data, error } = await supabase
+      .from('public_receipt_verification')
+      .select('store_name, total_amount, issued_at')
+      .eq('receipt_hash', receiptHash)
+      .maybeSingle();
     
-    const result = await response.json();
+    if (error) throw error;
+    
     return {
-      success: result.status === 'success',
-      data: result.data
+      success: true,
+      data: data || null
     };
     
   } catch (error) {
@@ -174,52 +184,58 @@ export async function getReceiptVerification(receiptId) {
   }
 }
 
-// Generate store hash (anonymous)
-function generateStoreHash(storeName, storeAddress) {
-  const storeIdentifier = `${storeName}-${storeAddress}`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(storeIdentifier);
-  
-  // Simple hash for store identification
-  return crypto.subtle.digest('SHA-256', data)
-    .then(hashBuffer => {
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
-    })
-    .catch(() => {
-      // Fallback
-      return btoa(storeIdentifier).substring(0, 16);
-    });
-}
-
 // Generate QR code URL for verification
-export function generateVerificationQRUrl(receiptId) {
-  return `${WEB_APP_URL}?id=${receiptId}`;
+export function generateVerificationQRUrl(receiptHash) {
+  const verificationUrl = `${window.location.origin}/verify?hash=${receiptHash}`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
 }
 
-// Health check
+// Health check (verify Supabase connection)
 export async function checkVerificationService() {
   try {
-    const response = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'health_check'
-      }),
-    });
+    // Simple query to check if we can access the public view
+    const { data, error } = await supabase
+      .from('public_receipt_verification')
+      .select('receipt_hash')
+      .limit(1);
     
-    const result = await response.json();
+    if (error) throw error;
+    
     return {
-      online: result.status === 'success',
-      message: result.message,
-      timestamp: result.timestamp
+      online: true,
+      message: 'Supabase connection successful',
+      timestamp: new Date().toISOString()
     };
     
   } catch (error) {
     return {
       online: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+// Get receipts by store ID (authenticated)
+export async function getStoreReceipts(storeId) {
+  try {
+    const { data, error } = await supabase
+      .from('receipts')
+      .select('*')
+      .eq('store_id', storeId)
+      .order('issued_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    return {
+      success: true,
+      data
+    };
+    
+  } catch (error) {
+    console.error('Get store receipts error:', error);
+    return {
+      success: false,
       error: error.message
     };
   }

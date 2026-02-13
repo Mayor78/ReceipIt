@@ -17,28 +17,7 @@ const HistoryHeader = ({ onClearHistory, onExportHistory, onToggleFilters }) => 
   return (
     <div className="p-5 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-white to-blue-50">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <History className="text-white" size={28} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">Receipt History</h2>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                <Clock size={14} className="mr-1.5" />
-                {savedReceipts.length} total
-              </span>
-              <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                <Clock size={14} className="mr-1.5" />
-                {recentCount} recent
-              </span>
-              <span className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                <Tag size={14} className="mr-1.5" />
-                {formatNaira(totalValue)} total
-              </span>
-            </div>
-          </div>
-        </div>
+       
 
         <div className="flex items-center gap-3">
           <button

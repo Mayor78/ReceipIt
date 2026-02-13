@@ -50,6 +50,7 @@ const ModernReceipt = ({
   calculateTotal,
   calculateChange,
   isMobile,
+  
   showCategoryData = true
 }) => {
   const config = getTemplateConfig('modern');

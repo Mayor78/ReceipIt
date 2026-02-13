@@ -1,6 +1,6 @@
 // Print-optimized templates for generating print HTML
 export const printTemplates = {
-modern: (receiptData, companyLogo, formatNaira, calculations, importantFields) => {
+modern: (receiptData, companyLogo, formatNaira, calculations, importantFields, verificationUrl, qrCodeUrl) => {
     const {
       subtotal,
       discount,
@@ -164,37 +164,7 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields) =
           </tbody>
         </table>
         
-        <!-- COMPLETE Important Fields Summary - Show ALL -->
-        ${importantFields && importantFields.length > 0 ? `
-          <div style="background: linear-gradient(135deg, #FEF3C7, #FDE68A); border: 2px solid #F59E0B; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-            <h3 style="color: #92400E; margin-bottom: 15px; font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 2px solid #F59E0B;">
-              <span style="font-size: 18px;">🔍</span> IMPORTANT ITEM DETAILS - COMPLETE LIST
-            </h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
-              ${importantFields.map((field, idx) => `
-                <div style="background: white; padding: 12px 15px; border-radius: 6px; border: 1px solid #FCD34D; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="font-size: 13px; font-weight: 700; color: #92400E;">Item ${field.itemIndex}: ${field.itemName}</div>
-                    <div style="font-size: 11px; background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 10px; font-weight: 600;">
-                      ${field.field}
-                    </div>
-                  </div>
-                  <div style="font-size: 14px; font-weight: 600; color: #111827; text-align: center; padding: 8px; background: #F9FAFB; border-radius: 4px; border: 1px dashed #D1D5DB;">
-                    ${field.value}
-                  </div>
-                  <div style="font-size: 10px; color: #6B7280; margin-top: 6px; text-align: center;">
-                    Record ID: ${receiptData.receiptNumber}-${field.itemIndex}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-            <div style="text-align: center; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #FCD34D;">
-              <div style="font-size: 12px; font-weight: 600; color: #92400E;">
-                ✅ All ${importantFields.length} important details shown above
-              </div>
-            </div>
-          </div>
-        ` : ''}
+        
         
         <!-- Totals Section -->
         <div style="border: 2px solid #E5E7EB; padding: 25px; border-radius: 10px; margin-bottom: 30px; background: linear-gradient(135deg, #F9FAFB, #F3F4F6);">
@@ -234,6 +204,7 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields) =
             </div>
           </div>
         </div>
+
         
         <!-- Payment Information -->
         <div style="background: linear-gradient(135deg, #D1FAE5, #A7F3D0); padding: 25px; margin: 30px 0; border-radius: 10px; border: 2px solid #10B981;">
@@ -270,8 +241,6 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields) =
             </div>
           </div>
         ` : ''}
-        
-        
         
         <!-- Terms & Conditions -->
         ${receiptData.includeTerms && receiptData.termsAndConditions ? `
@@ -343,6 +312,14 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields) =
               <div style="font-size: 10px; color: #6B7280; margin-top: 3px;">
                 All specifications, categories, and important details are included above
               </div>
+            </div>
+          ` : ''}
+          
+          ${verificationUrl ? `
+            <div style="margin-top: 15px; padding: 10px; background: #F0F9FF; border-radius: 6px; display: inline-block;">
+              <span style="font-size: 10px; color: #0369A1; display: flex; align-items: center; gap: 5px;">
+                <span>🔒</span> Verified Receipt - Protected Against Fraud
+              </span>
             </div>
           ` : ''}
           
@@ -686,39 +663,7 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields) =
             </div>
           </div>
           
-          <!-- Important Fields Summary - Professional Style -->
-          ${importantFields && importantFields.length > 0 ? `
-            <div style="background: #F0F9FF; border: 1px solid #BAE6FD; padding: 20px; border-radius: 6px; margin: 0 20px 25px 20px; width: calc(100% - 40px); box-sizing: border-box;">
-              <h3 style="color: #0369A1; font-size: 14px; font-weight: 600; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
-                🔍 Important Item Details
-              </h3>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;" class="mobile-important-details">
-                ${importantFields.map((field, idx) => `
-                  <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #BAE6FD; box-shadow: 0 1px 3px rgba(0,0,0,0.05); word-wrap: break-word;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
-                      <div style="font-size: 11px; font-weight: 700; color: #0369A1;">
-                        Item ${field.itemIndex}: ${field.itemName}
-                      </div>
-                      <div style="font-size: 9px; background: #E0F2FE; color: #0369A1; padding: 2px 6px; border-radius: 8px; font-weight: 600; text-transform: uppercase;">
-                        ${field.field}
-                      </div>
-                    </div>
-                    <div style="font-size: 12px; font-weight: 600; color: #111827; text-align: center; padding: 6px; background: #F0F9FF; border-radius: 3px; border: 1px solid #BAE6FD;">
-                      ${field.value}
-                    </div>
-                    <div style="font-size: 9px; color: #64748B; margin-top: 6px; text-align: center;">
-                      Ref: ${receiptData.receiptNumber}-${field.itemIndex}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-              <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #BAE6FD;">
-                <div style="font-size: 11px; color: #0369A1; font-weight: 600;">
-                  ${importantFields.length} professional details included
-                </div>
-              </div>
-            </div>
-          ` : ''}
+         
           
           <!-- Totals -->
           <div style="background: #F9FAFB; padding: 20px; border-radius: 6px; margin: 0 20px 25px 20px; width: calc(100% - 40px); box-sizing: border-box;">
@@ -1203,41 +1148,7 @@ elegant: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
               </div>
             </div>
             
-            <!-- Important Fields Summary - Responsive -->
-            ${importantFields && importantFields.length > 0 ? `
-              <div style="background: linear-gradient(135deg, #FEF3C7, #FDE68A); border: 1px solid #FCD34D; padding: 20px; border-radius: 8px; margin-bottom: 25px; position: relative; overflow: hidden; width: 100%; box-sizing: border-box;">
-                <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #F59E0B, #FBBF24);"></div>
-                <h3 style="color: #92400E; font-size: 15px; font-weight: 700; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; font-family: 'Playfair Display', serif; line-height: 1.2;">
-                  <span style="margin-right: 8px;">🔍</span> Important Item Details
-                </h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                  ${importantFields.map((field, idx) => `
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #FDE68A; box-shadow: 0 2px 8px rgba(0,0,0,0.04); word-wrap: break-word;">
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap;">
-                        <div style="font-size: 11px; font-weight: 700; color: #92400E; font-family: 'Playfair Display', serif; line-height: 1.2;">
-                          Item ${field.itemIndex}
-                        </div>
-                        <div style="font-size: 9px; background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; margin-top: 3px;">
-                          ${field.field}
-                        </div>
-                      </div>
-                      <div style="font-size: 12px; font-weight: 600; color: #111827; text-align: center; padding: 8px; background: #FFFBEB; border-radius: 4px; border: 1px dashed #FCD34D; font-family: 'Playfair Display', serif; line-height: 1.2; word-wrap: break-word;">
-                        ${field.value}
-                      </div>
-                      <div style="font-size: 9px; color: #B45309; margin-top: 6px; text-align: center; font-style: italic; line-height: 1.2;">
-                        ${field.itemName}
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-                <div style="text-align: center; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #FCD34D;">
-                  <div style="font-size: 11px; color: #92400E; font-weight: 600; font-style: italic; line-height: 1.2;">
-                    All ${importantFields.length} important details elegantly presented
-                  </div>
-                </div>
-              </div>
-            ` : ''}
-            
+           
             <!-- Totals in Elegant Box -->
             <div style="background: white; border: 2px solid #8B5CF6; border-radius: 8px; padding: 20px; margin-bottom: 25px; position: relative; width: 100%; box-sizing: border-box;">
               <div style="position: absolute; top: -12px; left: 20px; background: #8B5CF6; color: white; padding: 6px 15px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; max-width: calc(100% - 40px); word-wrap: break-word;">
@@ -1539,26 +1450,7 @@ elegant: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
           }).join('')}
         </div>
         
-        <!-- Important Fields Summary - Minimal Style -->
-        ${importantFields && importantFields.length > 0 ? `
-          <div style="margin-bottom: 25px; padding: 12px; background: #F9FAFB; border-radius: 4px; border: 1px solid #E5E7EB;">
-            <div style="font-size: 11px; font-weight: 600; color: #4B5563; margin-bottom: 8px;">
-              Important Details:
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              ${importantFields.map((field, idx) => `
-                <div style="flex: 1 1 calc(33.333% - 6px); min-width: 120px; font-size: 9px; padding: 4px; background: white; border-radius: 2px; border: 1px solid #D1D5DB; word-break: break-word;">
-                  <div style="font-weight: 600; color: #6B7280; margin-bottom: 1px;">Item ${field.itemIndex}</div>
-                  <div style="color: #111827; font-weight: 600;">${field.value}</div>
-                  <div style="font-size: 8px; color: #9CA3AF; margin-top: 1px;">${field.field} • ${field.itemName}</div>
-                </div>
-              `).join('')}
-            </div>
-            <div style="font-size: 9px; color: #6B7280; margin-top: 8px; text-align: center;">
-              ${importantFields.length} details included
-            </div>
-          </div>
-        ` : ''}
+      
         
         <!-- Simple Totals -->
         <div style="margin-bottom: 25px;">
@@ -1839,44 +1731,7 @@ elegant: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
             }).join('')}
           </div>
           
-          <!-- Important Fields Summary -->
-          ${importantFields && importantFields.length > 0 ? `
-            <div style="background: linear-gradient(135deg, #FEF3C7, #FDE68A); border: 3px solid #F59E0B; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
-              <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                <div style="font-size: 20px; margin-right: 10px;">🔍</div>
-                <div style="color: #92400E; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">IMPORTANT DETAILS</div>
-                <div style="width: 20px; height: 4px; background: #92400E; margin-left: 15px; flex-grow: 1;"></div>
-              </div>
-              
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                ${importantFields.map((field, idx) => `
-                  <div style="background: white; padding: 12px; border-radius: 8px; border: 2px solid #F59E0B; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                      <div style="font-size: 13px; font-weight: 800; color: #92400E; flex: 1;">
-                        Item ${field.itemIndex}: ${field.itemName}
-                      </div>
-                      <div style="font-size: 10px; background: #FDE68A; color: #92400E; padding: 2px 10px; border-radius: 12px; font-weight: 800; text-transform: uppercase;">
-                        ${field.field}
-                      </div>
-                    </div>
-                    <div style="font-size: 14px; font-weight: 800; color: #111827; text-align: center; padding: 8px; background: #FEF3C7; border-radius: 5px; border: 1px dashed #F59E0B;">
-                      ${field.value}
-                    </div>
-                    <div style="font-size: 9px; color: #B45309; margin-top: 8px; text-align: center; font-weight: 600;">
-                      Record: ${receiptData.receiptNumber}-${field.itemIndex}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-              
-              <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #F59E0B;">
-                <div style="font-size: 12px; font-weight: 800; color: #92400E; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                  <span>✅</span>
-                  <span>All ${importantFields.length} important details shown</span>
-                </div>
-              </div>
-            </div>
-          ` : ''}
+          
           
           <!-- Bold Totals -->
           <div style="background: #111827; color: white; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
@@ -2246,27 +2101,9 @@ classic: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
           </div>
         </div>
         
-        <!-- Important Fields Summary -->
-        ${importantFields && importantFields.length > 0 ? `
-          <div style="margin: 25px 0; padding: 12px; border: 1px solid #000; background: #FFFBEB;">
-            <div style="font-size: 11px; font-weight: bold; margin-bottom: 10px; text-align: center; text-decoration: underline;">
-              🔍 IMPORTANT ITEM DETAILS
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-              ${importantFields.map((field, idx) => `
-                <div style="flex: 1 1 calc(33.333% - 8px); min-width: 150px; font-size: 10px; padding: 6px; background: white; border: 1px solid #F59E0B; word-break: break-word;">
-                  <div style="font-weight: bold; color: #92400E; margin-bottom: 2px;">Item ${field.itemIndex}: ${field.field}</div>
-                  <div style="color: #111827; font-weight: 500;">${field.value}</div>
-                  <div style="font-size: 8px; color: #6B7280; margin-top: 2px; font-style: italic;">${field.itemName}</div>
-                </div>
-              `).join('')}
-            </div>
-            <div style="text-align: center; margin-top: 10px; font-size: 9px; color: #92400E; font-weight: bold;">
-              ✅ All ${importantFields.length} important details shown
-            </div>
-          </div>
-        ` : ''}
-        
+
+        🔍 Important Item Details
+       
         <!-- Classic Payment -->
         <div style="border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 12px 0; margin: 20px 0; font-size: 11px;">
           <div style="margin-bottom: 8px;">
@@ -2362,7 +2199,7 @@ classic: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
 };
 
 // Helper function to generate print HTML
-export const generatePrintHTML = (templateId, receiptData, companyLogo, formatNaira, calculations) => {
+export const generatePrintHTML = (templateId, receiptData, companyLogo, formatNaira, calculations, qrCodeUrl , verificationUrl   ) => {
   const template = printTemplates[templateId] || printTemplates.modern;
-  return template(receiptData, companyLogo, formatNaira, calculations);
+  return template(receiptData, companyLogo, formatNaira, calculations, qrCodeUrl , verificationUrl);
 };

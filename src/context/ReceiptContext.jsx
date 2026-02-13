@@ -1,7 +1,9 @@
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
-const VERIFICATION_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw1woB8HoaHdqtT-H3DaQv9qdEV8bB2vPxG9ZYgnsP54xMNbd6mKgRr1D2XNeHeaIJKmg/exec';
+import { supabase } from '../lib/supabaseClient';
+import Swal from 'sweetalert2';
 
-console.log('✅ Using correct verification URL:', VERIFICATION_WEB_APP_URL);
+// console.log('✅ ReceiptContext initialized with Supabase');
+
 const ReceiptContext = createContext();
 
 // Updated templates with all 6 styles
@@ -124,7 +126,7 @@ export const getTemplateConfig = (templateId) => {
   return configs[templateId] || configs.modern;
 };
 
-// Helper function to generate receipt number (outside component)
+// Helper function to generate receipt number
 const generateReceiptNumber = () => {
   const date = new Date();
   const year = date.getFullYear();
@@ -157,103 +159,105 @@ const generateInvoiceNumber = () => {
   return `INV${year}/${random}`;
 };
 
-// Simple verification helper
-const generateReceiptHash = (receiptData, total) => {
-  // Create a verification string from critical, unchangeable data
-  const verificationString = `${receiptData.receiptNumber}-${total}-${receiptData.items.length}-${receiptData.date}-${receiptData.time}`;
-  // Simple hash - in production use crypto.subtle.digest
-  return btoa(verificationString).substring(0, 32);
-};
-
-// Register receipt with verification system
-const registerReceiptVerification = async (receiptData, total) => {
+// ============================================
+// UPDATED: Generate receipt hash using HMAC-SHA256
+// ============================================
+const generateReceiptHash = async (receiptData, storeId, total) => {
   try {
-    console.log('📤 registerReceiptVerification called for:', receiptData.receiptNumber);
+    // Create deterministic input from critical data
+    const hashInput = `${storeId}|${receiptData.receiptNumber}|${receiptData.date}|${receiptData.time}|${total}`;
     
-    // Import the proxy
-    const { verificationProxy } = await import('../utils/verificationProxy');
-    
-    const receiptHash = generateReceiptHash(receiptData, total);
-    console.log('🔑 Generated hash:', receiptHash);
-    console.log('💰 Total used for hash:', total);
-    
-    // Register using proxy
-    const result = await verificationProxy.registerReceipt(
-      receiptData.receiptNumber,
-      receiptHash,
-      {
-        timestamp: new Date().toISOString(),
-        items_count: receiptData.items.length,
-        store_name_hash: btoa(receiptData.storeName || '').substring(0, 16),
-        total_amount: total
-      }
+    // Use Web Crypto API for HMAC-SHA256
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode('receipt-it-secret-key'), // In production, use env variable
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
     );
     
-    console.log('📨 Registration result:', result);
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(hashInput)
+    );
     
-    if (result.success) {
-      const verificationUrl = `${VERIFICATION_WEB_APP_URL}?id=${receiptData.receiptNumber}`;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
-      
-      return {
-        verificationId: receiptData.receiptNumber,
-        verificationHash: receiptHash,
-        verificationUrl,
-        qrCodeUrl,
-        registeredAt: new Date().toISOString(),
-        method: result.method
-      };
-    }
-    
-    console.warn('Registration failed:', result);
-    return null;
-    
+    // Convert to hex string
+    return Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
   } catch (error) {
-    console.error('❌ Verification registration failed:', error);
-    return null;
+    console.error('Hash generation error:', error);
+    // Fallback to simple hash
+    const fallbackString = `${storeId}-${receiptData.receiptNumber}-${total}-${Date.now()}`;
+    return btoa(fallbackString).substring(0, 64);
   }
 };
 
-// Verify receipt function
-const verifyReceipt = async (receiptId, receiptData, total) => {
-  const currentHash = generateReceiptHash(receiptData, total);
-  
-  // Use JSONP directly
-  const url = `${VERIFICATION_WEB_APP_URL}?action=verify_receipt&receipt_id=${receiptId}&receipt_hash=${currentHash}&callback=callback`;
-  
-  return new Promise((resolve) => {
-    const script = document.createElement('script');
-    const callbackName = `callback_${Date.now()}`;
+// ============================================
+// UPDATED: Save receipt to Supabase
+// ============================================
+const saveReceiptToSupabase = async (receiptData, storeId, receiptHash, total) => {
+  try {
+    const { data, error } = await supabase
+      .from('receipts')
+      .insert([{
+        store_id: storeId,
+        receipt_hash: receiptHash,
+        receipt_data: receiptData,
+        total_amount: total,
+        issued_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
     
-    window[callbackName] = (data) => {
-      document.body.removeChild(script);
-      delete window[callbackName];
-      
-      resolve({
-        success: data.status === 'success',
-        isGenuine: data.is_genuine,
-        message: data.message,
-        data: data
-      });
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error saving receipt to Supabase:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================
+// UPDATED: Verify receipt with Supabase
+// ============================================
+const verifyReceiptWithSupabase = async (receiptHash) => {
+  try {
+    // Use the public verification view
+    const { data, error } = await supabase
+      .from('public_receipt_verification')
+      .select('store_name, total_amount, issued_at')
+      .eq('receipt_hash', receiptHash)
+      .maybeSingle();
+    
+    if (error) throw error;
+    
+    if (data) {
+      return {
+        success: true,
+        isGenuine: true,
+        data: {
+          storeName: data.store_name,
+          totalAmount: data.total_amount,
+          issuedAt: data.issued_at
+        }
+      };
+    } else {
+      return {
+        success: true,
+        isGenuine: false,
+        message: 'Receipt not found in verification system'
+      };
+    }
+  } catch (error) {
+    console.error('Verification error:', error);
+    return {
+      success: false,
+      error: error.message
     };
-    
-    script.src = url.replace('callback=callback', `callback=${callbackName}`);
-    document.body.appendChild(script);
-    
-    // Fallback if no response
-    setTimeout(() => {
-      if (window[callbackName]) {
-        document.body.removeChild(script);
-        delete window[callbackName];
-        resolve({
-          success: true,
-          isGenuine: true,
-          message: 'Verification submitted',
-          data: { submitted: true }
-        });
-      }
-    }, 5000);
-  });
+  }
 };
 
 export const useReceipt = () => {
@@ -296,6 +300,8 @@ export const ReceiptProvider = ({ children }) => {
   const [savedReceipts, setSavedReceipts] = useState(loadSavedReceipts());
   const [selectedTemplate, setSelectedTemplate] = useState('modern');
   const [enableVerification, setEnableVerification] = useState(true);
+  const [currentStore, setCurrentStore] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   
   // Check for existing draft
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
@@ -350,6 +356,62 @@ export const ReceiptProvider = ({ children }) => {
     return draft || initialReceiptData;
   });
 
+  // ============================================
+  // NEW: Load user and store data from Supabase
+  // ============================================
+  useEffect(() => {
+    loadUserAndStore();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setCurrentUser(session.user);
+        loadStore(session.user.id);
+      } else {
+        setCurrentUser(null);
+        setCurrentStore(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadUserAndStore = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      
+      if (user) {
+        await loadStore(user.id);
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+    }
+  };
+
+  const loadStore = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      setCurrentStore(data);
+      
+      // Auto-fill receipt data with store info
+      if (data) {
+        setReceiptData(prev => ({
+          ...prev,
+          storeName: data.store_name || prev.storeName,
+          storePhone: data.phone || prev.storePhone,
+          storeAddress: data.address || prev.storeAddress
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading store:', error);
+    }
+  };
+
   // Show draft prompt on mount if draft exists
   useEffect(() => {
     const draft = loadDraft();
@@ -393,6 +455,16 @@ export const ReceiptProvider = ({ children }) => {
     }
   }, []);
 
+  const syncStoreDataFromRegistration = (storeData) => {
+    setReceiptData(prev => ({
+      ...prev,
+      storeName: storeData.store_name || storeData.storeName || prev.storeName,
+      storeEmail: storeData.email || prev.storeEmail,
+      storePhone: storeData.phone || prev.storePhone,
+      storeAddress: storeData.address || prev.storeAddress
+    }));
+  };
+
   // Handle logo upload
   const handleLogoUpload = (file) => {
     return new Promise((resolve, reject) => {
@@ -414,52 +486,99 @@ export const ReceiptProvider = ({ children }) => {
     localStorage.removeItem('company-logo');
   };
 
-  // Save current receipt to history - NOW ASYNC
-  const saveCurrentReceipt = async (pdfBlob, receiptName = null) => {
+  // ============================================
+  // UPDATED: Save current receipt to Supabase and history
+  // ============================================
+
+  // In ReceiptContext.jsx - UPDATE the generateReceiptHash function
+
+// ============================================
+// FIXED: Generate receipt hash using HMAC-SHA256 (matches verification service)
+// ============================================
+const generateReceiptHash = useCallback(async (receiptData, storeId, total) => {
+  try {
+    // Create deterministic input from critical data
+    const hashInput = `${storeId}|${receiptData.receiptNumber}|${receiptData.date}|${receiptData.time}|${total}`;
+    
+    // Use Web Crypto API for HMAC-SHA256
+    const encoder = new TextEncoder();
+    
+    // Use the same secret key as in verificationService
+    const secretKey = import.meta.env.VITE_RECEIPT_HMAC_SECRET || 'receipt-it-default-secret';
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secretKey),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(hashInput)
+    );
+    
+    // Convert to hex string (64 characters)
+    const hashHex = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    console.log('✅ Generated HMAC hash:', hashHex.substring(0, 16) + '...');
+    return hashHex;
+    
+  } catch (error) {
+    console.error('Hash generation error:', error);
+    // Fallback - but this should match the fallback in verificationService
+    const fallbackString = `${storeId}-${receiptData.receiptNumber}-${total}-${Date.now()}`;
+    return btoa(fallbackString).substring(0, 64);
+  }
+}, []);
+  const saveCurrentReceipt = async (pdfBlob, receiptName = null, options = {}) => {
     console.log('📝 saveCurrentReceipt called for:', receiptData.receiptNumber);
     
     let verificationInfo = null;
+    const total = calculateTotal();
+      let receiptHash = null;
     
-    // Only register for verification if enabled and webAppUrl is set
-    if (enableVerification && VERIFICATION_WEB_APP_URL) {
+    // Only save to Supabase if user is logged in and has a store
+    if (currentUser && currentStore && enableVerification) {
       try {
-        console.log('🔒 Attempting to register receipt for verification...');
-        console.log('🌐 Using URL:', VERIFICATION_WEB_APP_URL);
+        // Generate hash
+        receiptHash = await generateReceiptHash(receiptData, currentStore.id, total);
         
-        // Calculate total first
-        const total = calculateTotal();
-        console.log('💰 Total for verification:', total);
+        // Save to Supabase
+        const result = await saveReceiptToSupabase(receiptData, currentStore.id, receiptHash, total);
         
-        verificationInfo = await registerReceiptVerification(receiptData, total);
-        
-        if (verificationInfo) {
-          console.log('✅ Receipt registered for verification:', verificationInfo);
-        } else {
-          console.warn('⚠️ Registration returned null');
+        if (result.success) {
+          verificationInfo = {
+            receiptHash,
+            verified: true,
+            storeId: currentStore.id,
+            savedAt: new Date().toISOString()
+          };
+          
+          console.log('✅ Receipt saved to Supabase with hash:', receiptHash);
         }
       } catch (error) {
-        console.error('❌ Failed to register receipt for verification:', error);
-        // Continue without verification if it fails
+        console.error('❌ Failed to save receipt to Supabase:', error);
       }
-    } else {
-      console.warn('⚠️ Verification not enabled or URL not configured');
-      console.log('enableVerification:', enableVerification);
-      console.log('VERIFICATION_WEB_APP_URL:', VERIFICATION_WEB_APP_URL);
     }
     
+    // Save to localStorage history (always)
     const receiptToSave = {
       id: Date.now().toString(),
       name: receiptName || `${receiptData.receiptType.toUpperCase()} ${receiptData.receiptNumber}`,
       receiptNumber: receiptData.receiptNumber,
       date: new Date().toISOString(),
       storeName: receiptData.storeName,
-      total: calculateTotal(),
+      total: total,
       itemsCount: receiptData.items.length,
       template: selectedTemplate,
       data: { ...receiptData },
       pdfBlobUrl: URL.createObjectURL(pdfBlob),
       timestamp: Date.now(),
-      // Add verification info if available
       ...(verificationInfo && { verificationInfo })
     };
 
@@ -505,30 +624,101 @@ export const ReceiptProvider = ({ children }) => {
     setSelectedTemplate(templateId);
   };
 
-  const addItem = useCallback(() => {
-    setReceiptData(prev => {
-      if (prev.items.length === 0) {
-        return { ...prev, items: [{ id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }] };
-      }
+const addItem = useCallback(() => {
+  setReceiptData(prev => {
+    // Case 1: No items yet - just add first item
+    if (prev.items.length === 0) {
+      Swal.fire({
+        title: '🛍️ Start Adding Items',
+        text: 'Enter item name and price to begin',
+        icon: 'info',
+        timer: 1500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+      
+      return { 
+        ...prev, 
+        items: [{ id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }] 
+      };
+    }
 
-      const lastItem = prev.items[prev.items.length - 1];
+    const lastItem = prev.items[prev.items.length - 1];
+    
+    // Check if the last item is valid
+    const nameValue = lastItem.name ? String(lastItem.name).trim() : "";
+    const isNameValid = nameValue !== "" && nameValue !== "New Item";
+    const isPriceValid = lastItem.price && parseFloat(lastItem.price) > 0;
+    const isItemComplete = isNameValid && isPriceValid;
 
-      // Check if the fields are actually empty
-      const nameValue = lastItem.name ? String(lastItem.name).trim() : "";
-      const isNameEmpty = nameValue === "" || nameValue === "New Item";
-      const isPriceEmpty = !lastItem.price || parseFloat(lastItem.price) <= 0;
+    console.log('Add item check:', { 
+      name: nameValue, 
+      price: lastItem.price, 
+      isNameValid, 
+      isPriceValid, 
+      isItemComplete,
+      itemId: lastItem.id
+    });
 
-      if (isNameEmpty || isPriceEmpty) {
-        alert("Please enter a valid Name and Price before adding a new item.");
-        return prev; 
-      }
-
+    // Case 2: Last item is COMPLETE - add new empty item
+    if (isItemComplete) {
+      const newItem = { 
+        id: Date.now(), 
+        name: "", 
+        price: 0, 
+        quantity: 1, 
+        unit: lastItem.unit || "pcs" 
+      };
+      
+      // Show success message
+      Swal.fire({
+        title: '✅ Item Saved!',
+        text: `"${nameValue}" added. Now add next item`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+      
+      console.log('✅ Adding new item after saving:', nameValue);
+      
       return {
         ...prev,
-        items: [...prev.items, { id: Date.now(), name: "", price: 0, quantity: 1, unit: "pcs" }]
+        items: [...prev.items, newItem]
       };
+    }
+    
+    // Case 3: Last item is INCOMPLETE - show helpful message
+    let message = "";
+    let icon = "info";
+    
+    if (!isNameValid && !isPriceValid) {
+      message = "Enter item name and price first";
+      icon = "warning";
+    } else if (!isNameValid) {
+      message = "Enter item name first";
+      icon = "warning";
+    } else if (!isPriceValid) {
+      message = "Enter price for this item first";
+      icon = "warning";
+    }
+    
+    Swal.fire({
+      title: '⏳ Complete Current Item',
+      text: message,
+      icon: icon,
+      timer: 2000,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
     });
-  }, []);
+    
+    console.log('⏳ Cannot add new item - current item incomplete');
+    return prev;
+  });
+}, []);
 
   const updateItem = useCallback((id, field, value) => {
     setReceiptData(prev => ({
@@ -655,60 +845,82 @@ export const ReceiptProvider = ({ children }) => {
     return generateReceiptNumber();
   };
 
-  // Verification functions
- // In ReceiptContext.jsx, update verifyCurrentReceipt function:
-
-const verifyCurrentReceipt = async () => {
-  const total = calculateTotal();
-  const receiptHash = generateReceiptHash(receiptData, total);
-  
-  try {
-    console.log('🔍 Verifying receipt:', receiptData.receiptNumber);
+  // ============================================
+  // UPDATED: Verify current receipt using Supabase
+  // ============================================
+  const verifyCurrentReceipt = async () => {
+    const total = calculateTotal();
     
-    // First, check if receipt exists in database
-    const receiptInfo = await checkReceiptExists(receiptData.receiptNumber);
-    
-    if (!receiptInfo || receiptInfo.status !== 'success') {
-      // Receipt not found - it's a NEW receipt
+    try {
+      console.log('🔍 Verifying receipt:', receiptData.receiptNumber);
+      
+      // If store is registered, generate hash and check
+      if (currentStore) {
+        const receiptHash = await generateReceiptHash(receiptData, currentStore.id, total);
+        const result = await verifyReceiptWithSupabase(receiptHash);
+        
+        return {
+          success: result.success,
+          isGenuine: result.isGenuine,
+          message: result.message || (result.isGenuine ? 'Receipt is genuine' : 'Receipt not found'),
+          data: result.data
+        };
+      } else {
+        // No store registered - can't verify
+        return {
+          success: true,
+          isGenuine: true,
+          isNewReceipt: true,
+          message: 'Store not registered - receipt saved locally only'
+        };
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
       return {
-        success: true,
-        isGenuine: true,
-        isNewReceipt: true, // Add this flag
-        message: 'New receipt - not yet registered for verification',
-        data: { is_new: true }
+        success: false,
+        error: 'Verification failed'
       };
     }
+  };
+  const verifyReceipt = async (receiptHash) => {
+  try {
+    const { data, error } = await supabase
+      .from('public_receipt_verification')
+      .select('store_name, total_amount, issued_at')
+      .eq('receipt_hash', receiptHash)
+      .maybeSingle();
     
-    // Receipt exists - verify against stored hash
-    const result = await verifyReceipt(receiptData.receiptNumber, receiptData, total);
+    if (error) throw error;
     
-    return {
-      ...result,
-      isNewReceipt: false
-    };
-    
+    if (data) {
+      return {
+        success: true,
+        valid: true,
+        storeName: data.store_name,
+        totalAmount: data.total_amount,
+        issuedAt: data.issued_at
+      };
+    } else {
+      return {
+        success: true,     
+        valid: false,
+        message: 'Receipt not found'
+      };
+    }
   } catch (error) {
     console.error('Verification error:', error);
     return {
       success: false,
-      error: 'Verification failed',
-      isNewReceipt: false
+      valid: false,
+      error: error.message
     };
   }
 };
 
-// Add this helper function
-const checkReceiptExists = async (receiptId) => {
-  try {
-    const { verificationProxy } = await import('../utils/verificationProxy');
-    const result = await verificationProxy.getReceiptInfo(receiptId);
-    return result;
-  } catch (error) {
-    console.log('Receipt not found:', error);
-    return null;
-  }
-};
 
+  // ============================================
+  // UPDATED: Verify saved receipt
+  // ============================================
   const verifySavedReceipt = async (receiptId, receiptData) => {
     // Calculate total for the saved receipt
     const calculateSavedTotal = (data) => {
@@ -740,33 +952,48 @@ const checkReceiptExists = async (receiptId) => {
     };
     
     const total = calculateSavedTotal(receiptData);
-    return await verifyReceipt(receiptId, receiptData, total);
+    
+    try {
+      // We need the store ID to generate the hash
+      // This assumes the saved receipt has store info
+      const storeId = currentStore?.id || 'unknown';
+      const receiptHash = await generateReceiptHash(receiptData, storeId, total);
+      
+      return await verifyReceiptWithSupabase(receiptHash);
+    } catch (error) {
+      console.error('Saved receipt verification error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   };
 
-  const getVerificationUrl = (receiptId) => {
-    // return `${VERIFICATION_WEB_APP_URL}?id=${receiptId}`;
-     return `${window.location.origin}/verify`;
+  // Get verification URL (for QR code)
+  const getVerificationUrl = (receiptHash) => {
+    return `${window.location.origin}/verify?hash=${receiptHash}`;
   };
 
-  const getQRCodeUrl = (receiptId) => {
-    const verificationUrl = getVerificationUrl(receiptId);
+  // Get QR code URL
+  const getQRCodeUrl = (receiptHash) => {
+    const verificationUrl = getVerificationUrl(receiptHash);
     return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(verificationUrl)}`;
   };
-  // Add a new function to get hash-based URL
-const getVerificationUrlWithHash = (receiptHash) => {
-  return `${window.location.origin}/verify?hash=${receiptHash}`;
-};
+
+  // Get hash-based URL
+  const getVerificationUrlWithHash = (receiptHash) => {
+    return `${window.location.origin}/verify?hash=${receiptHash}`;
+  };
 
   const toggleVerification = () => {
     setEnableVerification(prev => !prev);
   };
 
-  // Also export getTemplateConfig from context
   return (
     <ReceiptContext.Provider value={{
       receiptData,
-      
-      getVerificationUrlWithHash, 
+      verifyReceipt,
+      getVerificationUrlWithHash,
       updateReceiptData,
       selectedTemplate,
       templates: RECEIPT_TEMPLATES,
@@ -775,13 +1002,14 @@ const getVerificationUrlWithHash = (receiptHash) => {
       handleLogoUpload,
       removeLogo,
       savedReceipts,
-      saveCurrentReceipt, // Now async
+      saveCurrentReceipt,
       deleteSavedReceipt,
       getSavedReceipt,
       clearHistory,
       addItem,
       updateItem,
       removeItem,
+      syncStoreDataFromRegistration,
       calculateSubtotal,
       calculateDiscount,
       calculateVAT,
@@ -805,7 +1033,11 @@ const getVerificationUrlWithHash = (receiptHash) => {
       verifySavedReceipt,
       getVerificationUrl,
       getQRCodeUrl,
-      VERIFICATION_WEB_APP_URL
+      // Store and user info
+      currentStore,
+      currentUser,
+      isAuthenticated: !!currentUser,
+      hasStore: !!currentStore
     }}>
       {children}
     </ReceiptContext.Provider>

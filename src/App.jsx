@@ -1,28 +1,96 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { supabase } from './lib/supabaseClient';
 
+// Import pages directly (remove lazy loading temporarily to fix the error)
 import HomePage from './pages/HomePage';
 import ReceiptApp from './pages/ReceiptApp';
-import VerificationPage from './pages/VerificationPage'; // Add this import
+
+
+// Import components directly
 import InstallPrompt from './components/InstallPrompt';
 import SimpleHeader from './components/home/SimplaHeader';
-import SubscriptionModal from './components/SubscriptionModal';
-import { Toaster } from 'react-hot-toast';
-import { useSubscription } from './hooks/useSubscription';
-import { useLocation, useNavigate, BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import StoreRegistrationModal from './components/StoreRegistrationModal';
+
+// Import context
+import { ReceiptProvider, useReceipt } from './context/ReceiptContext';
+import VerificationPage from './pages/VerificationPage';
+import HistoryPage from './pages/HistoryPage';
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 // Navigation Wrapper Component
 function NavigationWrapper() {
   const [currentPage, setCurrentPage] = useState('home');
+  const [showModal, setShowModal] = useState(false);
+  const [user, setUser] = useState(null);
+  const [store, setStore] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
   const location = useLocation();
   const navigate = useNavigate();
   
-  const {
-    showModal,
-    handleCloseModal,
-    handleSubscribe,
-    trackEvent,
-    getUserId 
-  } = useSubscription();
+  const { syncStoreDataFromRegistration } = useReceipt();
+
+  // Load user and store on mount
+  useEffect(() => {
+    loadUserAndStore();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadStore(session.user.id);
+      } else {
+        setUser(null);
+        setStore(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadUserAndStore = async () => {
+    try {
+      setLoading(true);
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      
+      if (currentUser) {
+        await loadStore(currentUser.id);
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStore = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      setStore(data);
+      if (data) {
+        syncStoreDataFromRegistration(data);
+      }
+    } catch (error) {
+      console.error('Error loading store:', error);
+    }
+  };
 
   // Update current page based on route
   useEffect(() => {
@@ -36,105 +104,63 @@ function NavigationWrapper() {
     }
   }, [location]);
 
-  useEffect(() => {
-    trackEvent('page_view', { page: currentPage, path: location.pathname });
-  }, [currentPage, location.pathname, trackEvent]);
-
   const navigateToReceiptApp = () => {
-    trackEvent('navigate_to_receipt_app');
     navigate('/create');
   };
 
   const navigateToHome = () => {
-    trackEvent('navigate_to_home');
     navigate('/');
   };
 
   const navigateToVerification = () => {
-    trackEvent('navigate_to_verification');
     navigate('/verify');
   };
 
-  // Track user actions
-  useEffect(() => {
-    const trackActions = () => {
-      const originalPrint = window.print;
-      window.print = function() {
-        trackEvent('print_receipt');
-        return originalPrint.apply(this, arguments);
-      };
-    };
+  const handleModalClose = (action) => {
+    setShowModal(false);
+    if (action === 'registered' || action === 'signed_in') {
+      loadUserAndStore();
+    }
+  };
 
-    trackActions();
-  }, [trackEvent]);
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-gray-50 to-blue-50">
       <div className="sticky top-0 left-0 right-0 z-50">
-        <SimpleHeader onNavigateToVerification={navigateToVerification} />
+        <SimpleHeader
+          isStoreRegistered={!!store}
+          storeData={store}
+          onRegisterClick={() => setShowModal(true)}
+          isSubscribed={!!user}
+          onNavigateToVerification={navigateToVerification}
+        />
       </div>
       
       <Toaster position="top-right" reverseOrder={false} />
-      <InstallPrompt/>
       
-      {/* Subscription Modal */}
-      <SubscriptionModal
-        isOpen={showModal}
-        onClose={handleCloseModal}
-        onSubscribe={handleSubscribe}
-        getUserId={getUserId}  
-      />
-
-      {/* Navigation Header - Show on receipt and verification pages */}
-      {(currentPage === 'receipt' || currentPage === 'verify') && (
-        <div className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={navigateToHome}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span>Back to Home</span>
-              </button>
-              
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={navigateToReceiptApp}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    currentPage === 'receipt' 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Create Receipt
-                </button>
-                <button
-                  onClick={navigateToVerification}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    currentPage === 'verify' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Verify Receipt
-                </button>
-              </div>
-              
-              <span className="text-sm text-gray-500">
-                {currentPage === 'receipt' ? 'Receipt Generator' : ''}
-              </span>
-            </div>
-          </div>
-        </div>
+      <InstallPrompt />
+    
+      {/* Store Registration Modal */}
+      {showModal && (
+        <StoreRegistrationModal
+          isOpen={showModal}
+          onClose={handleModalClose}
+          onRegister={() => {}}
+          mode={user ? 'signin' : 'register'}
+        />
       )}
-
-      {/* Main Content */}
+    
+    
+      {/* Routes */}
       <Routes>
-        <Route path="/" element={<HomePage onGetStarted={navigateToReceiptApp} />} />
+        <Route path="/" element={
+          <HomePage onGetStarted={navigateToReceiptApp} />
+        } />
         <Route path="/create" element={<ReceiptApp />} />
+        <Route path="/history" element={<HistoryPage />} />
         <Route path="/verify" element={<VerificationPage />} />
         <Route path="/verify/:id" element={<VerificationPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -147,7 +173,9 @@ function NavigationWrapper() {
 function App() {
   return (
     <Router>
-      <NavigationWrapper />
+      <ReceiptProvider>
+        <NavigationWrapper />
+      </ReceiptProvider>
     </Router>
   );
 }
