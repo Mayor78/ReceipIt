@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, FileSignature, Eye, EyeOff, Check } from 'lucide-react';
+import { MessageSquare, FileSignature, Eye, EyeOff, Check, Edit3, MousePointer2 } from 'lucide-react';
 import SectionHeader from './SectionHeader';
 import SignatureCapture from './SignatureCapture';
 
@@ -23,84 +23,58 @@ const TermsSection = ({
   };
 
   const presetMessages = {
-    receipt: [
-      'Thank you for your business!',
-      'Goods sold are not returnable',
-      'Warranty valid for 30 days',
-      'Keep this receipt for returns'
-    ],
-    invoice: [
-      'Payment due within 30 days',
-      'Late fees apply after due date',
-      'Thank you for your business',
-      'Contact us for payment options'
-    ],
-    quote: [
-      'Quote valid for 30 days',
-      'Prices subject to change',
-      'Thank you for your consideration',
-      'Contact us to proceed'
-    ]
+    receipt: ['Thank you for your business!', 'Goods sold are not returnable', 'Warranty valid for 30 days', 'Keep this receipt for returns'],
+    invoice: ['Payment due within 30 days', 'Late fees apply after due date', 'Thank you for your business', 'Contact us for payment options'],
+    quote: ['Quote valid for 30 days', 'Prices subject to change', 'Thank you for your consideration', 'Contact us to proceed']
   };
 
   const presetTerms = {
-    receipt: [
-      'Returns accepted within 7 days with receipt',
-      'No refunds on opened items',
-      'Warranty covers manufacturing defects only',
-      'Store credit available for eligible returns'
-    ],
-    invoice: [
-      'Payment terms: Net 30 days',
-      '1.5% monthly interest on late payments',
-      'All sales are final',
-      'Contact accounting department for queries'
-    ],
-    quote: [
-      'Prices valid for 30 days from date of quote',
-      'Subject to stock availability',
-      'Additional charges may apply for special requests',
-      'Formal acceptance required to proceed'
-    ]
+    receipt: ['Returns accepted within 7 days with receipt', 'No refunds on opened items', 'Warranty covers manufacturing defects only', 'Store credit available for eligible returns'],
+    invoice: ['Payment terms: Net 30 days', '1.5% monthly interest on late payments', 'All sales are final', 'Contact accounting department for queries'],
+    quote: ['Prices valid for 30 days from date of quote', 'Subject to stock availability', 'Additional charges may apply for special requests', 'Formal acceptance required to proceed']
   };
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm">
+    <div className="bg-[#11141b] rounded-[1rem] px-3 border border-white/5 overflow-hidden transition-all  duration-300 shadow-xl">
       <SectionHeader 
-        title="Notes, Terms & Signature" 
+        title="Notes & Terms" 
         details="Add your notes, terms and signature"
         icon={MessageSquare} 
         sectionKey="terms"
         isExpanded={isExpanded}
         onClick={onToggle}
-        badge={{ text: 'Optional', className: 'bg-gray-100 text-gray-700' }}
+        badge={{ 
+          text: 'Optional', 
+          className: 'bg-white/5 text-slate-500 border border-white/5' 
+        }}
       />
       
       {isExpanded && (
-        <div className="pt-4 space-y-6 border-t">
+        <div className="p-6 sm:p-8 space-y-8 border-t border-white/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          
           {/* Customer Notes */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
+          <div className="space-y-4">
+            <label className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
               Customer Notes
             </label>
             <textarea
               value={data.customerNotes}
               onChange={(e) => onUpdate('customerNotes', e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full bg-white/[0.03] border-white/10 px-4 py-3 text-sm text-white border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-700"
               rows="2"
-              placeholder="Thank you for your business!"
+              placeholder="e.g. Thank you for your business!"
             />
             
             {/* Quick Message Buttons */}
-            <div className="mt-2">
-              <div className="text-xs text-gray-500 mb-1">Quick suggestions:</div>
-              <div className="flex flex-wrap gap-1">
+            <div className="space-y-2">
+              <div className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Quick suggestions:</div>
+              <div className="flex flex-wrap gap-2">
                 {presetMessages[data.receiptType]?.map((msg, index) => (
                   <button
                     key={index}
                     type="button"
                     onClick={() => onUpdate('customerNotes', msg)}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                    className="px-3 py-1.5 text-[10px] font-bold bg-white/5 border border-white/5 text-slate-400 rounded-xl hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-all"
                   >
                     {msg}
                   </button>
@@ -109,41 +83,31 @@ const TermsSection = ({
             </div>
           </div>
 
-          {/* Footer Message */}
-          {/* <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              Footer Message
-            </label>
-            <input
-              type="text"
-              value={data.footerMessage}
-              onChange={(e) => onUpdate('footerMessage', e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder={
-                data.receiptType === 'invoice' ? 'Payment due within 30 days' :
-                data.receiptType === 'quote' ? 'Quote valid for 30 days' :
-                'Thank you for your business!'
-              }
-            />
-          </div> */}
-
-          {/* Quick Options */}
-          <div className="space-y-4">
+          {/* Quick Options Container */}
+          <div className="space-y-8 pt-4 border-t border-white/5">
+            
             {/* Terms & Conditions */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={data.includeTerms}
-                    onChange={(e) => onUpdate('includeTerms', e.target.checked)}
-                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700">Add Terms & Conditions</span>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={data.includeTerms}
+                      onChange={(e) => onUpdate('includeTerms', e.target.checked)}
+                      className="peer w-5 h-5 opacity-0 absolute cursor-pointer"
+                    />
+                    <div className="w-5 h-5 border-2 border-slate-700 rounded-md peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all flex items-center justify-center">
+                      <div className="w-2 h-2 bg-black rounded-sm scale-0 peer-checked:scale-100 transition-transform" />
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${data.includeTerms ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    Include Terms & Conditions
+                  </span>
                 </label>
                 
                 {data.includeTerms && presetTerms[data.receiptType] && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {presetTerms[data.receiptType].map((term, index) => (
                       <button
                         key={index}
@@ -153,7 +117,7 @@ const TermsSection = ({
                           const separator = current ? '\n• ' : '• ';
                           onUpdate('termsAndConditions', current + separator + term);
                         }}
-                        className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                        className="px-2 py-1 text-[9px] font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-lg hover:bg-emerald-500 hover:text-black transition-all"
                       >
                         + {term.split(' ')[0]}...
                       </button>
@@ -163,38 +127,39 @@ const TermsSection = ({
               </div>
               
               {data.includeTerms && (
-                <div>
+                <div className="animate-in slide-in-from-top-2 duration-300 space-y-2">
                   <textarea
                     value={data.termsAndConditions}
                     onChange={(e) => onUpdate('termsAndConditions', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full bg-black/40 border-white/10 px-4 py-3 text-sm text-slate-300 border rounded-2xl outline-none focus:border-emerald-500/50 transition-all font-mono"
                     rows="4"
-                    placeholder={
-                      data.receiptType === 'invoice' ? 'Payment terms, late fees, etc.' :
-                      data.receiptType === 'quote' ? 'Quote validity, acceptance terms, etc.' :
-                      'Return policy, warranty, etc.'
-                    }
+                    placeholder="Enter policy details..."
                   />
-                  <div className="text-xs text-gray-500 mt-1">
-                    Use bullet points (•) for better formatting
+                  <div className="flex items-center gap-2 text-[10px] text-slate-600 font-bold uppercase tracking-tighter">
+                    <div className="w-1 h-1 bg-slate-600 rounded-full" /> Tip: Use bullet points (•) for a cleaner layout
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Signature */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={data.includeSignature}
-                    onChange={(e) => handleSignatureToggle(e.target.checked)}
-                    className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                  />
-                  <span className="text-sm text-gray-700 flex items-center">
-                    <FileSignature size={14} className="mr-1" />
-                    Include Signature Line
+            {/* Signature Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={data.includeSignature}
+                      onChange={(e) => handleSignatureToggle(e.target.checked)}
+                      className="peer w-5 h-5 opacity-0 absolute cursor-pointer"
+                    />
+                    <div className="w-5 h-5 border-2 border-slate-700 rounded-md peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-all flex items-center justify-center">
+                      <div className="w-2 h-2 bg-black rounded-sm scale-0 peer-checked:scale-100 transition-transform" />
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${data.includeSignature ? 'text-blue-400' : 'text-slate-500'}`}>
+                    <FileSignature size={14} strokeWidth={3} />
+                    Digital Signature Line
                   </span>
                 </label>
                 
@@ -202,25 +167,15 @@ const TermsSection = ({
                   <button
                     type="button"
                     onClick={() => setShowSignaturePad(!showSignaturePad)}
-                    className="flex items-center space-x-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                    className="flex items-center gap-2 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:bg-white/10 hover:text-white transition-all"
                   >
-                    {showSignaturePad ? (
-                      <>
-                        <EyeOff size={12} />
-                        <span>Hide Pad</span>
-                      </>
-                    ) : (
-                      <>
-                        <Eye size={12} />
-                        <span>{data.signatureData ? 'Edit' : 'Add'} Signature</span>
-                      </>
-                    )}
+                    {showSignaturePad ? <><EyeOff size={12} /> Hide Pad</> : <><Edit3 size={12} /> {data.signatureData ? 'Edit' : 'Draw'} Signature</>}
                   </button>
                 )}
               </div>
               
               {data.includeSignature && showSignaturePad && (
-                <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <div className="p-1 border border-white/10 rounded-2xl bg-white/[0.02] animate-in zoom-in-95 duration-300 shadow-inner">
                   <SignatureCapture 
                     onSignatureSave={handleSignatureSave}
                     existingSignature={data.signatureData}
@@ -229,70 +184,29 @@ const TermsSection = ({
               )}
               
               {data.includeSignature && data.signatureData && !showSignaturePad && (
-                <div className="p-3 border border-green-200 rounded-lg bg-green-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-green-600">
-                        <Check size={16} />
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-green-800">
-                          Signature Added
-                        </div>
-                        <div className="text-xs text-green-700">
-                          Will appear on your document
-                        </div>
-                      </div>
+                <div className="p-4 border border-emerald-500/20 rounded-2xl bg-emerald-500/5 flex items-center justify-between animate-in fade-in">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-emerald-500 text-black rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                      <Check size={20} strokeWidth={4} />
                     </div>
-                    <button
-                      onClick={() => setShowSignaturePad(true)}
-                      className="text-xs text-green-700 hover:text-green-800"
-                    >
-                      Edit
-                    </button>
+                    <div>
+                      <div className="text-xs font-black text-emerald-400 uppercase tracking-widest">Signature Secured</div>
+                      <div className="text-[10px] text-emerald-500/60 font-bold uppercase">Ready for document export</div>
+                    </div>
                   </div>
+                  <button onClick={() => setShowSignaturePad(true)} className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 uppercase underline decoration-2 underline-offset-4">Change</button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Preview Section */}
-          <div className="mt-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
-            <div className="text-xs font-medium text-gray-700 mb-2">Preview on document:</div>
-            <div className="space-y-2 text-sm text-gray-600">
-              {data.customerNotes && (
-                <div className="p-2 bg-white rounded border">
-                  <div className="text-xs text-gray-500 mb-1">Notes:</div>
-                  {data.customerNotes}
-                </div>
-              )}
-              
-              {data.footerMessage && (
-                <div className="p-2 bg-white rounded border">
-                  <div className="text-xs text-gray-500 mb-1">Footer:</div>
-                  {data.footerMessage}
-                </div>
-              )}
-              
-              {data.includeSignature && (
-                <div className="p-2 bg-white rounded border">
-                  <div className="text-xs text-gray-500 mb-1">Signature:</div>
-                  <div className="h-8 border-b border-gray-400">
-                    {data.signatureData && (
-                      <img 
-                        src={data.signatureData} 
-                        alt="Signature" 
-                        className="h-6 opacity-70"
-                      />
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {data.signatureData ? 'Digital Signature' : 'Signature Line'}
-                  </div>
-                </div>
-              )}
+          {/* Visual Preview Badge */}
+          {(data.customerNotes || data.includeTerms || data.includeSignature) && (
+            <div className="pt-6 border-t border-white/5 flex items-center justify-center gap-3 opacity-40 hover:opacity-100 transition-opacity grayscale hover:grayscale-0">
+               <MousePointer2 size={14} className="text-slate-500" />
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Live Content Preview Active</span>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

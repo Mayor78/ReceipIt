@@ -1,54 +1,60 @@
 import React from "react";
+import { Receipt, FileText, BadgeDollarSign } from 'lucide-react';
 
 const TYPES = {
   receipt: {
-    label: "Receipt",
-    icon: "🧾",
-    active: "bg-green-600 text-white",
-    inactive: "text-green-700",
+    label: "Sales Receipt",
+    icon: Receipt,
+    active: "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]",
+    inactive: "text-slate-400 hover:text-white hover:bg-white/5",
   },
   invoice: {
     label: "Invoice",
-    icon: "📄",
-    active: "bg-purple-600 text-white",
-    inactive: "text-purple-700",
+    icon: FileText,
+    active: "bg-purple-500 text-black shadow-[0_0_20px_rgba(168,85,247,0.3)]",
+    inactive: "text-slate-400 hover:text-white hover:bg-white/5",
   },
   quote: {
-    label: "Quote",
-    icon: "💰",
-    active: "bg-blue-600 text-white",
-    inactive: "text-blue-700",
+    label: "Price Quote",
+    icon: BadgeDollarSign,
+    active: "bg-blue-500 text-black shadow-[0_0_20_rgba(59,130,246,0.3)]",
+    inactive: "text-slate-400 hover:text-white hover:bg-white/5",
   },
 };
 
 const DocumentTypeSelector = ({ receiptType, onTypeChange }) => {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-4">
-      <p className="text-xs font-semibold text-gray-500 mb-3">
-        Document type
-      </p>
+    <div className="bg-[#1a1f26] rounded-[1rem] px-3  py-2 border border-white/5 shadow-inner">
+      <div className="px-4 pt-2 pb-3 flex items-center justify-between">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+          Choose Paper Type
+        </p>
+        <div className="h-1 w-8 bg-white/10 rounded-full" />
+      </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         {Object.entries(TYPES).map(([key, config]) => {
           const isActive = receiptType === key;
+          const Icon = config.icon;
 
           return (
             <button
               key={key}
               onClick={() => onTypeChange(key)}
               className={`
-                flex-1 flex items-center justify-center gap-2
-                py-2.5 rounded-xl text-sm font-semibold
-                transition-all
+                flex-1 flex items-center justify-center gap-3
+                py-4 sm:py-3.5 px-4 rounded-[1.5rem] 
+                text-xs font-black uppercase tracking-widest
+                transition-all duration-300 transform active:scale-95
                 ${
                   isActive
                     ? `${config.active}`
-                    : `bg-gray-50 hover:bg-gray-100 ${config.inactive}`
+                    : `${config.inactive}`
                 }
               `}
             >
-              <span>{config.icon}</span>
-              {config.label}
+              <Icon size={18} strokeWidth={2.5} />
+              <span>{config.label}</span>
             </button>
           );
         })}

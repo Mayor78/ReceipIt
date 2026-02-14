@@ -10,7 +10,8 @@ import TaxDiscountSection from './receipt/TaxDiscountSection';
 import PaymentSection from './receipt/PaymentSection';
 import TermsSection from './receipt/TermsSection';
 import MobileActions from './receipt/MobileActions';
-import { Building2, CreditCard, UserCircle } from 'lucide-react';
+import { Building2, CreditCard, UserCircle, Receipt as ReceiptIcon, ShoppingBag } from 'lucide-react';
+import StoreRegistrationModal from './StoreRegistrationModal';
 
 const ReceiptForm = () => {
   const {
@@ -23,6 +24,10 @@ const ReceiptForm = () => {
     restoreDraft,
     discardDraft,
   } = useReceipt();
+
+  const [showModal, setShowModal] = useState(false);
+  const handleModalClose = () => setShowModal(false);
+  const onRegisterClick = () => setShowModal(true);
 
   const [expandedSections, setExpandedSections] = useState({
     businessInfo: false,
@@ -38,34 +43,51 @@ const ReceiptForm = () => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  // Modern, clear labels for shop owners
   const GroupLabel = ({ icon: Icon, title }) => (
-    <div className="flex items-center space-x-2  mb-2">
-      <Icon size={14} className="text-gray-400" />
-      <span className="text-[11px] font-black uppercase tracking-[0.1em] text-gray-400">
+    <div className="flex items-center space-x-2 mb-3 px-2">
+      <div className="p-1.5 bg-emerald-500/10 rounded-lg">
+        <Icon size={14} className="text-emerald-400" />
+      </div>
+      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
         {title}
       </span>
     </div>
   );
 
   return (
-    <div className="ma-w-7xl mx-auto pb-2 space-y-8 ">
+    <div className="max-w-7xl mx-auto pb-6 space-y-10">
+      {/* Modals & Alerts */}
+      {showModal && (
+        <StoreRegistrationModal
+          isOpen={showModal}
+          onClose={handleModalClose}
+          onRegister={() => {setShowModal(true)}}
+        />
+      )}
+      
       {showDraftPrompt && (
-        <DraftPrompt onRestore={restoreDraft} onDiscard={discardDraft} />
+        <div className="animate-in slide-in-from-top-4 duration-500">
+          <DraftPrompt onRestore={restoreDraft} onDiscard={discardDraft} />
+        </div>
       )}
 
-      {/* ZONE 1: DOCUMENT IDENTITY */}
-      <section>
-        <GroupLabel icon={Building2} title="Sender & Type" />
-        <div className="bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden p-1 space-y-1">
-          <DocumentTypeSelector 
-            receiptType={receiptData.receiptType}
-            onTypeChange={(type) => updateReceiptData('receiptType', type)}
-          />
+      {/* ZONE 1: WHO IS SENDING THIS? */}
+      <section className="animate-in fade-in duration-700">
+        <GroupLabel icon={Building2} title="Your Shop & Receipt Type" />
+        <div className="bg-[#11141b] rounded-[1rem] px-3  border border-white/5 shadow-2xl overflow-hidden p-2 space-y-2">
+          <div className="bg-white/[0.02] rounded-2xl p-1">
+            <DocumentTypeSelector 
+              receiptType={receiptData.receiptType}
+              onTypeChange={(type) => updateReceiptData('receiptType', type)}
+            />
+          </div>
           <BusinessInfoSection 
             isExpanded={expandedSections.businessInfo}
             onToggle={() => toggleSection('businessInfo')}
             data={receiptData}
             onUpdate={updateReceiptData}
+            onRegisterClick={onRegisterClick}
           />
           <DocumentDetailsSection 
             isExpanded={expandedSections.documentDetails}
@@ -76,31 +98,35 @@ const ReceiptForm = () => {
         </div>
       </section>
 
-      {/* ZONE 2: TRANSACTION DETAILS */}
-      <section>
-        <GroupLabel icon={UserCircle} title="Customer & Items" />
-        <div className="space-y-3">
-          <CustomerInfoSection 
-            isExpanded={expandedSections.customerInfo}
-            onToggle={() => toggleSection('customerInfo')}
-            data={receiptData}
-            onUpdate={updateReceiptData}
-          />
-          <ItemsSection 
-            isExpanded={expandedSections.items}
-            onToggle={() => toggleSection('items')}
-            items={receiptData.items}
-            onAddItem={addItem}
-            onUpdateItem={updateItem}
-            onRemoveItem={removeItem}
-          />
+      {/* ZONE 2: WHO BOUGHT WHAT? */}
+      <section className="animate-in fade-in duration-700 delay-100">
+        <GroupLabel icon={ShoppingBag} title="Customer & Items" />
+        <div className="space-y-4">
+          <div className="bg-[#11141b] rounded-[32px] border border-white/5 overflow-hidden p-1">
+            <CustomerInfoSection 
+              isExpanded={expandedSections.customerInfo}
+              onToggle={() => toggleSection('customerInfo')}
+              data={receiptData}
+              onUpdate={updateReceiptData}
+            />
+          </div>
+          <div className="bg-[#11141b] rounded-[32px] border border-white/5 overflow-hidden p-1">
+            <ItemsSection 
+              isExpanded={expandedSections.items}
+              onToggle={() => toggleSection('items')}
+              items={receiptData.items}
+              onAddItem={addItem}
+              onUpdateItem={updateItem}
+              onRemoveItem={removeItem}
+            />
+          </div>
         </div>
       </section>
 
-      {/* ZONE 3: FINANCES & LOGISTICS */}
-      <section>
-        <GroupLabel icon={CreditCard} title="Payment & Notes" />
-        <div className="bg-gray-100/40 rounded-[32px] p-2 space-y-2 border border-gray-200/50">
+      {/* ZONE 3: MONEY MATTERS */}
+      <section className="animate-in fade-in duration-700 delay-200">
+        <GroupLabel icon={CreditCard} title="Payments & Final Notes" />
+        <div className="bg-emerald-500/[0.02] rounded-[40px] p-3 space-y-3 border border-emerald-500/10 shadow-[inner_0_2px_10px_rgba(0,0,0,0.5)]">
           <TaxDiscountSection 
             isExpanded={expandedSections.taxDiscount}
             onToggle={() => toggleSection('taxDiscount')}
@@ -122,10 +148,13 @@ const ReceiptForm = () => {
         </div>
       </section>
 
-      <MobileActions 
-        onAddItem={addItem}
-        hasIncompleteItems={receiptData.items.some(i => !i.name || i.price === 0)}
-      />
+      {/* Mobile Sticky Bar */}
+      <div className="fixed bottom-6 left-0 right-0 px-4 z-40 md:hidden">
+        <MobileActions 
+          onAddItem={addItem}
+          hasIncompleteItems={receiptData.items.some(i => !i.name || i.price === 0)}
+        />
+      </div>
     </div>
   );
 };

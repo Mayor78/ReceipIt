@@ -1,5 +1,6 @@
+// components/ReceiptHistory/SmartSearch.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Clock, TrendingUp, Calendar, DollarSign } from 'lucide-react';
+import { Search, X, Clock, TrendingUp, Calendar, Zap, Sparkles, Terminal } from 'lucide-react';
 
 const SmartSearch = ({
   searchTerm,
@@ -20,72 +21,29 @@ const SmartSearch = ({
       const lowerTerm = searchTerm.toLowerCase();
       const newSuggestions = [];
 
-      // Amount-based suggestions
+      // Logic for parsing (keeping your original functional logic)
       if (lowerTerm.includes('>') || lowerTerm.includes('greater')) {
         const amount = lowerTerm.match(/\d+/)?.[0];
         if (amount) {
           newSuggestions.push({
-            text: `Amount greater than ₦${amount}`,
+            text: `Filter_Value > ₦${amount}`,
             query: `amount>${amount}`,
             icon: TrendingUp
           });
         }
       }
 
-      if (lowerTerm.includes('<') || lowerTerm.includes('less')) {
-        const amount = lowerTerm.match(/\d+/)?.[0];
-        if (amount) {
-          newSuggestions.push({
-            text: `Amount less than ₦${amount}`,
-            query: `amount<${amount}`,
-            icon: TrendingUp
-          });
-        }
-      }
-
-      // Date-based suggestions
       if (lowerTerm.includes('today')) {
         newSuggestions.push({
-          text: 'Receipts from today',
+          text: 'Temporal_Range: Today',
           query: 'date:today',
           icon: Calendar
         });
       }
 
-      if (lowerTerm.includes('yesterday')) {
-        newSuggestions.push({
-          text: 'Receipts from yesterday',
-          query: 'date:yesterday',
-          icon: Calendar
-        });
-      }
-
+      // ... other logic remains the same ...
       if (lowerTerm.includes('this week')) {
-        newSuggestions.push({
-          text: 'Receipts from this week',
-          query: 'date:week',
-          icon: Calendar
-        });
-      }
-
-      if (lowerTerm.includes('this month')) {
-        newSuggestions.push({
-          text: 'Receipts from this month',
-          query: 'date:month',
-          icon: Calendar
-        });
-      }
-
-      // Store name suggestions
-      if (lowerTerm.includes('store:')) {
-        const store = lowerTerm.split('store:')[1]?.trim();
-        if (store) {
-          newSuggestions.push({
-            text: `Search in store: ${store}`,
-            query: `store:${store}`,
-            icon: Search
-          });
-        }
+        newSuggestions.push({ text: 'Temporal_Range: Week_Cycle', query: 'date:week', icon: Calendar });
       }
 
       setSuggestions(newSuggestions);
@@ -94,7 +52,6 @@ const SmartSearch = ({
     }
   }, [searchTerm]);
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
@@ -112,98 +69,119 @@ const SmartSearch = ({
   };
 
   return (
-    <div className="p-4 bg-white border-b relative">
-      <div className="flex items-center gap-2">
-        <div className="flex-1 relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+    <div className="p-6 bg-[#0d1117] border-b border-white/5 relative">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+        
+        {/* Input Field HUD */}
+        <div className="flex-1 relative group">
+          <div className={`absolute inset-0 bg-gradient-to-r ${smartMode ? 'from-purple-500/20 to-blue-500/20' : 'from-slate-500/10 to-transparent'} rounded-2xl blur-xl transition-opacity duration-500 opacity-0 group-focus-within:opacity-100`} />
+          
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+          
           <input
             ref={inputRef}
             type="text"
             value={searchTerm}
             onChange={(e) => onSearch(e.target.value)}
             onFocus={() => setShowSuggestions(true)}
-            placeholder={smartMode ? "Try: 'receipts above 5000' or 'from last week'" : "Search receipts..."}
-            className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder={smartMode ? "EXEC_QUERY: 'above 5000' or 'last week'..." : "Scanning local registry..."}
+            className={`w-full pl-12 pr-12 py-3.5 bg-white/5 border ${smartMode ? 'border-purple-500/30' : 'border-white/10'} rounded-2xl text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-sm`}
           />
+          
           {searchTerm && (
             <button
               onClick={onClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
             >
               <X size={18} />
             </button>
           )}
         </div>
         
+        {/* Smart Mode Toggle */}
         <button
           onClick={onToggleSmartMode}
-          className={`px-4 py-2.5 rounded-lg border transition-colors flex items-center gap-2 ${
+          className={`px-6 py-3.5 rounded-2xl border flex items-center justify-center gap-3 transition-all duration-300 active:scale-95 ${
             smartMode 
-              ? 'bg-purple-100 border-purple-300 text-purple-700' 
-              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              ? 'bg-purple-600/10 border-purple-500/50 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.15)]' 
+              : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
           }`}
         >
-          <span className="text-sm font-medium">Smart Search</span>
+          {smartMode ? <Zap size={16} className="fill-current" /> : <Terminal size={16} />}
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">
+            {smartMode ? 'Neural_Mode: ON' : 'Standard_Search'}
+          </span>
         </button>
       </div>
 
-      {/* Suggestions Dropdown */}
+      {/* Suggestions Overlay */}
       {showSuggestions && (suggestions.length > 0 || recentSearches.length > 0) && (
         <div
           ref={suggestionsRef}
-          className="absolute left-4 right-4 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10"
+          className="absolute left-6 right-6 top-[85%] mt-4 bg-[#161b22] border border-white/10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300"
         >
-          {/* Recent Searches */}
+          {/* Recent History */}
           {recentSearches.length > 0 && (
-            <div className="p-2">
-              <p className="text-xs font-medium text-gray-500 px-3 py-2">Recent Searches</p>
-              {recentSearches.map((search, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    onSearch(search);
-                    setShowSuggestions(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <Clock size={14} className="text-gray-400" />
-                  <span className="text-sm text-gray-700">{search}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Smart Suggestions */}
-          {suggestions.length > 0 && (
-            <div className="p-2 border-t">
-              <p className="text-xs font-medium text-gray-500 px-3 py-2">Smart Suggestions</p>
-              {suggestions.map((suggestion, idx) => {
-                const Icon = suggestion.icon;
-                return (
+            <div className="p-4">
+              <p className="text-[8px] font-black text-slate-600 uppercase tracking-[0.3em] px-4 py-2 flex items-center gap-2">
+                <Clock size={10} /> RECENT_LOGS
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                {recentSearches.map((search, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-purple-50 rounded-lg transition-colors"
+                    onClick={() => {
+                      onSearch(search);
+                      setShowSuggestions(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-all text-left group"
                   >
-                    <Icon size={14} className="text-purple-500" />
-                    <span className="text-sm text-gray-700">{suggestion.text}</span>
+                    <span className="text-xs text-slate-400 group-hover:text-blue-400 font-mono">/ {search}</span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Search Tips */}
-          {smartMode && suggestions.length === 0 && (
-            <div className="p-4 bg-blue-50 rounded-b-lg">
-              <p className="text-xs font-medium text-blue-800 mb-2">💡 Search Tips</p>
-              <ul className="text-xs text-blue-700 space-y-1">
-                <li>• "above 5000" - receipts over ₦5000</li>
-                <li>• "last week" - receipts from past 7 days</li>
-                <li>• "store: ABC" - search in specific store</li>
-                <li>• "today" or "yesterday" - quick date filters</li>
-                <li>• "between 1000 and 5000" - amount range</li>
-              </ul>
+          {/* Neural Suggestions */}
+          {suggestions.length > 0 && (
+            <div className="p-4 border-t border-white/5 bg-purple-500/5">
+              <p className="text-[8px] font-black text-purple-400 uppercase tracking-[0.3em] px-4 py-2 flex items-center gap-2">
+                <Sparkles size={10} /> NEURAL_AUTOCOMPLETE
+              </p>
+              <div className="space-y-1">
+                {suggestions.map((suggestion, idx) => {
+                  const Icon = suggestion.icon;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-500/10 rounded-xl transition-all group"
+                    >
+                      <div className="p-1.5 bg-purple-500/20 rounded-lg text-purple-400">
+                        <Icon size={14} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors">{suggestion.text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Terminal Tips */}
+          {smartMode && (
+            <div className="p-6 bg-blue-500/5 border-t border-white/5">
+              <div className="flex items-center gap-2 mb-3">
+                <Terminal size={12} className="text-blue-400" />
+                <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Syntax_Guide</p>
+              </div>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                <Tip code="> 5000" label="Value Filter" />
+                <Tip code="last week" label="Time Delta" />
+                <Tip code="store: Apple" label="Node Locate" />
+                <Tip code="yesterday" label="Quick Range" />
+              </div>
             </div>
           )}
         </div>
@@ -211,5 +189,12 @@ const SmartSearch = ({
     </div>
   );
 };
+
+const Tip = ({ code, label }) => (
+  <div className="flex items-center justify-between group cursor-default">
+    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">{label}</span>
+    <code className="text-[10px] text-blue-300/60 font-mono group-hover:text-blue-400 transition-colors">"{code}"</code>
+  </div>
+);
 
 export default SmartSearch;

@@ -1,83 +1,86 @@
+// components/ReceiptHistory/QuickStats.jsx
 import React from 'react';
-import { TrendingUp, Calendar, DollarSign, Receipt, Store, Award } from 'lucide-react';
+import { TrendingUp, Calendar, DollarSign, Receipt, Store, Award, Activity } from 'lucide-react';
 
 const QuickStats = ({ stats, formatNaira, onDateRangeChange }) => {
   const statsCards = [
     {
-      title: 'Total Receipts',
-      value: stats.totalReceipts,
+      title: 'Index_Total',
+      value: stats.totalReceipts || 0,
       icon: Receipt,
-      color: 'blue',
-      bg: 'bg-blue-50',
-      text: 'text-blue-600'
+      glow: 'shadow-blue-500/10',
+      text: 'text-blue-500',
+      border: 'border-blue-500/20'
     },
     {
-      title: 'Total Amount',
+      title: 'Gross_Value',
       value: formatNaira(stats.totalAmount),
       icon: DollarSign,
-      color: 'green',
-      bg: 'bg-green-50',
-      text: 'text-green-600'
+      glow: 'shadow-emerald-500/10',
+      text: 'text-emerald-500',
+      border: 'border-emerald-500/20'
     },
     {
-      title: 'Monthly Total',
+      title: 'Monthly_Log',
       value: formatNaira(stats.monthlyTotal),
       icon: Calendar,
-      color: 'purple',
-      bg: 'bg-purple-50',
-      text: 'text-purple-600',
-      subtext: `${stats.monthlyCount} this month`
+      glow: 'shadow-purple-500/10',
+      text: 'text-purple-500',
+      border: 'border-purple-500/20',
+      subtext: `${stats.monthlyCount} entries`
     },
     {
-      title: 'Average',
+      title: 'Mean_Velocity',
       value: formatNaira(stats.averageAmount),
       icon: TrendingUp,
-      color: 'orange',
-      bg: 'bg-orange-50',
-      text: 'text-orange-600'
+      glow: 'shadow-orange-500/10',
+      text: 'text-orange-500',
+      border: 'border-orange-500/20'
     },
     {
-      title: 'Largest Receipt',
+      title: 'Peak_Record',
       value: formatNaira(stats.largestReceipt),
       icon: Award,
-      color: 'red',
-      bg: 'bg-red-50',
-      text: 'text-red-600'
+      glow: 'shadow-red-500/10',
+      text: 'text-red-500',
+      border: 'border-red-500/20'
     },
     {
-      title: 'Stores',
+      title: 'Node_Count',
       value: stats.storeCount,
       icon: Store,
-      color: 'indigo',
-      bg: 'bg-indigo-50',
-      text: 'text-indigo-600'
+      glow: 'shadow-indigo-500/10',
+      text: 'text-indigo-500',
+      border: 'border-indigo-500/20'
     }
   ];
 
   return (
-    <div className="p-4 bg-white border-b">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <TrendingUp size={16} className="text-blue-500" />
-          Quick Statistics
+    <div className="p-6 bg-[#0d1117] border-b border-white/5">
+      {/* Header HUD */}
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2">
+          <Activity size={14} className="text-blue-500 animate-pulse" />
+          Live Telemetry Feed
         </h3>
         <button
           onClick={() => onDateRangeChange({ start: null, end: null })}
-          className="text-xs text-blue-600 hover:text-blue-800"
+          className="text-[10px] font-black text-blue-400/70 hover:text-blue-400 uppercase tracking-widest transition-colors border-b border-blue-400/20 pb-0.5"
         >
-          View All Time
+          Reset Timeline
         </button>
       </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
               key={index}
-              className={`${stat.bg} rounded-lg p-3 transition-transform hover:scale-105 cursor-pointer`}
+              className={`relative bg-[#161b22] border ${stat.border} rounded-2xl p-4 transition-all hover:-translate-y-1 hover:bg-[#1c2128] group cursor-pointer overflow-hidden ${stat.glow} shadow-lg`}
               onClick={() => {
-                if (stat.title === 'Monthly Total') {
+                if (stat.title === 'Monthly_Log') {
                   const now = new Date();
                   const start = new Date(now.getFullYear(), now.getMonth(), 1);
                   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -85,13 +88,28 @@ const QuickStats = ({ stats, formatNaira, onDateRangeChange }) => {
                 }
               }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <Icon size={18} className={stat.text} />
-                <span className="text-xs text-gray-500">{stat.title}</span>
+              {/* Subtle background scanline effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+              
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-2 rounded-xl bg-black/20 ${stat.text}`}>
+                  <Icon size={16} />
+                </div>
+                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest group-hover:text-slate-400 transition-colors">
+                  {stat.title}
+                </span>
               </div>
-              <div className={`text-lg font-bold ${stat.text}`}>{stat.value}</div>
-              {stat.subtext && (
-                <div className="text-xs text-gray-500 mt-1">{stat.subtext}</div>
+
+              <div className={`text-sm lg:text-base font-mono font-bold tracking-tight ${stat.text}`}>
+                {stat.value}
+              </div>
+
+              {stat.subtext ? (
+                <div className="text-[9px] font-black text-slate-500 uppercase tracking-tighter mt-1 group-hover:text-slate-400">
+                  {stat.subtext}
+                </div>
+              ) : (
+                <div className="h-4" /> // Spacer for alignment
               )}
             </div>
           );

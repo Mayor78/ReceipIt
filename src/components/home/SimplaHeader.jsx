@@ -1,269 +1,205 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Receipt, Shield, Store, Menu, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Receipt, Shield, Store, Menu, X, User, LogIn, MessageSquare, PlusCircle, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Header = ({ 
   isStoreRegistered, 
   storeData, 
   onRegisterClick,
- 
+  onLoginClick 
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const scrollTimeout = useRef(null);
-  const resizeTimeout = useRef(null);
 
-  // ✅ FIXED: Throttled scroll handler - NO forced reflow
   useEffect(() => {
-    const handleScroll = () => {
-      // Cancel previous timeout
-      if (scrollTimeout.current) {
-        cancelAnimationFrame(scrollTimeout.current);
-      }
-      
-      // Use requestAnimationFrame to batch reads
-      scrollTimeout.current = requestAnimationFrame(() => {
-        const scrolled = window.scrollY > 10;
-        setIsScrolled(scrolled);
-      });
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (scrollTimeout.current) {
-        cancelAnimationFrame(scrollTimeout.current);
-      }
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ✅ FIXED: Debounced resize handler
-  useEffect(() => {
-    const handleResize = () => {
-      if (resizeTimeout.current) {
-        clearTimeout(resizeTimeout.current);
-      }
-      
-      resizeTimeout.current = setTimeout(() => {
-        if (window.innerWidth >= 768) {
-          setIsMobileMenuOpen(false);
-        }
-      }, 100);
-    };
-
-    window.addEventListener('resize', handleResize, { passive: true });
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (resizeTimeout.current) {
-        clearTimeout(resizeTimeout.current);
-      }
-    };
-  }, []);
-
-  // ✅ FIXED: NO forced reflow - use class toggling instead of direct style
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.documentElement.classList.add('mobile-menu-open');
-    } else {
-      document.documentElement.classList.remove('mobile-menu-open');
-    }
-    
-    return () => {
-      document.documentElement.classList.remove('mobile-menu-open');
-    };
-  }, [isMobileMenuOpen]);
-
-  // ✅ REMOVED: console.log that was causing unnecessary renders
-  // useEffect with console.log removed
-
-  const handleVerifyClick = () => {
-    navigate('/verify');
+  const navTo = (path) => {
+    navigate(path);
     setIsMobileMenuOpen(false);
-  };
-
-  const handleHomeClick = () => {
-    navigate('/');
-    setIsMobileMenuOpen(false);
-  };
-  const handleCreateClick = () =>{
-    navigate('/create');
-    setIsMobileMenuOpen(false)
-  }
-
-  const handleStoreClick = () => {
-    if (onRegisterClick) {
-      onRegisterClick();
-    }
-    setIsMobileMenuOpen(false);
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
     <>
-      <div className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      {/* HEADER FIX: Changed bg-transparent to a solid/glass color 
+          so it is visible even BEFORE scrolling.
+      */}
+      <header className={`sticky top-0 left-0 right-0 z-[100] transition-all duration-300 ${
         isScrolled 
-          ? 'bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm' 
-          : 'bg-white border-b border-gray-100'
+          ? 'bg-[#0a0c10]/90 backdrop-blur-xl border-b border-emerald-500/20 py-3 shadow-2xl' 
+          : 'bg-[#0a0c10] border-b border-white/5 py-5'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between">
             
-            {/* Logo */}
-            <button 
-              onClick={handleHomeClick}
-              className="flex items-center space-x-2.5 hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-lg"
-              aria-label="Go to homepage"
-            >
-              <div className="relative">
-                <div className="absolute inset-0 bg-green-500/20 rounded-xl blur-sm" aria-hidden="true"></div>
-                <div className="relative bg-green-600 p-2 rounded-xl shadow-md">
-                  <Receipt className="text-white" size={20} aria-hidden="true" />
-                </div>
+            {/* LOGO */}
+            <button onClick={() => navTo('/')} className="flex items-center gap-3 group">
+              <div className="bg-emerald-500 p-2 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                <Receipt className="text-black" size={20} />
               </div>
-              
-              <div>
-                <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-green-700 via-emerald-700 to-teal-600 bg-clip-text text-transparent">
-                  ReceiptIt
+              <div className="text-left leading-none">
+                <span className="block text-xl font-black tracking-tighter text-white">
+                  RECEIPT<span className="text-emerald-400">IT</span>
                 </span>
-                <p className="text-[9px] md:text-xs text-gray-500 -mt-0.5">
-                  Receipt Generator
-                </p>
+                <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">
+                  Secure Protocol
+                </span>
               </div>
             </button>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-3">
+            {/* DESKTOP NAV */}
+            <nav className="hidden md:flex items-center gap-6">
+              <button onClick={() => navTo('/verify')} className="text-sm font-bold text-slate-300 hover:text-emerald-400 transition-colors flex items-center gap-2">
+                <Shield size={16} /> Verify
+              </button>
+              <button onClick={() => navTo('/feedback')} className="text-sm font-bold text-slate-300 hover:text-emerald-400 transition-colors flex items-center gap-2">
+                <MessageSquare size={16} /> Feedback
+              </button>
               
-              {/* Store Status */}
+              <div className="h-4 w-[1px] bg-white/10" />
+
               {isStoreRegistered ? (
-                <div className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-green-50 border border-green-200">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-green-700">
-                    {storeData?.storeName || 'Store'} • Verified
-                  </span>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-emerald-500 uppercase">Store Active</p>
+                    <p className="text-sm font-bold text-white leading-none">{storeData?.store_name}</p>
+                  </div>
+                  <button onClick={() => navTo('/create')} className="bg-white text-black px-5 py-2 rounded-xl font-black text-xs hover:bg-emerald-400 transition-all">
+                    CREATE +
+                  </button>
                 </div>
               ) : (
-                <button
-                  onClick={handleStoreClick}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  aria-label="Register your store"
-                >
-                  <Store className="w-4 h-4" aria-hidden="true" />
-                  <span className="font-medium text-sm">Register Store</span>
+                <button onClick={onLoginClick || onRegisterClick} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-5 py-2 rounded-xl font-bold text-xs hover:bg-emerald-500 hover:text-black transition-all">
+                  PARTNER LOGIN
                 </button>
               )}
+            </nav>
 
-              {/* Verify Receipt Button */}
-              <button
-                onClick={handleVerifyClick}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                aria-label="Verify a receipt"
-              >
-                <Shield className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium text-sm">Verify Receipt</span>
+            {/* MOBILE MENU TOGGLE */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-white hover:bg-white/5 rounded-lg border border-white/10"
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* MOBILE MENU - FIXED ALIGNMENT */}
+      <div className={`fixed inset-0 z-[110] md:hidden transition-all duration-500 ${
+        isMobileMenuOpen ? 'visible opacity-100' : 'invisible opacity-0'
+      }`}>
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsMobileMenuOpen(false)} />
+        
+        {/* Menu Content */}
+        <div className={`absolute top-0 right-0 h-full w-[80%] max-w-[300px] bg-[#0d1117] border-l border-white/10 shadow-2xl transition-transform duration-500 ease-out ${
+          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}>
+          <div className="flex flex-col h-full p-6">
+            <div className="flex justify-end mb-8">
+               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400"><X size={28}/></button>
+            </div>
+
+            {/* Profile Section */}
+            <div className="mb-10 p-4 bg-white/5 rounded-2xl border border-white/5">
+              {isStoreRegistered ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-black">
+                    <Store size={20} />
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-black text-emerald-500 uppercase">Manager</p>
+                    <p className="text-white font-bold truncate">{storeData?.store_name || 'My Store'}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300">
+                    <User size={20} />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold">Guest User</p>
+                    <p className="text-xs text-slate-500">Sign in to sync data</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Nav Links - Aligned Vertically */}
+            <div className="space-y-4 flex-1">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Main Menu</p>
+              
+              <button onClick={() => navTo('/')} className="mobile-link">
+                <div className="flex items-center gap-3">
+                  <Receipt size={20} className="text-emerald-500" />
+                  <span>Dashboard</span>
+                </div>
+                <ChevronRight size={16} className="text-slate-600" />
               </button>
-                <button
-                onClick={handleCreateClick}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                aria-label="Verify a receipt"
-              >
-                <Shield className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium text-sm">Create Receipt</span>
+
+              <button onClick={() => navTo('/create')} className="mobile-link">
+                <div className="flex items-center gap-3">
+                  <PlusCircle size={20} className="text-emerald-500" />
+                  <span>New Receipt</span>
+                </div>
+                <ChevronRight size={16} className="text-slate-600" />
+              </button>
+
+              <button onClick={() => navTo('/verify')} className="mobile-link">
+                <div className="flex items-center gap-3">
+                  <Shield size={20} className="text-emerald-500" />
+                  <span>Verify Engine</span>
+                </div>
+                <ChevronRight size={16} className="text-slate-600" />
+              </button>
+
+              <button onClick={() => navTo('/feedback')} className="mobile-link">
+                <div className="flex items-center gap-3">
+                  <MessageSquare size={20} className="text-emerald-500" />
+                  <span>Give Feedback</span>
+                </div>
+                <ChevronRight size={16} className="text-slate-600" />
               </button>
             </div>
 
-            {/* Mobile Hamburger */}
-            <button
-              onClick={toggleMobileMenu}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              aria-expanded={isMobileMenuOpen}
-              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {isMobileMenuOpen ? (
-                <X size={24} className="text-gray-700" aria-hidden="true" />
-              ) : (
-                <Menu size={24} className="text-gray-700" aria-hidden="true" />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <div
-        className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
-          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-        aria-hidden={!isMobileMenuOpen}
-      >
-        {/* Backdrop */}
-        <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={() => setIsMobileMenuOpen(false)}
-          aria-label="Close menu"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && setIsMobileMenuOpen(false)}
-        />
-        
-        {/* Menu Panel */}
-        <div
-          className={`absolute top-[61px] left-0 right-0 bg-white border-b border-gray-200 shadow-lg transition-transform duration-300 ${
-            isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
-          }`}
-        >
-          <div className="px-4 py-6 space-y-3">
-            
-            {/* Store Status - Mobile */}
-            {isStoreRegistered ? (
-              <div className="flex items-center space-x-2 px-4 py-3 rounded-lg bg-green-50 border border-green-200">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-green-700">
-                  {storeData?.storeName || 'Store'} • Verified
-                </span>
-              </div>
-            ) : (
-              <button
-                onClick={handleStoreClick}
-                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                aria-label="Register your store"
+            {/* Bottom Action */}
+            {!isStoreRegistered && (
+              <button 
+                onClick={() => { onLoginClick?.(); setIsMobileMenuOpen(false); }}
+                className="w-full mt-auto bg-emerald-500 py-4 rounded-2xl text-black font-black text-sm flex items-center justify-center gap-2 shadow-lg"
               >
-                <Store className="w-5 h-5" aria-hidden="true" />
-                <span className="font-medium">Register Store</span>
+                <LogIn size={18} /> SIGN IN / REGISTER
               </button>
             )}
-
-            {/* Verify Receipt - Mobile */}
-            <button
-              onClick={handleVerifyClick}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              aria-label="Verify a receipt"
-            >
-              <Shield className="w-5 h-5" aria-hidden="true" />
-              <span className="font-medium">Verify Receipt</span>
-            </button>
-               <button
-                onClick={handleCreateClick}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                aria-label="Verify a receipt"
-              >
-                <Shield className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium text-sm">Create Receipt</span>
-              </button>
           </div>
         </div>
       </div>
 
-      {/* ✅ Add CSS class instead of inline style */}
       <style>{`
-        .mobile-menu-open {
-          overflow: hidden;
+        .mobile-link {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem;
+          background: rgba(255,255,255,0.03);
+          border-radius: 1rem;
+          color: white;
+          font-weight: 700;
+          font-size: 0.95rem;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+        }
+        .mobile-link:active {
+          background: rgba(16,185,129,0.1);
+          border-color: rgba(16,185,129,0.2);
+          transform: scale(0.98);
         }
       `}</style>
     </>

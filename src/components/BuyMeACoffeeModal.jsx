@@ -1,6 +1,6 @@
 // components/BuyMeACoffeeModal.jsx
 import React from 'react';
-import { Coffee, Copy, X, CheckCircle } from 'lucide-react';
+import { Coffee, Copy, X, CheckCircle, Zap, Heart } from 'lucide-react';
 import Portal from './Portal';
 
 const BuyMeACoffeeModal = ({ isOpen, onClose }) => {
@@ -34,69 +34,78 @@ const BuyMeACoffeeModal = ({ isOpen, onClose }) => {
   return (
     <>
     <Portal>
-      {/* Higher z-index backdrop */}
+      {/* Backdrop with heavy blur */}
       <div 
-        className="fixed inset-0 bg-black/50 z-[60]"
+        className="fixed inset-0 bg-[#0d1117]/80 backdrop-blur-md z-[100] animate-fade-in"
         onClick={onClose}
       />
       
-      {/* Modal with even higher z-index */}
-      <div className="fixed inset-0 flex items-end sm:items-center justify-center  z-9999 p-2 sm:p-4"
-      >
-        <div className="relative bg-white rounded-xl sm:rounded-2xl w-full max-w-sm shadow-2xl animate-slide-up sm:animate-scale-in">
+      {/* Modal Container */}
+      <div className="fixed inset-0 flex items-end sm:items-center justify-center z-[101] p-2 sm:p-4 pointer-events-none">
+        <div className="relative bg-[#161b22] border border-white/10 rounded-[2rem] w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slide-up sm:animate-scale-in pointer-events-auto overflow-hidden">
+          
+          {/* Top Accent Bar */}
+          <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 via-orange-600 to-amber-500" />
+
           {/* Header */}
-          <div className="px-4 pt-4 sm:px-6 sm:pt-6 pb-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <div className="p-1.5 sm:p-2 bg-amber-100 rounded-full">
-                  <Coffee className="text-amber-600" size={18} />
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center border border-amber-500/20 shadow-lg shadow-amber-500/5">
+                  <Coffee className="text-amber-500" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-gray-800">Enjoy ReceiptIt?</h2>
-                  <p className="text-xs text-gray-500">Support with a coffee! ☕</p>
+                  <h2 className="text-sm font-black text-white uppercase tracking-[0.2em]">Fuel the Engine</h2>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Support development ☕</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-white/5 rounded-xl transition-all border border-transparent hover:border-white/10 group"
               >
-                <X className="text-gray-500" size={18} />
+                <X className="text-slate-500 group-hover:text-white" size={20} />
               </button>
             </div>
             
-            <p className="text-xs sm:text-sm text-gray-600 mb-4">
-              This free tool helps your business. Consider supporting its development.
+            <p className="text-xs font-medium text-slate-400 leading-relaxed uppercase tracking-tight">
+              ReceiptIt is free for your business. If it saves you time, consider fueling the next update.
             </p>
           </div>
           
           {/* Content */}
-          <div className="px-4 sm:px-6 pb-4">
-            {/* Bank Transfer Section */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4 mb-3">
-              <h3 className="font-medium text-gray-800 mb-2 text-sm sm:text-base">
-                Bank Transfer
-              </h3>
+          <div className="px-6 pb-6">
+            {/* Bank Transfer Section - High Contrast */}
+            <div className="bg-[#0d1117] border border-amber-500/20 rounded-[1.5rem] p-5 mb-4 shadow-inner">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap size={14} className="text-amber-500" />
+                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Bank Transfer</h3>
+              </div>
               
-              <div className="space-y-2 text-sm">
-                <div>
-                  <div className="text-xs text-gray-500">Bank</div>
-                  <div className="font-medium text-gray-800">{bankName}</div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                  <div>
+                    <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Institution</div>
+                    <div className="text-xs font-bold text-slate-200">{bankName}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Beneficiary</div>
+                    <div className="text-xs font-bold text-slate-200">{accountName}</div>
+                  </div>
                 </div>
                 
                 <div>
-                  <div className="text-xs text-gray-500">Account Name</div>
-                  <div className="font-medium text-gray-800">{accountName}</div>
-                </div>
-                
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Account Number</div>
-                  <div className="flex items-center justify-between">
-                    <code className="font-mono text-base sm:text-lg font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                  <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Account Number</div>
+                  <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                    <code className="font-mono text-lg font-black text-amber-500 tracking-tighter ml-2">
                       {accountNumber}
                     </code>
                     <button
                       onClick={handleCopyAccountNumber}
-                      className="flex items-center space-x-1 px-2 py-1.5 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors text-xs font-medium ml-2"
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all text-[10px] font-black uppercase tracking-widest ${
+                        copied 
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-amber-500 text-black hover:bg-amber-400'
+                      }`}
                     >
                       {copied ? (
                         <>
@@ -115,60 +124,50 @@ const BuyMeACoffeeModal = ({ isOpen, onClose }) => {
               </div>
             </div>
             
-            {/* Quick Donation Buttons */}
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <button
-                onClick={() => window.open('https://paystack.shop/pay/hnzvthnq88', '_blank')}
-                className="bg-amber-500 hover:bg-amber-600 text-white rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center transition-colors active:scale-95"
-              >
-                <div className="text-sm font-bold">₦500</div>
-                <div className="text-xs opacity-90">Coffee</div>
-              </button>
-              
-              <button
-                onClick={() => window.open('https://paystack.shop/pay/tuk5dw37hv', '_blank')}
-                className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center transition-colors active:scale-95"
-              >
-                <div className="text-sm font-bold">₦1,000</div>
-                <div className="text-xs opacity-90">Lunch</div>
-              </button>
-              
-              <button
-                onClick={() => window.open('https://paystack.shop/pay/t5nsmmkpbr', '_blank')}
-                className="bg-amber-700 hover:bg-amber-800 text-white rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center transition-colors active:scale-95"
-              >
-                <div className="text-sm font-bold">₦2,000</div>
-                <div className="text-xs opacity-90">Dinner</div>
-              </button>
+            {/* Quick Tier Buttons */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: 'Coffee', amount: '₦500', link: 'https://paystack.shop/pay/hnzvthnq88', color: 'bg-white/5' },
+                { label: 'Lunch', amount: '₦1,000', link: 'https://paystack.shop/pay/tuk5dw37hv', color: 'bg-amber-500/10' },
+                { label: 'Dinner', amount: '₦2,000', link: 'https://paystack.shop/pay/t5nsmmkpbr', color: 'bg-amber-500' }
+              ].map((tier, i) => (
+                <button
+                  key={i}
+                  onClick={() => window.open(tier.link, '_blank')}
+                  className={`${tier.color === 'bg-amber-500' ? 'bg-amber-500 text-black' : tier.color + ' text-white'} border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95`}
+                >
+                  <div className="text-[10px] font-black">{tier.amount}</div>
+                  <div className="text-[8px] font-bold uppercase tracking-tighter opacity-70">{tier.label}</div>
+                </button>
+              ))}
             </div>
             
             {/* Custom Amount */}
             <button
               onClick={() => window.open('https://paystack.shop/pay/mvvrth6y8d', '_blank')}
-              className="w-full border border-amber-300 text-amber-700 rounded-lg p-2 sm:p-3 hover:bg-amber-50 transition-colors text-sm font-medium mb-3"
+              className="w-full bg-white/5 border border-white/10 text-slate-300 rounded-xl p-3 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest"
             >
               Custom Amount via Paystack
             </button>
           </div>
           
-          {/* Footer */}
-          <div className="px-4 sm:px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl sm:rounded-b-2xl">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={onClose}
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Maybe later
-              </button>
-              <div className="text-xs text-gray-500">
-                🙏 Thank you!
-              </div>
+          {/* Footer Info */}
+          <div className="px-6 py-4 bg-[#0d1117]/50 border-t border-white/5 flex items-center justify-between">
+            <button
+              onClick={onClose}
+              className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
+            >
+              Skip for now
+            </button>
+            <div className="flex items-center gap-1.5 text-[10px] font-black text-amber-500 uppercase tracking-widest">
+              <Heart size={12} className="fill-current" />
+              <span>Thank You</span>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Add minimal CSS animations */}
+      {/* Logic-safe CSS animations */}
       <style jsx>{`
         @keyframes fade-in {
           from { opacity: 0; }
@@ -176,34 +175,20 @@ const BuyMeACoffeeModal = ({ isOpen, onClose }) => {
         }
         
         @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
         
         @keyframes scale-in {
-          from { 
-            transform: scale(0.95);
-            opacity: 0;
-          }
-          to { 
-            transform: scale(1);
-            opacity: 1;
-          }
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
         
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-        
-        .animate-slide-up {
-          animation: slide-up 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-        }
-        
-        .animate-scale-in {
-          animation: scale-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-        }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .animate-scale-in { animation: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
       `}</style>
-      </Portal>
+    </Portal>
     </>
   );
 };

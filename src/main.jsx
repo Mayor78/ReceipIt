@@ -8,16 +8,7 @@ import './index.css'
 const App = React.lazy(() => import('./App'))
 
 createRoot(document.getElementById('root')).render(
-  <React.Suspense fallback={
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh' 
-    }}>
-      Loading...
-    </div>
-  }>
+  <React.StrictMode>
     <App />
-  </React.Suspense>
+  </React.StrictMode>
 )

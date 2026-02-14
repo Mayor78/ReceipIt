@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Printer, Download, Share2, Copy, Eye, FileText, Shield, QrCode } from 'lucide-react';
+import { Printer, Download, Share2, Copy, Eye, FileText, Shield, QrCode, Activity, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const ReceiptActions = ({
@@ -31,28 +31,28 @@ const ReceiptActions = ({
   // Wrap actions to show success alert and increment action count
   const handleAction = async (action, actionName, setIsLoading) => {
     if (isGenerating || (setIsLoading && setIsLoading._currentValue)) {
-      return; // Prevent multiple clicks if already loading
+      return; 
     }
     
     try {
-      // Set loading state for this specific action
       if (setIsLoading) {
         setIsLoading(true);
       }
       
       await action();
       
-      // Show success alert
       Swal.fire({
         title: "✅ Success!",
         text: `${actionName} completed successfully!`,
         icon: "success",
+        background: '#1c2128',
+        color: '#fff',
+        confirmButtonColor: '#2563eb',
         confirmButtonText: "OK",
         timer: 2000,
         timerProgressBar: true,
       });
       
-      // Increment action count for coffee modal
       setActionCount?.(prev => prev + 1);
     } catch (error) {
       console.error(`${actionName} error:`, error);
@@ -60,77 +60,68 @@ const ReceiptActions = ({
         title: "❌ Error",
         text: `Failed to ${actionName.toLowerCase()}. Please try again.`,
         icon: "error",
+        background: '#1c2128',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
         confirmButtonText: "OK"
       });
     } finally {
-      // Reset loading state
       if (setIsLoading) {
-        setTimeout(() => setIsLoading(false), 500); // Small delay to show success state
+        setTimeout(() => setIsLoading(false), 500);
       }
     }
   };
 
-  // Specific handlers for each action
   const handlePrint = () => handleAction(onPrint, "Print", setIsPrinting);
   const handleDownload = () => handleAction(onDownload, "Download", setIsDownloading);
   const handlePreview = () => handleAction(onPreview, "Preview", setIsPreviewing);
   const handleCopy = () => handleAction(onCopy, "Copy", setIsCopying);
   const handleShare = () => handleAction(onShare, "Share", setIsSharing);
 
-  // Check if any action is in progress
   const isAnyActionLoading = isGenerating || isDownloading || isPrinting || isPreviewing || isCopying || isSharing;
 
   return (
     <div className="space-y-4">
-      {/* Action Buttons - Mobile Optimized. On Android: hide Print (doesn't work), show View/Download/Share only */}
+      {/* Primary Action Grid */}
       <div className={`grid gap-3 ${isAndroid ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
         {!isAndroid && (
           <button
             onClick={handlePrint}
             disabled={isAnyActionLoading || isPrinting}
-            className={`group relative overflow-hidden bg-gradient-to-r from-gray-900 to-black text-white rounded-xl p-3 flex items-center justify-center space-x-2 transition-all duration-300 font-medium ${
-              isPrinting ? 'opacity-70 cursor-wait' : 'hover:shadow-xl disabled:opacity-50'
+            className={`group relative overflow-hidden bg-[#1c2128] border border-white/10 text-white rounded-[1.25rem] p-4 flex items-center justify-center space-x-2 transition-all duration-300 font-black uppercase text-[10px] tracking-widest ${
+              isPrinting ? 'opacity-70 cursor-wait' : 'hover:bg-white/5 active:scale-95 disabled:opacity-50'
             }`}
           >
             {isPrinting ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Printing...</span>
-              </>
+              <Loader2 className="animate-spin text-blue-500" size={18} />
             ) : (
               <>
-                <Printer size={18} />
+                <Printer size={18} className="text-slate-400 group-hover:text-white transition-colors" />
                 <span>Print</span>
               </>
             )}
           </button>
         )}
         
-       
+        {enableVerification && (
+          <>
+            {/* Logic space preserved */}
+          </>
+        )}
 
-{enableVerification && (
-  <>
-   
-    
-   
-  </>
-)}
         <button
           onClick={handleDownload}
           disabled={isAnyActionLoading || isDownloading}
-          className={`group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl p-3 flex items-center justify-center space-x-2 transition-all duration-300 font-medium ${
-            isDownloading ? 'opacity-70 cursor-wait' : 'hover:shadow-xl disabled:opacity-50'
+          className={`group relative overflow-hidden bg-blue-600 text-white rounded-[1.25rem] p-4 flex items-center justify-center space-x-2 transition-all duration-300 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-600/20 ${
+            isDownloading ? 'opacity-70 cursor-wait' : 'hover:bg-blue-500 active:scale-95 disabled:opacity-50'
           }`}
         >
           {isDownloading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span>Downloading...</span>
-            </>
+            <Loader2 className="animate-spin" size={18} />
           ) : (
             <>
               <Download size={18} />
-              <span>Download PDF</span>
+              <span>Save PDF</span>
             </>
           )}
         </button>
@@ -138,19 +129,16 @@ const ReceiptActions = ({
         <button
           onClick={handlePreview}
           disabled={isAnyActionLoading || isPreviewing}
-          className={`group relative overflow-hidden bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl p-3 flex items-center justify-center space-x-2 transition-all duration-300 font-medium ${
-            isPreviewing ? 'opacity-70 cursor-wait' : 'hover:shadow-xl disabled:opacity-50'
+          className={`group relative overflow-hidden bg-purple-600 text-white rounded-[1.25rem] p-4 flex items-center justify-center space-x-2 transition-all duration-300 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-purple-600/20 ${
+            isPreviewing ? 'opacity-70 cursor-wait' : 'hover:bg-purple-500 active:scale-95 disabled:opacity-50'
           }`}
         >
           {isPreviewing ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span>Opening...</span>
-            </>
+            <Loader2 className="animate-spin" size={18} />
           ) : (
             <>
               <Eye size={18} />
-              <span>{isAndroid ? 'View' : (isMobile ? 'Open PDF' : 'Preview PDF')}</span>
+              <span>{isAndroid ? 'View' : (isMobile ? 'Open' : 'Preview')}</span>
             </>
           )}
         </button>
@@ -158,15 +146,12 @@ const ReceiptActions = ({
         <button
           onClick={handleShare}
           disabled={isAnyActionLoading || isSharing}
-          className={`group relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-xl p-3 flex items-center justify-center space-x-2 transition-all duration-300 font-medium ${
-            isSharing ? 'opacity-70 cursor-wait' : 'hover:shadow-xl disabled:opacity-50'
+          className={`group relative overflow-hidden bg-emerald-600 text-white rounded-[1.25rem] p-4 flex items-center justify-center space-x-2 transition-all duration-300 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-600/20 ${
+            isSharing ? 'opacity-70 cursor-wait' : 'hover:bg-emerald-500 active:scale-95 disabled:opacity-50'
           }`}
         >
           {isSharing ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span>Sharing...</span>
-            </>
+            <Loader2 className="animate-spin" size={18} />
           ) : (
             <>
               <Share2 size={18} />
@@ -176,65 +161,67 @@ const ReceiptActions = ({
         </button>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-gray-50 to-white rounded-xl p-4 border">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
-            <FileText className="text-blue-600" size={20} />
+      {/* Info Status Bar */}
+      <div className="bg-[#1c2128] border border-white/5 rounded-[1.5rem] p-5 shadow-inner">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+              <FileText className="text-blue-400" size={24} />
+            </div>
             <div>
-              <p className="text-sm font-medium text-gray-800">
-                {receiptData?.receiptType?.toUpperCase()} #{receiptData?.receiptNumber}
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">
+                Current Document
               </p>
-              <p className="text-xs text-gray-600">{savedReceipts?.length || 0} saved in history</p>
+              <h4 className="text-sm font-black text-white uppercase tracking-tighter">
+                {receiptData?.receiptType} <span className="text-blue-500">#{receiptData?.receiptNumber}</span>
+              </h4>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-4">
             <button
               onClick={handleCopy}
               disabled={isAnyActionLoading || isCopying}
-              className={`px-3 py-2 border rounded-lg text-sm font-medium flex items-center space-x-2 transition-all duration-200 ${
+              className={`h-11 px-5 border rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center space-x-2 transition-all duration-200 ${
                 isCopying 
-                  ? 'border-blue-300 bg-blue-50 text-blue-700 cursor-wait' 
-                  : 'border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50'
+                  ? 'border-blue-500 bg-blue-500/10 text-blue-400' 
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
               }`}
             >
               {isCopying ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span>Copying...</span>
-                </>
+                <Loader2 className="animate-spin" size={14} />
               ) : (
                 <>
                   <Copy size={14} />
-                  <span>Copy Text</span>
+                  <span>Copy Payload</span>
                 </>
               )}
             </button>
             
-            <div className="text-right">
-              <p className="text-sm font-bold text-gray-900">
+            <div className="text-right pl-4 border-l border-white/10">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Grand Total</p>
+              <p className="text-lg font-black text-white leading-none">
                 {formatNaira(calculateTotal())}
               </p>
-              <p className="text-xs text-gray-500">Grand Total</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Loading indicator for any action */}
+      {/* Persistent Processing Bar */}
       {isAnyActionLoading && (
-        <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2 z-50 animate-pulse">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          <span className="text-sm">Processing...</span>
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-[0_10px_40px_rgba(37,99,235,0.4)] flex items-center space-x-3 z-[110] animate-in slide-in-from-bottom-5">
+          <Loader2 className="animate-spin" size={16} />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">System Processing</span>
         </div>
       )}
 
-      {/* Help text for users */}
+      {/* Dynamic Status Message */}
       {isAnyActionLoading && (
-        <div className="mt-2 text-center">
-          <p className="text-xs text-gray-500">
-            ⏳ Please wait while we process your request...
+        <div className="flex items-center justify-center gap-2 mt-2 py-2 animate-pulse">
+          <Activity size={12} className="text-slate-500" />
+          <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+            Compiling assets and metadata...
           </p>
         </div>
       )}

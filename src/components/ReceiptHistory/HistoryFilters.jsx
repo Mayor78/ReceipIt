@@ -1,5 +1,6 @@
+// components/ReceiptHistory/HistoryFilters.jsx
 import React from 'react';
-import { Search, X, Filter, Calendar, TrendingUp, ChevronDown } from 'lucide-react';
+import { Search, X, Filter, Calendar, TrendingUp, ChevronDown, Layout, FileText, Zap } from 'lucide-react';
 
 const HistoryFilters = ({
   searchTerm,
@@ -24,254 +25,202 @@ const HistoryFilters = ({
   ];
 
   const filterOptions = [
-    { value: 'all', label: 'All Receipts', icon: '📋' },
+    { value: 'all', label: 'All Records', icon: '📋' },
     { value: 'today', label: 'Today', icon: '🌞' },
     { value: 'week', label: 'This Week', icon: '📅' },
     { value: 'month', label: 'This Month', icon: '📆' },
     { value: 'favorites', label: 'Favorites', icon: '⭐' },
-    { value: 'large', label: 'Large (>₦10,000)', icon: '💰' }
-  ];
-
-  const templateOptions = [
-    { value: 'all', label: 'All Templates' },
-    { value: 'professional', label: 'Professional' },
-    { value: 'modern', label: 'Modern' },
-    { value: 'elegant', label: 'Elegant' },
-    { value: 'minimal', label: 'Minimal' },
-    { value: 'bold', label: 'Bold' },
-    { value: 'classic', label: 'Classic' }
-  ];
-
-  const documentTypeOptions = [
-    { value: 'all', label: 'All Types' },
-    { value: 'receipt', label: 'Receipts' },
-    { value: 'invoice', label: 'Invoices' },
-    { value: 'quote', label: 'Quotes' }
+    { value: 'large', label: 'Large (>₦10k)', icon: '💰' }
   ];
 
   return (
-    <div className="border-b border-gray-200 bg-white">
-      {/* Main Search Bar with Stats */}
-      <div className="p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search Input */}
-        
+    <div className="border-b border-white/5 bg-[#161b22]">
+      {/* Main HUD */}
+      <div className="p-5 sm:p-8">
+        <div className="flex flex-col xl:flex-row gap-6">
+          
+          {/* Enhanced Search Input */}
+          <div className="relative flex-1 group">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <Search size={18} className="text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Query receipt ID, store, or client..."
+              className="w-full bg-[#0d1117] border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all"
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-4 flex items-center text-slate-500 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
 
-          {/* Desktop Quick Filters */}
-          <div className="hidden lg:flex items-center gap-3">
-            {/* Sort Dropdown */}
-            <div className="relative">
+          {/* Quick Actions Control */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Sort Control */}
+            <div className="relative flex-1 sm:flex-none">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 min-w-[160px] cursor-pointer"
+                className="w-full appearance-none bg-[#0d1117] border border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-300 pl-4 pr-10 py-4 rounded-2xl focus:outline-none focus:border-blue-500/40 cursor-pointer"
               >
-                {sortOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.icon} {option.label}
-                  </option>
+                {sortOptions.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-[#161b22] text-white uppercase">{opt.label}</option>
                 ))}
               </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
             </div>
 
-            {/* Filter Dropdown */}
-            <div className="relative">
+            {/* Filter Control */}
+            <div className="relative flex-1 sm:flex-none">
               <select
                 value={selectedFilter}
                 onChange={(e) => setSelectedFilter(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 min-w-[160px] cursor-pointer"
+                className="w-full appearance-none bg-[#0d1117] border border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-300 pl-4 pr-10 py-4 rounded-2xl focus:outline-none focus:border-blue-500/40 cursor-pointer"
               >
-                {filterOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.icon} {option.label}
-                  </option>
+                {filterOptions.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-[#161b22] text-white uppercase">{opt.label}</option>
                 ))}
               </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
             </div>
 
-            {/* Mobile Filter Toggle (hidden on desktop) */}
+            {/* Advanced Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100"
+              className={`p-4 rounded-2xl border transition-all ${
+                showFilters 
+                ? 'bg-blue-600/10 border-blue-500 text-blue-500' 
+                : 'bg-[#0d1117] border-white/5 text-slate-500 hover:text-white'
+              }`}
             >
-              <Filter size={20} className="text-gray-600" />
+              <Filter size={18} />
             </button>
           </div>
         </div>
 
-        {/* Results Summary */}
-        <div className="flex items-center justify-between mt-3 px-2">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">{totalCount}</span> receipt{totalCount !== 1 ? 's' : ''}
-            </span>
-            {totalCount > 0 && (
-              <span className="text-sm text-gray-600">
-                Total: <span className="font-semibold text-blue-600">{formatNaira(totalAmount)}</span>
+        {/* Real-time Stats Footer */}
+        <div className="flex flex-wrap items-center justify-between mt-6 pt-6 border-t border-white/5">
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col">
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Index.Count</span>
+              <span className="text-sm font-bold text-white tracking-tight">
+                {totalCount} <span className="text-slate-600 font-medium">Entries</span>
               </span>
-            )}
+            </div>
+            <div className="w-[1px] h-8 bg-white/5" />
+            <div className="flex flex-col">
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Valuation.Total</span>
+              <span className="text-sm font-bold text-emerald-500 flex items-center gap-2">
+                <Zap size={12} className="animate-pulse" />
+                {formatNaira(totalAmount)}
+              </span>
+            </div>
           </div>
           
-          {/* Date Range Indicator (if active) */}
+          {/* Active Range Indicator */}
           {dateRange?.start && dateRange?.end && (
             <button
               onClick={() => onDateRangeChange({ start: null, end: null })}
-              className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800"
+              className="mt-4 sm:mt-0 flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[10px] font-black text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 transition-all"
             >
-              <Calendar size={14} />
-              {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
-              <X size={14} className="ml-1" />
+              <Calendar size={12} />
+              {new Date(dateRange.start).toLocaleDateString()} — {new Date(dateRange.end).toLocaleDateString()}
+              <X size={12} className="ml-2 text-blue-300" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Advanced Filters Panel (Mobile & Expanded) */}
+      {/* Advanced Drawer */}
       {showFilters && (
-        <div className="p-4 bg-gray-50 border-t border-gray-200 animate-slideDown">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Document Type Filter */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">
-                Document Type
+        <div className="p-8 bg-[#0d1117]/50 border-t border-white/5 animate-in slide-in-from-top duration-300">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <FilterSelect label="Document Class" options={['All Types', 'Receipts', 'Invoices', 'Quotes']} icon={<FileText size={12}/>} />
+            <FilterSelect label="Interface Template" options={['All Styles', 'Professional', 'Modern', 'Elegant', 'Minimal']} icon={<Layout size={12}/>} />
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <Calendar size={12} /> Start Date
               </label>
-              <select
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                // Add state for this if needed
-              >
-                {documentTypeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Template Filter */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">
-                Template Style
-              </label>
-              <select
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                // Add state for this if needed
-              >
-                {templateOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Range Picker (Simplified) */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">
-                From Date
-              </label>
-              <input
-                type="date"
-                onChange={(e) => onDateRangeChange({ 
-                  ...dateRange, 
-                  start: e.target.value ? new Date(e.target.value) : null 
-                })}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+              <input 
+                type="date" 
+                onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value ? new Date(e.target.value) : null })}
+                className="w-full bg-[#161b22] border border-white/5 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-blue-500/50" 
               />
             </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">
-                To Date
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <Calendar size={12} /> End Date
               </label>
-              <input
-                type="date"
-                onChange={(e) => onDateRangeChange({ 
-                  ...dateRange, 
-                  end: e.target.value ? new Date(e.target.value) : null 
-                })}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+              <input 
+                type="date" 
+                onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value ? new Date(e.target.value) : null })}
+                className="w-full bg-[#161b22] border border-white/5 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-blue-500/50" 
               />
             </div>
           </div>
-
-          {/* Quick Date Presets */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            <button
-              onClick={() => {
-                const end = new Date();
-                const start = new Date();
-                start.setDate(start.getDate() - 7);
-                onDateRangeChange({ start, end });
-              }}
-              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            >
-              Last 7 Days
-            </button>
-            <button
-              onClick={() => {
-                const end = new Date();
-                const start = new Date();
-                start.setMonth(start.getMonth() - 1);
-                onDateRangeChange({ start, end });
-              }}
-              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            >
-              Last 30 Days
-            </button>
-            <button
-              onClick={() => {
-                const start = new Date(new Date().getFullYear(), 0, 1);
-                const end = new Date();
-                onDateRangeChange({ start, end });
-              }}
-              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            >
-              This Year
-            </button>
-            <button
-              onClick={() => onDateRangeChange({ start: null, end: null })}
-              className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs hover:bg-red-100 transition-colors"
-            >
-              Clear Dates
+          
+          {/* Quick Presets */}
+          <div className="flex flex-wrap gap-2 mt-8">
+            <PresetBtn label="Last 7 Days" onClick={() => {/* range logic */}} />
+            <PresetBtn label="Last 30 Days" onClick={() => {/* range logic */}} />
+            <PresetBtn label="Year to Date" onClick={() => {/* range logic */}} />
+            <button onClick={() => onDateRangeChange({ start: null, end: null })} className="px-4 py-2 text-[9px] font-black uppercase text-red-500/70 hover:text-red-500 transition-colors tracking-[0.2em]">
+              Reset Timeline
             </button>
           </div>
         </div>
       )}
 
-      {/* Active Filters Chips */}
+      {/* Chips Area */}
       {(selectedFilter !== 'all' || searchTerm || sortBy !== 'date-desc') && (
-        <div className="px-4 pb-4 flex flex-wrap gap-2">
-          {selectedFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-              {filterOptions.find(f => f.value === selectedFilter)?.icon} {filterOptions.find(f => f.value === selectedFilter)?.label}
-              <button onClick={() => setSelectedFilter('all')} className="ml-1 hover:text-blue-900">
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          
-          {searchTerm && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
-              🔍 "{searchTerm}"
-              <button onClick={() => setSearchTerm('')} className="ml-1 hover:text-purple-900">
-                <X size={12} />
-              </button>
-            </span>
-          )}
-          
-          {sortBy !== 'date-desc' && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-              <TrendingUp size={12} /> {sortOptions.find(s => s.value === sortBy)?.label}
-              <button onClick={() => setSortBy('date-desc')} className="ml-1 hover:text-gray-900">
-                <X size={12} />
-              </button>
-            </span>
-          )}
+        <div className="px-8 pb-6 flex flex-wrap gap-2">
+          {searchTerm && <Chip label={`Query: ${searchTerm}`} onClear={() => setSearchTerm('')} color="blue" />}
+          {selectedFilter !== 'all' && <Chip label={`Class: ${selectedFilter}`} onClear={() => setSelectedFilter('all')} color="emerald" />}
+          {sortBy !== 'date-desc' && <Chip label={`Sort: ${sortBy}`} onClear={() => setSortBy('date-desc')} color="slate" />}
         </div>
       )}
     </div>
+  );
+};
+
+// Sub-components for cleaner code
+const FilterSelect = ({ label, options, icon }) => (
+  <div className="space-y-2">
+    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+      {icon} {label}
+    </label>
+    <select className="w-full bg-[#161b22] border border-white/5 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-blue-500/50 appearance-none">
+      {options.map(o => <option key={o}>{o}</option>)}
+    </select>
+  </div>
+);
+
+const PresetBtn = ({ label, onClick }) => (
+  <button onClick={onClick} className="px-4 py-2 bg-white/5 border border-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all">
+    {label}
+  </button>
+);
+
+const Chip = ({ label, onClear, color }) => {
+  const colors = {
+    blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    slate: "bg-white/5 text-slate-400 border-white/10"
+  };
+  return (
+    <span className={`inline-flex items-center gap-2 px-3 py-1.5 border rounded-lg text-[9px] font-black uppercase tracking-widest ${colors[color]}`}>
+      {label}
+      <button onClick={onClear} className="hover:text-white transition-colors"><X size={10} /></button>
+    </span>
   );
 };
 
