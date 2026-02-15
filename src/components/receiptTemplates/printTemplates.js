@@ -10,349 +10,179 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields, v
       deliveryFee = 0
     } = calculations;
     
-    // Helper function to get category icon emoji
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱',
-        books: '📚',
-        agriculture: '🌾',
-        clothing: '👕',
-        food: '☕',
-        services: '✂️',
-        liquids: '💧',
-        construction: '🏠',
-        logistics: '🚚',
-        general: '📦'
+        electronics: '📱', books: '📚', agriculture: '🌾', clothing: '👕',
+        food: '☕', services: '✂️', liquids: '💧', construction: '🏠',
+        logistics: '🚚', general: '📦'
       };
       return icons[category] || icons.general;
     };
 
-    // Check if there's category data
-    const hasCategoryData = receiptData.items?.some(item => item.category && item.category !== 'general');
-    const hasCustomFields = receiptData.items?.some(item => item.customFields && Object.keys(item.customFields).length > 0);
+    // const hasCategoryData = receiptData.items?.some(item => item.category && item.category !== 'general');
+    // const hasCustomFields = receiptData.items?.some(item => item.customFields && Object.keys(item.customFields).length > 0);
     
     return `
-      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 210mm; margin: 0 auto;">
-        <!-- Category Data Badge -->
-        ${hasCategoryData ? `
-          <div style="background: linear-gradient(90deg, #4F46E5, #7C3AED); color: white; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <div style="font-size: 18px;">📋</div>
-            <div>
-              <div style="font-weight: 600; font-size: 14px;">COMPLETE DETAILED RECEIPT</div>
-              <div style="font-size: 12px; opacity: 0.9;">All item details shown below</div>
-            </div>
-          </div>
-        ` : ''}
+      <div style="font-family: 'Inter', sans-serif; max-width: 190mm; margin: 0 auto; line-height: 1.2; color: #111827;">
         
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #3B82F6;">
-          ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 60px; margin-bottom: 15px;">` : ''}
-          <h1 style="color: #111827; margin: 10px 0; font-size: 24px; font-weight: 700;">${receiptData.storeName}</h1>
-          <p style="color: #6B7280; margin: 5px 0; font-size: 13px;">${receiptData.storeAddress}</p>
-          <p style="color: #6B7280; margin: 5px 0; font-size: 13px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• Email: ${receiptData.storeEmail}` : ''}</p>
-          ${receiptData.tinNumber ? `<p style="color: #6B7280; margin: 5px 0; font-size: 13px; font-weight: 600;">TIN: ${receiptData.tinNumber}</p>` : ''}
-          ${receiptData.rcNumber ? `<p style="color: #6B7280; margin: 5px 0; font-size: 13px;">RC: ${receiptData.rcNumber}</p>` : ''}
-        </div>
-        
-        <!-- Document Info -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; background: #F9FAFB; padding: 20px; border-radius: 8px;">
-          <div>
-            <h3 style="color: #6B7280; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 10px;">${receiptData.receiptType} Details</h3>
-            <p style="margin: 5px 0; color: #111827;"><strong>Receipt #:</strong> ${receiptData.receiptNumber}</p>
-            ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
-              <p style="margin: 5px 0; color: #111827;"><strong>Invoice #:</strong> ${receiptData.invoiceNumber}</p>
-            ` : ''}
-            ${receiptData.poNumber ? `<p style="margin: 5px 0; color: #111827;"><strong>PO #:</strong> ${receiptData.poNumber}</p>` : ''}
-            <p style="margin: 5px 0; color: #111827;"><strong>Cashier:</strong> ${receiptData.cashierName}</p>
-          </div>
-          <div>
-            <h3 style="color: #6B7280; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 10px;">Date & Time</h3>
-            <p style="margin: 5px 0; color: #111827;"><strong>Date:</strong> ${receiptData.date}</p>
-            <p style="margin: 5px 0; color: #111827;"><strong>Time:</strong> ${receiptData.time}</p>
-            ${receiptData.dueDate ? `<p style="margin: 5px 0; color: #111827;"><strong>Due Date:</strong> ${receiptData.dueDate}</p>` : ''}
+        <div style="text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #3B82F6;">
+          ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 45px; margin-bottom: 8px;">` : ''}
+          <h1 style="margin: 0; font-size: 20px; font-weight: 700; text-transform: uppercase;">${receiptData.storeName}</h1>
+          <p style="color: #4B5563; margin: 2px 0; font-size: 11px;">${receiptData.storeAddress}</p>
+          <p style="color: #4B5563; margin: 2px 0; font-size: 11px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? ` | ${receiptData.storeEmail}` : ''}</p>
+          <div style="font-size: 11px; margin-top: 4px; font-weight: 600;">
+            ${receiptData.tinNumber ? `TIN: ${receiptData.tinNumber}` : ''} 
+            ${receiptData.rcNumber ? ` | RC: ${receiptData.rcNumber}` : ''}
           </div>
         </div>
         
-        <!-- Customer Info -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; background: #F3F4F6; padding: 10px 15px; border-radius: 4px; font-size: 11px;">
+          <div>
+            <div style="color: #6B7280; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">${receiptData.receiptType} Info</div>
+            <p style="margin: 2px 0;"><strong>No:</strong> ${receiptData.receiptNumber}</p>
+            <p style="margin: 2px 0;"><strong>Cashier:</strong> ${receiptData.cashierName}</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="color: #6B7280; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Date & Time</div>
+            <p style="margin: 2px 0;"><strong>Date:</strong> ${receiptData.date}</p>
+            <p style="margin: 2px 0;"><strong>Time:</strong> ${receiptData.time}</p>
+          </div>
+        </div>
+        
         ${receiptData.includeBillTo && receiptData.billToName ? `
-          <div style="background: linear-gradient(90deg, #3B82F6, #8B5CF6); color: white; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">BILL TO</h3>
-            <p style="margin: 5px 0;"><strong>${receiptData.billToName}</strong></p>
-            ${receiptData.billToAddress ? `<p style="margin: 5px 0;">${receiptData.billToAddress}</p>` : ''}
-            ${receiptData.billToPhone ? `<p style="margin: 5px 0;">Tel: ${receiptData.billToPhone}</p>` : ''}
+          <div style="background: #EFF6FF; border-left: 4px solid #3B82F6; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; font-size: 12px;">
+            <span style="font-weight: 800; color: #1E40AF; text-transform: uppercase; font-size: 10px;">BILL TO:</span>
+            <span style="margin-left: 10px; font-weight: 700;">${receiptData.billToName}</span>
+            ${receiptData.billToAddress ? ` | <span style="color: #374151;">${receiptData.billToAddress}</span>` : ''}
+            ${receiptData.billToPhone ? ` | <span style="color: #374151;">Tel: ${receiptData.billToPhone}</span>` : ''}
           </div>
         ` : ''}
         
-        <!-- Items Table - Showing ALL DETAILS -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 13px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px;">
           <thead>
             <tr style="background: #3B82F6; color: white;">
-              <th style="padding: 14px 10px; text-align: left; font-weight: 600; width: 40%;">Item Details</th>
-              <th style="padding: 14px 10px; text-align: center; font-weight: 600; width: 12%;">Qty</th>
-              <th style="padding: 14px 10px; text-align: center; font-weight: 600; width: 12%;">Unit</th>
-              <th style="padding: 14px 10px; text-align: right; font-weight: 600; width: 18%;">Price</th>
-              <th style="padding: 14px 10px; text-align: right; font-weight: 600; width: 18%;">Amount</th>
+              <th style="padding: 8px; text-align: left; width: 45%;">Item Description</th>
+              <th style="padding: 8px; text-align: center; width: 10%;">Qty</th>
+              <th style="padding: 8px; text-align: right; width: 20%;">Price</th>
+              <th style="padding: 8px; text-align: right; width: 25%;">Total</th>
             </tr>
           </thead>
           <tbody>
             ${receiptData.items.map((item, index) => {
-              // Format ALL custom fields for display
               const customFields = item.customFields ? Object.entries(item.customFields)
-                .filter(([key, value]) => value && value.toString().trim() !== '')
-                .map(([key, value]) => ({
-                  key: key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' '),
-                  value: value.toString()
-                })) : [];
+                .filter(([key, value]) => value && value.toString().trim() !== '') : [];
               
-              // Get category icon
               const categoryIcon = item.category ? getCategoryIcon(item.category) : '📦';
-              const categoryName = item.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : 'General';
               
               return `
-                <tr style="border-bottom: 1px solid #E5E7EB; ${index % 2 === 0 ? 'background: #F9FAFB;' : ''}">
-                  <td style="padding: 15px 10px; vertical-align: top;">
-                    <div style="display: flex; align-items: flex-start; gap: 8px;">
-                      <div style="font-size: 16px; margin-top: 2px; flex-shrink: 0;">${categoryIcon}</div>
-                      <div style="flex: 1;">
-                        <div style="font-weight: 600; color: #111827; font-size: 14px; margin-bottom: 4px;">${item.name}</div>
+                <tr style="border-bottom: 1px solid #E5E7EB;">
+                  <td style="padding: 8px; vertical-align: top;">
+                    <div style="display: flex; gap: 6px;">
+                      <span style="flex-shrink: 0;">${categoryIcon}</span>
+                      <div>
+                        <div style="font-weight: 700; font-size: 12px;">${item.name}</div>
+                        ${item.description ? `<div style="font-size: 10px; color: #6B7280; margin-top: 2px;">${item.description}</div>` : ''}
                         
-                        <!-- Category Display -->
-                        ${item.category && item.category !== 'general' ? `
-                          <div style="display: inline-block; font-size: 11px; padding: 3px 8px; background: #EFF6FF; color: #1D4ED8; border-radius: 4px; margin-bottom: 8px; font-weight: 500; border: 1px solid #BFDBFE;">
-                            📋 Category: ${categoryName}
-                          </div>
-                          <br>
-                        ` : ''}
-                        
-                        <!-- Item Description -->
-                        ${item.description ? `
-                          <div style="font-size: 12px; color: #4B5563; margin-bottom: 10px; padding-left: 8px; border-left: 2px solid #D1D5DB;">
-                            ${item.description}
-                          </div>
-                        ` : ''}
-                        
-                        <!-- ALL Custom Fields - No limits -->
                         ${customFields.length > 0 ? `
-                          <div style="margin-top: 10px; padding: 10px; background: #F8FAFC; border-radius: 6px; border: 1px solid #E5E7EB;">
-                            <div style="font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 6px; text-transform: uppercase;">
-                              Item Specifications:
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;">
-                              ${customFields.map((field, fieldIndex) => `
-                                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #E5E7EB; ${fieldIndex === customFields.length - 1 ? 'border-bottom: none;' : ''}">
-                                  <div style="font-weight: 500; color: #6B7280; font-size: 11px;">${field.key}:</div>
-                                  <div style="font-weight: 600; color: #111827; font-size: 11px; text-align: right; max-width: 150px; word-wrap: break-word;">
-                                    ${field.value}
-                                  </div>
-                                </div>
-                              `).join('')}
-                            </div>
+                          <div style="margin-top: 4px; font-size: 9px; color: #374151; display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${customFields.map(([key, value]) => `
+                              <span style="background: #F3F4F6; padding: 1px 4px; border-radius: 2px;">
+                                <strong style="text-transform: capitalize;">${key.replace('_', ' ')}:</strong> ${value}
+                              </span>
+                            `).join('')}
                           </div>
                         ` : ''}
                       </div>
                     </div>
                   </td>
-                  <td style="padding: 15px 10px; text-align: center; color: #111827; vertical-align: top; font-weight: 600; font-size: 14px;">${item.quantity}</td>
-                  <td style="padding: 15px 10px; text-align: center; color: #374151; vertical-align: top; font-size: 12px;">
-                    ${item.unit && item.unit !== 'Piece' ? item.unit : 'PCS'}
-                  </td>
-                  <td style="padding: 15px 10px; text-align: right; color: #111827; vertical-align: top; font-weight: 600; font-size: 13px;">${formatNaira(item.price)}</td>
-                  <td style="padding: 15px 10px; text-align: right; font-weight: 700; color: #1D4ED8; vertical-align: top; font-size: 14px;">${formatNaira(item.price * item.quantity)}</td>
+                  <td style="padding: 8px; text-align: center; vertical-align: top; font-weight: 600;">${item.quantity} <span style="font-size: 9px; color: #6B7280;">${item.unit || 'PCS'}</span></td>
+                  <td style="padding: 8px; text-align: right; vertical-align: top;">${formatNaira(item.price)}</td>
+                  <td style="padding: 8px; text-align: right; vertical-align: top; font-weight: 700;">${formatNaira(item.price * item.quantity)}</td>
                 </tr>
               `;
             }).join('')}
           </tbody>
         </table>
         
-        
-        
-        <!-- Totals Section -->
-        <div style="border: 2px solid #E5E7EB; padding: 25px; border-radius: 10px; margin-bottom: 30px; background: linear-gradient(135deg, #F9FAFB, #F3F4F6);">
-          <h3 style="color: #374151; margin-bottom: 20px; font-weight: 700; font-size: 16px; text-transform: uppercase; border-bottom: 2px solid #3B82F6; padding-bottom: 10px;">
-            Payment Summary
-          </h3>
-          <div style="max-width: 350px; margin-left: auto;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB;">
-              <span style="color: #6B7280; font-size: 14px;">Subtotal:</span>
-              <span style="font-weight: 600; font-size: 14px;">${formatNaira(subtotal)}</span>
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; margin-bottom: 15px;">
+          
+          <div>
+             <div style="background: #ECFDF5; border: 1px solid #10B981; padding: 8px; border-radius: 6px; margin-bottom: 10px;">
+                <div style="font-size: 10px; font-weight: 800; color: #065F46; text-transform: uppercase; margin-bottom: 4px;">Payment Method: ${receiptData.paymentMethod}</div>
+                ${receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 ? `
+                  <div style="font-size: 11px;">
+                    Paid: <strong>${formatNaira(receiptData.amountPaid)}</strong> | 
+                    Change: <strong style="color: #DC2626;">${formatNaira(change)}</strong>
+                  </div>
+                ` : ''}
+             </div>
+             ${receiptData.customerNotes ? `
+               <div style="font-size: 10px; color: #4B5563; border: 1px dashed #D1D5DB; padding: 6px; border-radius: 4px;">
+                 <strong>Notes:</strong> ${receiptData.customerNotes}
+               </div>
+             ` : ''}
+          </div>
+
+          <div style="background: #F9FAFB; padding: 10px; border-radius: 6px; border: 1px solid #E5E7EB; font-size: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span>Subtotal:</span> <span>${formatNaira(subtotal)}</span>
             </div>
-            
             ${receiptData.includeDiscount && receiptData.discount > 0 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB; color: #DC2626;">
-                <span style="font-size: 14px;">Discount:</span>
-                <span style="font-weight: 600; font-size: 14px;">-${formatNaira(discount)}</span>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #DC2626;">
+                <span>Discount:</span> <span>-${formatNaira(discount)}</span>
               </div>
             ` : ''}
-            
             ${deliveryFee > 0 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB;">
-                <span style="color: #6B7280; font-size: 14px;">Delivery Fee:</span>
-                <span style="font-weight: 600; font-size: 14px;">${formatNaira(deliveryFee)}</span>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span>Delivery:</span> <span>${formatNaira(deliveryFee)}</span>
               </div>
             ` : ''}
-            
             ${receiptData.includeVAT ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB;">
-                <span style="color: #6B7280; font-size: 14px;">VAT (${receiptData.vatRate}%):</span>
-                <span style="font-weight: 600; font-size: 14px;">${formatNaira(vat)}</span>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span>VAT (${receiptData.vatRate}%):</span> <span>${formatNaira(vat)}</span>
               </div>
             ` : ''}
-            
-            <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 800; color: #1D4ED8; margin-top: 20px; padding-top: 20px; border-top: 3px solid #3B82F6; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-              <span style="letter-spacing: 0.5px;">GRAND TOTAL:</span>
-              <span>${formatNaira(total)}</span>
+            <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; color: #1D4ED8; border-top: 2px solid #3B82F6; margin-top: 6px; padding-top: 6px;">
+              <span>TOTAL:</span> <span>${formatNaira(total)}</span>
             </div>
           </div>
         </div>
 
-        
-        <!-- Payment Information -->
-        <div style="background: linear-gradient(135deg, #D1FAE5, #A7F3D0); padding: 25px; margin: 30px 0; border-radius: 10px; border: 2px solid #10B981;">
-          <h3 style="color: #065F46; margin-bottom: 15px; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px;">
-            <span>💰</span> PAYMENT INFORMATION
-          </h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 14px;">
-            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #10B981;">
-              <div style="color: #065F46; font-weight: 600; margin-bottom: 5px;">Payment Method</div>
-              <div style="font-weight: 700; color: #111827; font-size: 16px;">${receiptData.paymentMethod}</div>
-            </div>
-            
-            ${receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 ? `
-              <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #10B981;">
-                <div style="color: #065F46; font-weight: 600; margin-bottom: 5px;">Amount Paid</div>
-                <div style="font-weight: 700; color: #111827; font-size: 16px;">${formatNaira(receiptData.amountPaid)}</div>
-              </div>
-              <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #10B981;">
-                <div style="color: #065F46; font-weight: 600; margin-bottom: 5px;">Change Given</div>
-                <div style="font-weight: 700; color: #DC2626; font-size: 16px;">${formatNaira(change)}</div>
-              </div>
-            ` : ''}
-          </div>
+        <div style="display: flex; justify-content: space-between; gap: 30px; margin-top: 20px;">
+           ${receiptData.includeSignature ? `
+             <div style="flex: 1; text-align: center;">
+               <div style="border-bottom: 1px solid #374151; height: 40px; position: relative;">
+                 ${receiptData.signatureData ? `<img src="${receiptData.signatureData}" style="max-height: 40px;">` : ''}
+               </div>
+               <div style="font-size: 9px; font-weight: 700; margin-top: 4px;">AUTHORIZED SIGNATURE</div>
+             </div>
+             <div style="flex: 1; text-align: center;">
+               <div style="border-bottom: 1px solid #374151; height: 40px;"></div>
+               <div style="font-size: 9px; font-weight: 700; margin-top: 4px;">CUSTOMER SIGNATURE</div>
+             </div>
+           ` : ''}
         </div>
-        
-        <!-- Customer Notes -->
-        ${receiptData.customerNotes ? `
-          <div style="background: linear-gradient(135deg, #E0E7FF, #C7D2FE); border: 2px solid #4F46E5; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h3 style="color: #3730A3; margin-bottom: 12px; font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 10px;">
-              <span>📝</span> CUSTOMER NOTES
-            </h3>
-            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #4F46E5;">
-              <p style="color: #111827; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${receiptData.customerNotes}</p>
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Terms & Conditions -->
-        ${receiptData.includeTerms && receiptData.termsAndConditions ? `
-          <div style="border: 2px solid #374151; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h3 style="color: #111827; margin-bottom: 12px; font-weight: 700; font-size: 16px; border-bottom: 2px solid #374151; padding-bottom: 10px;">
-              TERMS & CONDITIONS
-            </h3>
-            <div style="background: #F9FAFB; padding: 15px; border-radius: 6px; border: 1px solid #D1D5DB;">
-              <p style="color: #374151; font-size: 12px; line-height: 1.6; white-space: pre-line;">${receiptData.termsAndConditions}</p>
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Signature Section -->
-        ${receiptData.includeSignature ? `
-          <div style="margin: 40px 0; padding: 25px; border: 2px solid #374151; border-radius: 10px;">
-            <h3 style="color: #111827; margin-bottom: 20px; font-weight: 700; font-size: 16px; text-align: center; text-transform: uppercase;">
-              Authorization
-            </h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
-              <div style="text-align: center;">
-                <div style="height: 80px; border-bottom: 3px solid #374151; margin-bottom: 15px; position: relative;">
-                  ${receiptData.signatureData ? `
-                    <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 70px; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
-                  ` : ''}
-                </div>
-                <div style="color: #111827; font-size: 14px; font-weight: 600;">AUTHORIZED SIGNATURE</div>
-                <div style="color: #6B7280; font-size: 11px; margin-top: 5px;">${receiptData.cashierName}</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="height: 80px; border-bottom: 3px solid #374151; margin-bottom: 15px;"></div>
-                <div style="color: #111827; font-size: 14px; font-weight: 600;">CUSTOMER SIGNATURE</div>
-                <div style="color: #6B7280; font-size: 11px; margin-top: 5px;">Customer Name/Stamp</div>
-              </div>
-            </div>
-            <div style="text-align: center; color: #374151; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #D1D5DB;">
-              Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} | Time: ${receiptData.time}
-            </div>
-          </div>
-        ` : ''}
-        
-        <!-- Footer -->
-        <div style="text-align: center; margin-top: 40px; padding-top: 30px; border-top: 3px solid #374151; color: #6B7280; font-size: 12px;">
-          <!-- Dotted Line -->
-          <div style="display: flex; justify-content: center; gap: 3px; margin-bottom: 25px; height: 5px;">
-            ${Array.from({ length: 50 }).map(() => 
-              `<div style="width: 10px; background: #374151; height: 2px;"></div>`
-            ).join('')}
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <div style="font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 5px; letter-spacing: 1px;">
-              ${receiptData.storeName}
-            </div>
-            <div style="font-size: 14px; font-weight: 600; color: #3B82F6; margin-bottom: 10px;">
-              Receipt #: ${receiptData.receiptNumber}
-            </div>
-          </div>
-          
-          <p style="margin: 10px 0; font-size: 13px; font-weight: 500; color: #374151;">
-            ${receiptData.footerMessage || 'Thank you for your business! We appreciate your trust.'}
-          </p>
-          
-          ${hasCategoryData || hasCustomFields ? `
-            <div style="background: #F3F4F6; padding: 10px; border-radius: 6px; margin: 15px auto; max-width: 500px; border-left: 4px solid #10B981;">
-              <div style="font-size: 11px; font-weight: 600; color: #065F46;">
-                ✅ This is a detailed receipt containing complete item information
-              </div>
-              <div style="font-size: 10px; color: #6B7280; margin-top: 3px;">
-                All specifications, categories, and important details are included above
-              </div>
-            </div>
-          ` : ''}
-          
-          ${verificationUrl ? `
-            <div style="margin-top: 15px; padding: 10px; background: #F0F9FF; border-radius: 6px; display: inline-block;">
-              <span style="font-size: 10px; color: #0369A1; display: flex; align-items: center; gap: 5px;">
-                <span>🔒</span> Verified Receipt - Protected Against Fraud
-              </span>
-            </div>
-          ` : ''}
-          
-          <p style="margin-top: 25px; font-size: 10px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 15px;">
-            Document Generated: ${new Date().toLocaleString()} • Transaction ID: ${receiptData.receiptNumber} •
-            <br>
-            <span style="font-weight: 600; color: #6B7280;">Powered by ReceipIt • Build by MayorDev</span>
-          </p>
+
+        <div style="text-align: center; margin-top: 20px; font-size: 10px; color: #6B7280; border-top: 1px solid #E5E7EB; padding-top: 10px;">
+          <p style="font-weight: 600; color: #111827; margin: 0 0 5px 0;">${receiptData.footerMessage || 'Thank you for your business!'}</p>
+          <div style="font-weight: 700; color: #3B82F6; margin-bottom: 5px;">RECEIPT #${receiptData.receiptNumber}</div>
+          <span style="font-size: 8px;">Generated on ${new Date().toLocaleString()} | Powered by ReceipIt</span>
         </div>
       </div>
     `;
   },
- professional: (receiptData, companyLogo, formatNaira, calculations, importantFields) => {
+professional: (receiptData, companyLogo, formatNaira, calculations, importantFields) => {
     const { subtotal, discount, vat, total, change, deliveryFee = 0 } = calculations;
     
-    // Helper function to get category icon emoji
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱',
-        books: '📚',
-        agriculture: '🌾',
-        clothing: '👕',
-        food: '☕',
-        services: '✂️',
-        liquids: '💧',
-        construction: '🏠',
-        logistics: '🚚',
-        general: '📦'
+        electronics: '📱', books: '📚', agriculture: '🌾', clothing: '👕',
+        food: '☕', services: '✂️', liquids: '💧', construction: '🏠',
+        logistics: '🚚', general: '📦'
       };
       return icons[category] || '';
     };
 
-    // Check if there's category data
     const hasCategoryData = receiptData.items?.some(item => item.category && item.category !== 'general');
     const hasCustomFields = receiptData.items?.some(item => item.customFields && Object.keys(item.customFields).length > 0);
     
@@ -362,223 +192,90 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields, v
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
         <style>
+          * { box-sizing: border-box; }
+          body { margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, sans-serif; background: white; color: #111827; }
+          .container { max-width: 800px; margin: 0 auto; padding: 15px; }
+          
           @media (max-width: 768px) {
-            .mobile-stack {
-              display: block !important;
-              width: 100% !important;
-            }
-            .mobile-hide {
-              display: none !important;
-            }
-            .mobile-full {
-              width: 100% !important;
-              max-width: 100% !important;
-              padding-left: 10px !important;
-              padding-right: 10px !important;
-            }
-            .mobile-text-center {
-              text-align: center !important;
-            }
-            .mobile-padding {
-              padding: 15px 10px !important;
-            }
-            .mobile-block {
-              display: block !important;
-              margin-bottom: 10px !important;
-              width: 100% !important;
-            }
-            .mobile-grid-1 {
-              grid-template-columns: 1fr !important;
-            }
-            .mobile-flex-column {
-              flex-direction: column !important;
-              align-items: stretch !important;
-              gap: 15px !important;
-            }
-            .mobile-margin-bottom {
-              margin-bottom: 15px !important;
-            }
-            .mobile-font-sm {
-              font-size: 12px !important;
-            }
-            .mobile-font-xs {
-              font-size: 11px !important;
-            }
-            .mobile-table-container {
-              overflow-x: auto !important;
-              -webkit-overflow-scrolling: touch !important;
-            }
-            .mobile-table {
-              min-width: 600px !important;
-              font-size: 12px !important;
-            }
-            .mobile-table th,
-            .mobile-table td {
-              padding: 10px 8px !important;
-            }
-            .mobile-item-card {
-              display: block !important;
-              background: white !important;
-              border: 1px solid #E5E7EB !important;
-              border-radius: 8px !important;
-              padding: 15px !important;
-              margin-bottom: 12px !important;
-            }
-            .mobile-category-badge {
-              font-size: 10px !important;
-              padding: 2px 6px !important;
-              margin: 5px 0 !important;
-            }
-            .mobile-custom-fields {
-              display: grid !important;
-              grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
-              gap: 6px !important;
-              font-size: 10px !important;
-            }
-            .mobile-important-details {
-              grid-template-columns: 1fr !important;
-            }
-            .mobile-signature {
-              grid-template-columns: 1fr !important;
-              gap: 20px !important;
+            .mobile-stack { display: block !important; }
+            .mobile-hide { display: none !important; }
+            .mobile-grid-1 { grid-template-columns: 1fr !important; }
+            .mobile-font-sm { font-size: 12px !important; }
+            .mobile-item-card { 
+                background: white; border: 1px solid #E5E7EB; 
+                border-radius: 6px; padding: 12px; margin-bottom: 8px; 
             }
           }
           
           @media print {
-            .mobile-stack {
-              display: none !important;
-            }
-            .mobile-hide {
-              display: table !important;
-            }
+            .mobile-stack { display: none !important; }
+            .mobile-hide { display: table !important; width: 100% !important; }
+            body { padding: 0; }
+            .container { padding: 0; }
           }
         </style>
       </head>
-      <body style="margin: 0; padding: 0; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif; background: white; width: 100%;">
-        <div style="max-width: 100%; margin: 0 auto; padding: 0; overflow-x: hidden;">
-          <!-- watermark -->
-          <p style='font-size: 9px; text-align: start; color: #9CA3AF; margin: 15px 20px 5px 20px; word-wrap: break-word;'>
-            Professionally generated by ReceipIt • MayorDev
-          </p> 
+      <body>
+        <div class="container">
+          <div style='display: flex; justify-content: space-between; font-size: 9px; color: #9CA3AF; margin-bottom: 10px;'>
+            <span>Professionally generated by ReceipIt.digital • MayorDev</span>
+            <span>${new Date().toLocaleDateString()}</span>
+          </div> 
           
-          <!-- Professional Header -->
-          <div style="text-align: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #D1D5DB; width: 100%; box-sizing: border-box;">
-            ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 50px; max-width: 80%; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">` : ''}
-            <h1 style="color: #111827; margin: 10px 0; font-size: 22px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.2; word-wrap: break-word; padding: 0 15px;">${receiptData.storeName}</h1>
-            <p style="color: #4B5563; margin: 5px 0; font-size: 13px; font-weight: 400; line-height: 1.3; word-wrap: break-word; padding: 0 15px;">${receiptData.storeAddress}</p>
-            <p style="color: #4B5563; margin: 5px 0; font-size: 13px; line-height: 1.3; word-wrap: break-word; padding: 0 15px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• Email: ${receiptData.storeEmail}` : ''}</p>
-            ${receiptData.tinNumber ? `<p style="color: #4B5563; margin: 5px 0; font-size: 13px; font-weight: 600; line-height: 1.3; word-wrap: break-word; padding: 0 15px;">TIN: ${receiptData.tinNumber}</p>` : ''}
-            ${receiptData.rcNumber ? `<p style="color: #4B5563; margin: 5px 0; font-size: 13px; line-height: 1.3; word-wrap: break-word; padding: 0 15px;">RC: ${receiptData.rcNumber}</p>` : ''}
+          <div style="text-align: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #E5E7EB;">
+            ${companyLogo ? `<img src="${companyLogo}" alt="Logo" style="max-height: 45px; max-width: 200px; margin-bottom: 10px;">` : ''}
+            <h1 style="margin: 0; font-size: 18px; font-weight: 700;">${receiptData.storeName}</h1>
+            <p style="color: #4B5563; margin: 2px 0; font-size: 12px;">${receiptData.storeAddress}</p>
+            <p style="color: #4B5563; margin: 2px 0; font-size: 12px;">Tel: ${receiptData.storePhone} ${receiptData.storeEmail ? `• ${receiptData.storeEmail}` : ''}</p>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 4px; font-size: 11px; font-weight: 600;">
+                ${receiptData.tinNumber ? `<span>TIN: ${receiptData.tinNumber}</span>` : ''}
+                ${receiptData.rcNumber ? `<span>RC: ${receiptData.rcNumber}</span>` : ''}
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; font-size: 12px;" class="mobile-grid-1">
+            <div style="border-left: 3px solid #10B981; padding-left: 10px;">
+              <p style="margin: 2px 0;"><strong>${receiptData.receiptType.toUpperCase()} #:</strong> ${receiptData.receiptNumber}</p>
+              ${receiptData.invoiceNumber ? `<p style="margin: 2px 0;"><strong>Invoice #:</strong> ${receiptData.invoiceNumber}</p>` : ''}
+              <p style="margin: 2px 0;"><strong>Date:</strong> ${receiptData.date} | ${receiptData.time}</p>
+              <p style="margin: 2px 0;"><strong>Cashier:</strong> ${receiptData.cashierName}</p>
+            </div>
             
-            <!-- Professional Category Notice -->
-            ${hasCategoryData ? `
-              <div style="margin-top: 10px; padding: 4px 12px; background: #10B981; color: white; border-radius: 4px; display: inline-block;">
-                <span style="font-size: 11px; font-weight: 500;">📋 Professional Detailed Receipt</span>
+            ${receiptData.includeBillTo && receiptData.billToName ? `
+              <div style="background: #F9FAFB; padding: 8px 12px; border-radius: 4px;">
+                <span style="font-size: 10px; font-weight: 700; color: #10B981; text-transform: uppercase;">Bill To</span>
+                <p style="margin: 2px 0; font-weight: 600;">${receiptData.billToName}</p>
+                <p style="margin: 0; color: #4B5563; font-size: 11px;">${receiptData.billToPhone || ''}</p>
               </div>
-            ` : ''}
+            ` : '<div></div>'}
           </div>
           
-          <!-- Document Info -->
-          <div style="display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 25px; padding: 0 20px 20px 20px; border-bottom: 1px solid #E5E7EB; width: 100%; box-sizing: border-box; gap: 15px;">
-            <div style="flex: 1; min-width: 200px;">
-              <p style="margin: 8px 0; color: #4B5563; font-size: 13px; line-height: 1.3;"><strong>${receiptData.receiptType} #:</strong> ${receiptData.receiptNumber}</p>
-              ${receiptData.receiptType === 'invoice' && receiptData.invoiceNumber ? `
-                <p style="margin: 8px 0; color: #4B5563; font-size: 13px; line-height: 1.3;"><strong>Invoice #:</strong> ${receiptData.invoiceNumber}</p>
-              ` : ''}
-              ${receiptData.poNumber ? `<p style="margin: 8px 0; color: #4B5563; font-size: 13px; line-height: 1.3;"><strong>PO #:</strong> ${receiptData.poNumber}</p>` : ''}
-              <p style="margin: 8px 0; color: #4B5563; font-size: 13px; line-height: 1.3;"><strong>Date:</strong> ${receiptData.date}</p>
-              ${receiptData.dueDate ? `<p style="margin: 8px 0; color: #4B5563; font-size: 13px; line-height: 1.3;"><strong>Due Date:</strong> ${receiptData.dueDate}</p>` : ''}
-            </div>
-            <div style="text-align: right; flex: 1; min-width: 200px;">
-              <p style="margin: 8px 0; color: #4B5563; font-size: 13px; line-height: 1.3;"><strong>Time:</strong> ${receiptData.time}</p>
-              <p style="margin: 8px 0; color: #4B5563; font-size: 13px; line-height: 1.3;"><strong>Cashier:</strong> ${receiptData.cashierName}</p>
-            </div>
-          </div>
-          
-          <!-- Customer Info -->
-          ${receiptData.includeBillTo && receiptData.billToName ? `
-            <div style="background: #10B981; color: white; padding: 15px; border-radius: 6px; margin: 0 20px 25px 20px; width: calc(100% - 40px); box-sizing: border-box; word-wrap: break-word;">
-              <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">BILL TO</h3>
-              <p style="margin: 4px 0; font-weight: 500; font-size: 14px; line-height: 1.3;"><strong>${receiptData.billToName}</strong></p>
-              ${receiptData.billToAddress ? `<p style="margin: 4px 0; font-size: 13px; line-height: 1.3;">${receiptData.billToAddress}</p>` : ''}
-              ${receiptData.billToPhone ? `<p style="margin: 4px 0; font-size: 13px; line-height: 1.3;">Tel: ${receiptData.billToPhone}</p>` : ''}
-            </div>
-          ` : ''}
-          
-          <!-- Professional Items Section -->
-          <div style="margin-bottom: 30px; padding: 0 20px; width: 100%; box-sizing: border-box;">
-            <!-- Desktop Table -->
-            <div class="mobile-table-container mobile-hide">
-              <table style="width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px;" class="mobile-table">
+          <div style="margin-bottom: 15px;">
+            <div class="mobile-hide">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                 <thead>
-                  <tr>
-                    <th style="padding: 12px 10px; text-align: left; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981; font-size: 12px;">Description</th>
-                    <th style="padding: 12px 10px; text-align: center; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981; font-size: 12px;">Qty</th>
-                    <th style="padding: 12px 10px; text-align: center; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981; font-size: 12px;">Unit</th>
-                    <th style="padding: 12px 10px; text-align: right; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981; font-size: 12px;">Unit Price</th>
-                    <th style="padding: 12px 10px; text-align: right; color: #374151; font-weight: 600; border-bottom: 2px solid #10B981; font-size: 12px;">Amount</th>
+                  <tr style="background: #F9FAFB;">
+                    <th style="padding: 8px; text-align: left; border-bottom: 2px solid #10B981;">Item Description</th>
+                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #10B981;">Qty</th>
+                    <th style="padding: 8px; text-align: right; border-bottom: 2px solid #10B981;">Price</th>
+                    <th style="padding: 8px; text-align: right; border-bottom: 2px solid #10B981;">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${receiptData.items.map((item, index) => {
-                    // Format ALL custom fields for display
-                    const customFields = item.customFields ? Object.entries(item.customFields)
-                      .filter(([key, value]) => value && value.toString().trim() !== '')
-                      .map(([key, value]) => ({
-                        key: key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' '),
-                        value: value.toString()
-                      })) : [];
-                    
-                    // Get category icon
-                    const categoryIcon = item.category ? getCategoryIcon(item.category) : '';
-                    const categoryName = item.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : '';
-                    
+                    const customFields = item.customFields ? Object.entries(item.customFields).filter(([_, v]) => v) : [];
                     return `
-                      <tr style="border-bottom: 1px solid #E5E7EB; background: ${index % 2 === 0 ? '#F9FAFB' : 'white'};">
-                        <td style="padding: 14px 10px; color: #111827; vertical-align: top; min-width: 200px;">
-                          <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px;">
-                            ${categoryIcon ? `<div style="font-size: 14px; flex-shrink: 0;">${categoryIcon}</div>` : ''}
-                            <div style="flex: 1; min-width: 0;">
-                              <div style="font-weight: 500; font-size: 13px; line-height: 1.3; word-wrap: break-word;">${item.name}</div>
-                              
-                              <!-- Professional Category Display -->
-                              ${categoryName && categoryName !== 'General' ? `
-                                <div style="display: inline-block; font-size: 10px; padding: 2px 8px; background: #D1FAE5; color: #065F46; border-radius: 4px; margin-top: 4px; margin-bottom: 6px; border: 1px solid #A7F3D0; font-weight: 500;">
-                                  ${categoryName}
-                                </div>
-                              ` : ''}
-                            </div>
+                      <tr style="border-bottom: 1px solid #F3F4F6;">
+                        <td style="padding: 8px; vertical-align: top;">
+                          <div style="font-weight: 600;">${getCategoryIcon(item.category)} ${item.name}</div>
+                          ${item.description ? `<div style="font-size: 10px; color: #6B7280;">${item.description}</div>` : ''}
+                          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+                            ${customFields.map(([k, v]) => `<span style="font-size: 9px; background: #F3F4F6; padding: 1px 4px; border-radius: 2px;"><b>${k}:</b> ${v}</span>`).join('')}
                           </div>
-                          
-                          <!-- Item Description -->
-                          ${item.description ? `
-                            <div style="font-size: 12px; color: #6B7280; margin-top: 4px; line-height: 1.3; word-wrap: break-word;">
-                              ${item.description}
-                            </div>
-                          ` : ''}
-                          
-                          <!-- Professional Custom Fields Display -->
-                          ${customFields.length > 0 ? `
-                            <div style="margin-top: 8px;">
-                              <div style="font-size: 10px; font-weight: 600; color: #374151; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;">
-                                Specifications:
-                              </div>
-                              <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${customFields.map((field) => `
-                                  <div style="font-size: 10px; padding: 3px 6px; background: #F3F4F6; color: #4B5563; border-radius: 3px; border: 1px solid #E5E7EB; word-break: break-word; max-width: 100%;">
-                                    <span style="font-weight: 600;">${field.key}:</span> ${field.value}
-                                  </div>
-                                `).join('')}
-                              </div>
-                            </div>
-                          ` : ''}
                         </td>
-                        <td style="padding: 14px 10px; text-align: center; color: #4B5563; vertical-align: top; font-size: 13px;">${item.quantity}</td>
-                        <td style="padding: 14px 10px; text-align: center; color: #4B5563; vertical-align: top; font-size: 12px;">
-                          ${item.unit && item.unit !== 'Piece' ? item.unit : '-'}
-                        </td>
-                        <td style="padding: 14px 10px; text-align: right; color: #4B5563; vertical-align: top; font-size: 13px;">${formatNaira(item.price)}</td>
-                        <td style="padding: 14px 10px; text-align: right; font-weight: 600; color: #111827; vertical-align: top; font-size: 13px;">${formatNaira(item.price * item.quantity)}</td>
+                        <td style="padding: 8px; text-align: center;">${item.quantity} <small>${item.unit || ''}</small></td>
+                        <td style="padding: 8px; text-align: right;">${formatNaira(item.price)}</td>
+                        <td style="padding: 8px; text-align: right; font-weight: 600;">${formatNaira(item.price * item.quantity)}</td>
                       </tr>
                     `;
                   }).join('')}
@@ -586,241 +283,76 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields, v
               </table>
             </div>
             
-            <!-- Mobile Items List -->
             <div class="mobile-stack" style="display: none;">
-              ${receiptData.items.map((item, index) => {
-                const customFields = item.customFields ? Object.entries(item.customFields)
-                  .filter(([key, value]) => value && value.toString().trim() !== '')
-                  .map(([key, value]) => ({
-                    key: key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' '),
-                    value: value.toString()
-                  })) : [];
-                
-                const categoryIcon = item.category ? getCategoryIcon(item.category) : '';
-                const categoryName = item.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : '';
-                
-                return `
-                  <div class="mobile-item-card">
-                    <!-- Item Header -->
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                      <div style="flex: 1;">
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px;">
-                          ${categoryIcon ? `<div style="font-size: 16px; flex-shrink: 0;">${categoryIcon}</div>` : ''}
-                          <div>
-                            <div style="font-weight: 600; color: #111827; font-size: 14px; line-height: 1.2;">${item.name}</div>
-                            ${categoryName && categoryName !== 'General' ? `
-                              <div class="mobile-category-badge" style="display: inline-block; font-size: 10px; padding: 2px 8px; background: #D1FAE5; color: #065F46; border-radius: 4px; margin-top: 3px; border: 1px solid #A7F3D0; font-weight: 500;">
-                                ${categoryName}
-                              </div>
-                            ` : ''}
-                          </div>
-                        </div>
-                      </div>
-                      <div style="text-align: right; flex-shrink: 0;">
-                        <div style="font-weight: 700; color: #111827; font-size: 15px;">${formatNaira(item.price * item.quantity)}</div>
-                      </div>
-                    </div>
-                    
-                    <!-- Item Details -->
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; font-size: 11px; color: #4B5563;">
-                      <div>
-                        <span style="font-weight: 600; color: #6B7280;">Quantity:</span> ${item.quantity}
-                      </div>
-                      <div>
-                        <span style="font-weight: 600; color: #6B7280;">Unit:</span> ${item.unit && item.unit !== 'Piece' ? item.unit : 'PCS'}
-                      </div>
-                      <div style="grid-column: span 2;">
-                        <span style="font-weight: 600; color: #6B7280;">Unit Price:</span> ${formatNaira(item.price)}
-                      </div>
-                    </div>
-                    
-                    <!-- Item Description -->
-                    ${item.description ? `
-                      <div style="font-size: 11px; color: #6B7280; margin-bottom: 10px; padding-left: 6px; border-left: 1px solid #E5E7EB; line-height: 1.3;">
-                        ${item.description}
-                      </div>
-                    ` : ''}
-                    
-                    <!-- Custom Fields -->
-                    ${customFields.length > 0 ? `
-                      <div style="margin-top: 10px;">
-                        <div style="font-size: 10px; font-weight: 600; color: #374151; margin-bottom: 6px; text-transform: uppercase;">
-                          Specifications
-                        </div>
-                        <div class="mobile-custom-fields">
-                          ${customFields.map((field) => `
-                            <div style="font-size: 10px; padding: 4px; background: #F9FAFB; border-radius: 3px; border: 1px solid #E5E7EB; word-break: break-word;">
-                              <div style="font-weight: 600; color: #4B5563; margin-bottom: 1px;">${field.key}</div>
-                              <div style="color: #111827;">${field.value}</div>
-                            </div>
-                          `).join('')}
-                        </div>
-                      </div>
-                    ` : ''}
+              ${receiptData.items.map(item => `
+                <div class="mobile-item-card">
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600;">
+                    <span>${item.name} x ${item.quantity}</span>
+                    <span>${formatNaira(item.price * item.quantity)}</span>
                   </div>
-                `;
-              }).join('')}
+                  <div style="font-size: 11px; color: #6B7280;">Unit: ${formatNaira(item.price)}</div>
+                </div>
+              `).join('')}
             </div>
           </div>
           
-         
-          
-          <!-- Totals -->
-          <div style="background: #F9FAFB; padding: 20px; border-radius: 6px; margin: 0 20px 25px 20px; width: calc(100% - 40px); box-sizing: border-box;">
-            <div style="max-width: 100%;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
-                <span style="color: #4B5563;">Subtotal:</span>
-                <span style="font-weight: 500;">${formatNaira(subtotal)}</span>
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <div style="width: 100%; max-width: 300px; background: #F9FAFB; padding: 12px; border-radius: 6px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span>Subtotal</span><span>${formatNaira(subtotal)}</span>
               </div>
-              
-              ${receiptData.includeDiscount && receiptData.discount > 0 ? `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #DC2626; font-size: 13px;">
-                  <span>Discount:</span>
-                  <span>-${formatNaira(discount)}</span>
-                </div>
-              ` : ''}
-              
-              ${deliveryFee > 0 ? `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
-                  <span>Delivery Fee:</span>
-                  <span>${formatNaira(deliveryFee)}</span>
-                </div>
-              ` : ''}
-              
-              ${receiptData.includeVAT ? `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
-                  <span>VAT (${receiptData.vatRate}%):</span>
-                  <span>${formatNaira(vat)}</span>
-                </div>
-              ` : ''}
-              
-              <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; color: #10B981; margin-top: 15px; padding-top: 15px; border-top: 1px solid #E5E7EB;">
-                <span>TOTAL AMOUNT:</span>
-                <span>${formatNaira(total)}</span>
+              ${discount > 0 ? `<div style="display: flex; justify-content: space-between; color: #DC2626; margin-bottom: 4px;"><span>Discount</span><span>-${formatNaira(discount)}</span></div>` : ''}
+              ${deliveryFee > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>Delivery</span><span>${formatNaira(deliveryFee)}</span></div>` : ''}
+              ${receiptData.includeVAT ? `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span>VAT (${receiptData.vatRate}%)</span><span>${formatNaira(vat)}</span></div>` : ''}
+              <div style="display: flex; justify-content: space-between; font-weight: 700; color: #10B981; border-top: 1px solid #E5E7EB; margin-top: 8px; padding-top: 8px; font-size: 15px;">
+                <span>TOTAL</span><span>${formatNaira(total)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 10px; color: #4B5563;">
+                <span>Method: ${receiptData.paymentMethod}</span>
+                ${receiptData.amountPaid > 0 ? `<span>Paid: ${formatNaira(receiptData.amountPaid)}</span>` : ''}
               </div>
             </div>
           </div>
           
-          <!-- Payment -->
-          <div style="border: 1px solid #D1D5DB; padding: 20px; border-radius: 6px; margin: 0 20px 25px 20px; width: calc(100% - 40px); box-sizing: border-box;">
-            <h3 style="color: #374151; margin-bottom: 15px; font-weight: 600; font-size: 14px;">Payment Details</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
-              <div>
-                <span style="color: #6B7280; display: block; margin-bottom: 3px;">Payment Method:</span>
-                <span style="font-weight: 500; display: block;">${receiptData.paymentMethod}</span>
-              </div>
-              ${receiptData.paymentMethod === 'Cash' && receiptData.amountPaid > 0 ? `
-                <div>
-                  <span style="color: #6B7280; display: block; margin-bottom: 3px;">Amount Paid:</span>
-                  <span style="display: block;">${formatNaira(receiptData.amountPaid)}</span>
-                </div>
-                <div>
-                  <span style="color: #6B7280; display: block; margin-bottom: 3px;">Change Due:</span>
-                  <span style="display: block;">${formatNaira(change)}</span>
-                </div>
-              ` : ''}
-            </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 11px;" class="mobile-grid-1">
+            ${receiptData.customerNotes ? `<div><strong>Notes:</strong><p style="margin: 2px 0; color: #6B7280;">${receiptData.customerNotes}</p></div>` : '<div></div>'}
+            ${receiptData.includeTerms ? `<div><strong>Terms:</strong><p style="margin: 2px 0; color: #6B7280;">${receiptData.termsAndConditions}</p></div>` : '<div></div>'}
           </div>
-          
-          <!-- Complete Details Notice -->
-          ${hasCustomFields ? `
-            <div style="background: #D1FAE5; padding: 12px; border-radius: 4px; margin: 0 20px 20px 20px; width: calc(100% - 40px); box-sizing: border-box; border: 1px solid #A7F3D0;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="font-size: 14px;">✅</div>
-                <div>
-                  <div style="color: #065F46; font-size: 12px; font-weight: 600; margin-bottom: 2px;">
-                    Complete Professional Details Included
-                  </div>
-                  <div style="color: #047857; font-size: 11px;">
-                    All item specifications and categories professionally documented
-                  </div>
-                </div>
-              </div>
-            </div>
-          ` : ''}
-          
-          <!-- Notes -->
-          ${receiptData.customerNotes ? `
-            <div style="margin: 0 20px 20px 20px; width: calc(100% - 40px); box-sizing: border-box;">
-              <h3 style="color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Customer Notes:</h3>
-              <p style="color: #6B7280; font-size: 13px; line-height: 1.4; padding: 10px; background: #F9FAFB; border-radius: 4px; word-wrap: break-word;">
-                ${receiptData.customerNotes}
-              </p>
-            </div>
-          ` : ''}
-          
-          <!-- Terms & Conditions -->
-          ${receiptData.includeTerms && receiptData.termsAndConditions ? `
-            <div style="margin: 0 20px 20px 20px; width: calc(100% - 40px); box-sizing: border-box;">
-              <h3 style="color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Terms & Conditions:</h3>
-              <p style="color: #6B7280; font-size: 12px; line-height: 1.4; white-space: pre-line; padding: 10px; background: #F9FAFB; border-radius: 4px; word-wrap: break-word;">
-                ${receiptData.termsAndConditions}
-              </p>
-            </div>
-          ` : ''}
-          
-          <!-- Signature -->
+
           ${receiptData.includeSignature ? `
-            <div style="margin: 30px 20px; width: calc(100% - 40px); box-sizing: border-box;">
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px;" class="mobile-signature">
-                <div style="text-align: center;">
-                  <div style="height: 50px; border-bottom: 1px solid #D1D5DB; margin-bottom: 10px; position: relative;">
-                    ${receiptData.signatureData ? `
-                      <img src="${receiptData.signatureData}" alt="Signature" style="max-height: 40px; max-width: 80%; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);">
-                    ` : ''}
-                  </div>
-                  <div style="color: #6B7280; font-size: 12px; font-weight: 500;">AUTHORIZED SIGNATURE</div>
-                  <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px; line-height: 1.2;">
-                    ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 20px; text-align: center; font-size: 10px;">
+              <div>
+                <div style="height: 40px; border-bottom: 1px solid #D1D5DB; position: relative;">
+                    ${receiptData.signatureData ? `<img src="${receiptData.signatureData}" style="max-height: 35px; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);">` : ''}
                 </div>
-                <div style="text-align: center;">
-                  <div style="height: 50px; border-bottom: 1px solid #D1D5DB; margin-bottom: 10px;"></div>
-                  <div style="color: #6B7280; font-size: 12px; font-weight: 500;">Customer Signature</div>
-                  <div style="color: #9CA3AF; font-size: 11px; margin-top: 5px;">Date</div>
-                </div>
+                <p style="margin-top: 5px; font-weight: 600; color: #4B5563;">AUTHORIZED SIGNATURE</p>
+              </div>
+              <div>
+                <div style="height: 40px; border-bottom: 1px solid #D1D5DB;"></div>
+                <p style="margin-top: 5px; font-weight: 600; color: #4B5563;">CUSTOMER SIGNATURE</p>
               </div>
             </div>
           ` : ''}
           
-          <!-- Footer -->
-          <div style="text-align: center; margin: 40px 20px 20px 20px; padding-top: 20px; border-top: 1px solid #E5E7EB; color: #6B7280; font-size: 12px; width: calc(100% - 40px); box-sizing: border-box;">
-            <p style="margin: 8px 0; color: #374151; font-weight: 600; line-height: 1.2;"><strong>${receiptData.receiptNumber}</strong></p>
-            <p style="margin: 8px 0; line-height: 1.3; word-wrap: break-word;">${receiptData.footerMessage || 'Thank you for your business. We appreciate your patronage.'}</p>
-            <p style="margin-top: 20px; font-size: 11px; color: #9CA3AF; line-height: 1.2;">
-              Professionally generated • ${new Date().toLocaleDateString()} • ReceipIt
-            </p>
+          <div style="text-align: center; margin-top: 20px; padding-top: 10px; border-top: 1px solid #E5E7EB; color: #9CA3AF; font-size: 11px;">
+            <p style="margin: 0; color: #4B5563; font-weight: 600;">${receiptData.receiptNumber}</p>
+            <p style="margin: 4px 0;">${receiptData.footerMessage || 'Thank you for your business!'}</p>
           </div>
         </div>
         
-        <!-- Mobile Responsive Script -->
         <script>
-          // Detect mobile and switch layouts
-          function isMobile() {
-            return window.innerWidth <= 768;
-          }
-          
           function updateLayout() {
-            const mobileItems = document.querySelector('.mobile-stack');
-            const desktopTable = document.querySelector('.mobile-hide');
-            
-            if (isMobile()) {
-              if (mobileItems) mobileItems.style.display = 'block';
-              if (desktopTable) desktopTable.style.display = 'none';
-            } else {
-              if (mobileItems) mobileItems.style.display = 'none';
-              if (desktopTable) desktopTable.style.display = 'block';
-            }
+            const isMob = window.innerWidth <= 768;
+            document.querySelector('.mobile-stack').style.display = isMob ? 'block' : 'none';
+            document.querySelector('.mobile-hide').style.display = isMob ? 'none' : 'table';
           }
-          
-          // Initial check
-          document.addEventListener('DOMContentLoaded', updateLayout);
           window.addEventListener('resize', updateLayout);
+          window.addEventListener('DOMContentLoaded', updateLayout);
         </script>
       </body>
       </html>
     `;
-  },
+},
 
 elegant: (receiptData, companyLogo, formatNaira, calculations, importantFields) => {
     const { subtotal, discount, vat, total, change, deliveryFee = 0 } = calculations;

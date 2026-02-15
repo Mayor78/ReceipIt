@@ -123,7 +123,7 @@ const ReceiptApp = () => {
       <div className="min-h-screen bg-[#0d1117] text-slate-300 font-sans">
         <div className="max-w-[1600px] mx-auto">
           
-          <header className="bg-[#161b22]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-[100]">
+          <header className="bg-[#161b22]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 ">
             <div className="px-2 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
