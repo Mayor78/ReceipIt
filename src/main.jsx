@@ -1,5 +1,5 @@
 // main.jsx - RESTRUCTURE THIS
-import './performance-fixes.js' // Import this FIRST
+// import './performance-fixes.js' // Import this FIRST
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

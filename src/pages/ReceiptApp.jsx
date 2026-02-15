@@ -1,150 +1,207 @@
-// pages/ReceiptApp.jsx
-import React from 'react';
+// pages/ReceiptApp.jsx - DEBUG VERSION
+import React, { useState, useEffect } from 'react';
 import { ReceiptProvider } from '../context/ReceiptContext';
-import LogoUpload from '../components/LogoUpload';
-import ReceiptForm from '../components/ReceiptForm';
-import ReceiptDisplay from '../components/ReceiptDisplay';
-import TemplateSelector from '../components/receiptTemplates/TemplateSelector';
 import { useNavigate } from 'react-router-dom';
 import { History, Settings, LayoutDashboard, Zap } from 'lucide-react';
 
+// Unified Skeleton Component
+const Skeleton = ({ height = "100px", className = "" }) => (
+  <div className={`w-full animate-pulse bg-slate-800/50 rounded-xl relative overflow-hidden ${className}`} style={{ height }}>
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" 
+         style={{ transform: 'skewX(-20deg)' }} />
+  </div>
+);
+
+// CSS for the shimmer effect
+const SkeletonStyles = () => (
+  <style>{`
+    @keyframes shimmer {
+      100% { transform: translateX(100%) skewX(-20deg); }
+    }
+  `}</style>
+);
+
+const SafeComponent = ({ children, name }) => {
+  const [error, setError] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    console.log(`📱 Attempting to load: ${name}`);
+    setLoaded(true);
+  }, []);
+
+  if (error) {
+    return (
+      <div style={{ 
+        background: '#ff000020', 
+        border: '1px solid red', 
+        padding: '10px',
+        margin: '10px 0',
+        borderRadius: '5px'
+      }}>
+        <h3 style={{ color: 'red' }}>❌ Error in {name}</h3>
+        <pre style={{ color: 'red', fontSize: '12px' }}>{error.message}</pre>
+      </div>
+    );
+  }
+
+  try {
+    return children;
+  } catch (err) {
+    console.error(`❌ Error in ${name}:`, err);
+    setError(err);
+    return null;
+  }
+};
+
 const ReceiptApp = () => {
   const navigate = useNavigate();
+  const [components, setComponents] = useState({
+    logo: false,
+    template: false,
+    form: false,
+    display: false
+  });
+
+  console.log('🔥 ReceiptApp rendering');
+
+  useEffect(() => {
+    const loadSequence = async () => {
+      console.log('📱 Starting component load sequence...');
+      
+      setTimeout(() => {
+        console.log('📱 Loading LogoUpload...');
+        setComponents(prev => ({ ...prev, logo: true }));
+      }, 500);
+      
+      setTimeout(() => {
+        console.log('📱 Loading TemplateSelector...');
+        setComponents(prev => ({ ...prev, template: true }));
+      }, 1000);
+      
+      setTimeout(() => {
+        console.log('📱 Loading ReceiptForm...');
+        setComponents(prev => ({ ...prev, form: true }));
+      }, 1500);
+      
+      setTimeout(() => {
+        console.log('📱 Loading ReceiptDisplay...');
+        setComponents(prev => ({ ...prev, display: true }));
+      }, 2000);
+    };
+
+    loadSequence();
+  }, []);
+
+  const LogoUpload = components.logo ? React.lazy(() => import('../components/LogoUpload').catch(err => {
+    console.error('❌ Failed to load LogoUpload:', err);
+    return { default: () => <div style={{color:'red'}}>LogoUpload failed to load</div> };
+  })) : () => <div className="p-4"><Skeleton height="120px" /></div>;
+
+  const TemplateSelector = components.template ? React.lazy(() => import('../components/receiptTemplates/TemplateSelector').catch(err => {
+    console.error('❌ Failed to load TemplateSelector:', err);
+    return { default: () => <div style={{color:'red'}}>TemplateSelector failed</div> };
+  })) : () => <div className="p-4"><Skeleton height="120px" /></div>;
+
+  const ReceiptForm = components.form ? React.lazy(() => import('../components/ReceiptForm').catch(err => {
+    console.error('❌ Failed to load ReceiptForm:', err);
+    return { default: () => <div style={{color:'red'}}>ReceiptForm failed</div> };
+  })) : () => <div className="p-4 space-y-4">
+      <Skeleton height="40px" />
+      <Skeleton height="200px" />
+      <Skeleton height="40px" />
+    </div>;
+
+  const ReceiptDisplay = components.display ? React.lazy(() => import('../components/ReceiptDisplay').catch(err => {
+    console.error('❌ Failed to load ReceiptDisplay:', err);
+    return { default: () => <div style={{color:'red'}}>ReceiptDisplay failed</div> };
+  })) : () => <div className="p-4"><Skeleton height="600px" /></div>;
 
   return (
     <ReceiptProvider>
-      <div className="min-h-screen bg-[#0d1117] text-slate-300 font-sans selection:bg-blue-500/30">
+      <SkeletonStyles />
+      <div className="min-h-screen bg-[#0d1117] text-slate-300 font-sans">
         <div className="max-w-[1600px] mx-auto">
           
-          {/* Cyber-Glass Header */}
-          <header className="bg-[#161b22]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-[100] shadow-2xl">
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-                  <Zap size={22} className="text-white fill-current" />
+          <header className="bg-[#161b22]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-[100]">
+            <div className="px-2 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <Zap size={18} className="text-white" />
                 </div>
                 <div>
-                  <h1 className="text-sm font-black text-white uppercase tracking-[0.2em] leading-none">SmartReceipt</h1>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Generation Engine v3.0</p>
+                  <h1 className="text-xs font-black text-white uppercase tracking-[0.2em]">SmartReceipt</h1>
                 </div>
               </div>
               
-              {/* Navigation Actions */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate('/history')}
-                  className="flex items-center gap-2 px-4 py-2 hover:bg-white/5 rounded-xl transition-all duration-300 border border-transparent hover:border-white/10 group"
-                  aria-label="View history"
-                >
-                  <History size={18} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
-                  <span className="hidden md:block text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white">History</span>
-                </button>
-                <button
-                  onClick={() => navigate('/settings')}
-                  className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-300 border border-transparent hover:border-white/10 group"
-                  aria-label="Settings"
-                >
-                  <Settings size={18} className="text-slate-400 group-hover:text-emerald-400 transition-colors" />
-                </button>
+              <div className="text-[10px] text-slate-400 font-mono">
+                SYNC_STATUS: {Object.values(components).filter(Boolean).length}/4
               </div>
             </div>
           </header>
 
-          {/* Main Dashboard Layout */}
-          <main className="p-4 md:p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <main className="p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
-              {/* Left Column - Configuration (8 Units) */}
-              <div className="lg:col-span-7 xl:col-span-8 space-y-8">
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Brand Identity Card */}
-                  <section className="bg-[#161b22] rounded-[2rem] border border-white/5 shadow-xl overflow-hidden">
-                    <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center gap-3">
-                      <LayoutDashboard size={14} className="text-blue-500" />
-                      <h2 className="text-[10px] font-black text-white uppercase tracking-widest">Brand Identity</h2>
+              <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <section className="bg-[#161b22] rounded-2xl border border-white/5 overflow-hidden">
+                    <div className="px-3 py-3 border-b border-white/5 bg-white/[0.02]">
+                      <h2 className="text-[10px] font-black text-white uppercase tracking-wider">Brand Identity</h2>
                     </div>
-                    <div className="p-6">
-                      <LogoUpload />
+                    <div>
+                      <SafeComponent name="LogoUpload">
+                        <React.Suspense fallback={<div className="p-4"><Skeleton height="120px" /></div>}>
+                          <LogoUpload />
+                        </React.Suspense>
+                      </SafeComponent>
                     </div>
                   </section>
                   
-                  {/* Template Selection Card */}
-                  <section className="bg-[#161b22] rounded-[2rem] border border-white/5 shadow-xl overflow-hidden">
-                    <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center gap-3">
-                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                      <h2 className="text-[10px] font-black text-white uppercase tracking-widest">Visual Style</h2>
+                  <section className="bg-[#161b22] rounded-2xl border border-white/5 overflow-hidden">
+                    <div className="px-3 py-3 border-b border-white/5 bg-white/[0.02]">
+                      <h2 className="text-[10px] font-black text-white uppercase tracking-wider">Visual Style</h2>
                     </div>
-                    <div className="p-6">
-                      <TemplateSelector />
+                    <div>
+                      <SafeComponent name="TemplateSelector">
+                        <React.Suspense fallback={<div className="p-4"><Skeleton height="120px" /></div>}>
+                          <TemplateSelector />
+                        </React.Suspense>
+                      </SafeComponent>
                     </div>
                   </section>
                 </div>
                 
-                {/* Data Entry Card */}
-                <section className="bg-[#161b22] rounded-[2rem] border border-white/5 shadow-xl overflow-hidden">
-                  <div className="px-8 py-5 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                        <span className="text-emerald-500 font-black text-xs">01</span>
-                      </div>
-                      <h2 className="text-[10px] font-black text-white uppercase tracking-widest">Transaction Data entry</h2>
-                    </div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Autosave Active</span>
+                <section className="bg-[#161b22] rounded-2xl border border-white/5 overflow-hidden">
+                  <div className="px-3 py-3 border-b border-white/5 bg-white/[0.02]">
+                    <h2 className="text-[10px] font-black text-white uppercase tracking-wider">Transaction Data</h2>
                   </div>
-                  <div className="p-8">
-                    <ReceiptForm />
+                  <div>
+                    <SafeComponent name="ReceiptForm">
+                      <React.Suspense fallback={<div className="p-4 space-y-4"><Skeleton height="40px" /><Skeleton height="200px" /></div>}>
+                        <ReceiptForm />
+                      </React.Suspense>
+                    </SafeComponent>
                   </div>
                 </section>
               </div>
 
-              {/* Right Column - Live Render (4 Units) */}
               <div className="lg:col-span-5 xl:col-span-4">
-                <div className="lg:sticky lg:top-28">
-                  <section className="bg-[#161b22] rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-                    <div className="px-6 py-4 border-b border-white/5 bg-white/[0.04] flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-                        <h2 className="text-[10px] font-black text-white uppercase tracking-widest">Production Preview</h2>
-                      </div>
-                      <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-black rounded uppercase border border-blue-500/20">
-                        Real-time
-                      </span>
-                    </div>
-                    <div className="p-5 bg-[#0d1117]/50">
-                      <ReceiptDisplay />
-                    </div>
-                  </section>
-                  
-                  {/* Shortcut Tip */}
-                  <div className="mt-6 px-6 py-4 bg-blue-600/5 border border-blue-500/10 rounded-2xl flex items-center gap-4">
-                    <div className="p-2 bg-blue-600/10 rounded-lg">
-                      <Zap size={16} className="text-blue-500" />
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-400 leading-snug uppercase tracking-tight">
-                      Pro Tip: Use <kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-white/10 text-white">CMD+P</kbd> to trigger instant print bridge.
-                    </p>
+                <section className="bg-[#161b22] rounded-2xl border border-white/10 overflow-hidden">
+                  <div className="px-3 py-3 border-b border-white/5 bg-white/[0.04]">
+                    <h2 className="text-[10px] font-black text-white uppercase tracking-wider">Preview</h2>
                   </div>
-                </div>
+                  <div>
+                    <SafeComponent name="ReceiptDisplay">
+                      <React.Suspense fallback={<div className="p-4"><Skeleton height="600px" /></div>}>
+                        <ReceiptDisplay />
+                      </React.Suspense>
+                    </SafeComponent>
+                  </div>
+                </section>
               </div>
             </div>
           </main>
-
-          {/* Minimalist Footer */}
-          <footer className="px-8 py-10 border-t border-white/5 bg-[#161b22]/30 mt-12 text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex items-center gap-4 text-slate-500">
-                <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] hover:text-white transition-colors">Documentation</a>
-                <span className="w-1 h-1 bg-slate-700 rounded-full" />
-                <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] hover:text-white transition-colors">Support</a>
-                <span className="w-1 h-1 bg-slate-700 rounded-full" />
-                <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] hover:text-white transition-colors">Terms</a>
-              </div>
-              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                System Engineered with 💚 by <span className="text-blue-500">mayordev</span>
-              </p>
-            </div>
-          </footer>
         </div>
       </div>
     </ReceiptProvider>

@@ -265,7 +265,7 @@ const ReceiptItem = ({
               <button onClick={startEditing} className="p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                 <Edit2 size={16} />
               </button>
-              <button onClick={() => removeItem(item.id)} className="p-2 text-slate-600 hover:text-rose-400 hover:bg-rose-400/5 rounded-xl transition-all">
+              <button onClick={() => removeItem(item.id)} className="p-2 text-red-600 hover:text-rose-400 hover:bg-rose-400/5 rounded-xl transition-all">
                 <Trash2 size={16} />
               </button>
             </div>

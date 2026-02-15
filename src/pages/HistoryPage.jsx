@@ -1,7 +1,7 @@
 // pages/HistoryPage.jsx
 import React from 'react';
 import { ArrowLeft, Database, Shield, Activity } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ReceiptHistory from '../components/ReceiptHistory';
 
 const HistoryPage = () => {
@@ -62,7 +62,11 @@ const HistoryPage = () => {
                 <Activity size={12} className="text-slate-600" />
                 <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">
                   End of Registry — Total Sessions: 1,204
+                   <Link className='text-5xl' to="/analytics">
+                ahdjdjd
+                </Link>
                 </span>
+               
             </div>
         </div>
       </div>

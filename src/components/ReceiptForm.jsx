@@ -102,7 +102,7 @@ const ReceiptForm = () => {
       <section className="animate-in fade-in duration-700 delay-100">
         <GroupLabel icon={ShoppingBag} title="Customer & Items" />
         <div className="space-y-4">
-          <div className="bg-[#11141b] rounded-[32px] border border-white/5 overflow-hidden p-1">
+          <div className="bg-[#11141b]  border border-white/5 overflow-hidden p-1">
             <CustomerInfoSection 
               isExpanded={expandedSections.customerInfo}
               onToggle={() => toggleSection('customerInfo')}
@@ -110,7 +110,7 @@ const ReceiptForm = () => {
               onUpdate={updateReceiptData}
             />
           </div>
-          <div className="bg-[#11141b] rounded-[32px] border border-white/5 overflow-hidden p-1">
+          <div className="bg-[#11141b] p-1 border border-white/5 overflow-hidden ">
             <ItemsSection 
               isExpanded={expandedSections.items}
               onToggle={() => toggleSection('items')}
@@ -126,7 +126,7 @@ const ReceiptForm = () => {
       {/* ZONE 3: MONEY MATTERS */}
       <section className="animate-in fade-in duration-700 delay-200">
         <GroupLabel icon={CreditCard} title="Payments & Final Notes" />
-        <div className="bg-emerald-500/[0.02] rounded-[40px] p-3 space-y-3 border border-emerald-500/10 shadow-[inner_0_2px_10px_rgba(0,0,0,0.5)]">
+        <div className="bg-emerald-500/2 rounded-[20px]  space-y-3 border border-emerald-500/10 shadow-[inner_0_2px_10px_rgba(0,0,0,0.5)]">
           <TaxDiscountSection 
             isExpanded={expandedSections.taxDiscount}
             onToggle={() => toggleSection('taxDiscount')}

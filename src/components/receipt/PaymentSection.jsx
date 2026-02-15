@@ -38,7 +38,7 @@ const PaymentSection = ({
   const docConfig = getDocumentConfig(data.receiptType);
 
   return (
-    <div className={`bg-[#11141b] rounded-[1rem] px-3  border border-white/5 overflow-hidden transition-all duration-300 shadow-xl ${docConfig.glow}`}>
+    <div className={`bg-[#11141b] rounded-   border border-white/5 overflow-hidden transition-all duration-300 shadow-xl ${docConfig.glow}`}>
       <SectionHeader 
         title="Payment" 
         details="Settlement Details"
@@ -49,12 +49,12 @@ const PaymentSection = ({
         badge={{ 
           text: data.receiptType === 'invoice' ? 'To Pay' : 
                 data.receiptType === 'quote' ? 'Estimate' : 'Paid',
-          className: `${docConfig.color} font-black uppercase tracking-widest px-4 py-1 border`
+          className: `${docConfig.color} font-black uppercase tracking-widest px-2 py-1 border`
         }}
       />
       
       {isExpanded && (
-        <div className="p-6 sm:p-8 space-y-6 border-t border-white/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="p-2  space-y-6 border-t border-white/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             
             {/* Payment Method Selector */}

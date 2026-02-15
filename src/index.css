@@ -22,6 +22,11 @@
   }
 }
 
+body * {
+scroll-behavior: smooth;
+}
+
+
 /* Animations */
 @keyframes slideDown {
   from {

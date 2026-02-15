@@ -27,14 +27,14 @@ const HeroSection = ({ onGetStarted }) => {
     return () => clearInterval(textInterval);
   }, [rotatingTexts.length]);
 
-  const PhoneWithReceipt = ({ rotation = 0, translateX = 0, translateY = 0, delay = 0, zIndex = 1 }) => {
+  const PhoneWithReceipt = ({ rotation = 0, translateX = 0, translateY = 0, delay = 0, zIndex = 1, scale =1 }) => {
     const currentStep = (animationStep + delay) % 4;
     
     return (
       <div 
         className="absolute inset-0 transition-all duration-1000 ease-in-out"
         style={{
-          transform: `rotate(${rotation}deg) translateX(${translateX}px) translateY(${translateY}px)`,
+          transform: `rotate(${rotation}deg) translateX(${translateX}px) translateY(${translateY}px) scale(${scale})`,
           zIndex: zIndex
         }}
       >
@@ -176,14 +176,67 @@ const HeroSection = ({ onGetStarted }) => {
             {/* Right Side - Phones (The glowing receipt looks great in the dark) */}
             <div className="relative flex justify-center items-center">
               <div className="relative w-full max-w-[260px] sm:max-w-[280px]" style={{ height: '520px' }}>
-                <div className="hidden lg:block">
-                  <PhoneWithReceipt rotation={-6} translateX={-30} translateY={20} delay={0} zIndex={1} />
-                  <PhoneWithReceipt rotation={0} translateX={0} translateY={0} delay={1} zIndex={2} />
-                  <PhoneWithReceipt rotation={6} translateX={30} translateY={-20} delay={2} zIndex={3} />
-                </div>
-                <div className="lg:hidden">
-                  <PhoneWithReceipt rotation={0} translateX={0} translateY={0} delay={0} zIndex={1} />
-                </div>
+            {/* Desktop: Layered Perspective */}
+<div className="hidden lg:block">
+  {/* Left: Tilted back and smaller */}
+  <PhoneWithReceipt 
+    rotation={-12} 
+    translateX={-60} 
+    translateY={40} 
+    scale={0.85} 
+    delay={0} 
+    zIndex={1} 
+  />
+  {/* Middle: Standard size, elevated */}
+  <PhoneWithReceipt 
+    rotation={0} 
+    translateX={0} 
+    translateY={0} 
+    scale={1} 
+    delay={1} 
+    zIndex={3} 
+  />
+  {/* Right: Tilted forward and slightly smaller */}
+  <PhoneWithReceipt 
+    rotation={8} 
+    translateX={50} 
+    translateY={-10} 
+    scale={0.9} 
+    delay={2} 
+    zIndex={2} 
+  />
+</div>
+
+{/* Mobile: The Huddle with Depth */}
+<div className="lg:hidden relative h-full w-full">
+  {/* Phone 1: Background Left */}
+  <PhoneWithReceipt 
+    rotation={-15} 
+    translateX={-40} 
+    translateY={20} 
+    scale={0.75} 
+    delay={0} 
+    zIndex={1} 
+  />
+  {/* Phone 2: Background Right */}
+  <PhoneWithReceipt 
+    rotation={15} 
+    translateX={40} 
+    translateY={20} 
+    scale={0.75} 
+    delay={1} 
+    zIndex={2} 
+  />
+  {/* Phone 3: Foreground Center (The one they are looking at) */}
+  <PhoneWithReceipt 
+    rotation={0} 
+    translateX={0} 
+    translateY={60} 
+    scale={0.95} 
+    delay={2} 
+    zIndex={10} 
+  />
+</div>
                 {/* Neon Badge */}
                 <div className="absolute -top-4 -right-4 bg-emerald-500 text-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center space-x-1 z-40 scale-90">
                   <Zap size={12} fill="currentColor" />

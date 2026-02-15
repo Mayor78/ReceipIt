@@ -1045,46 +1045,44 @@ Thank you for your business! 🎉
 
   // const enhancedData = getEnhancedReceiptData();
  
-return (
+
+  return (
     <div className="space-y-6">
       {/* Verification QR Modal */}
       {showVerificationQR && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
-          <div className="bg-[#1c2128] border border-white/10 rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
-                <Shield size={18} className="text-emerald-400" />
-                Secure Verification
-              </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">🔒 Verify Receipt</h3>
               <button 
                 onClick={() => setShowVerificationQR(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors"
+                className="text-gray-500 hover:text-gray-700"
               >
-                <X size={18} />
+                ✕
               </button>
             </div>
             <div className="text-center">
-              <div className="mb-6 p-4 bg-white rounded-3xl inline-block shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+              <div className="mb-4">
                 <img 
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/verify?hash=${receiptNumber}`)}`} 
                   alt="Verification QR Code" 
                   className="w-48 h-48 mx-auto"
                 />
               </div>
-              <p className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider">Scan to authenticate document</p>
-              <div className="text-[10px] font-mono text-blue-400 bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl break-all mb-6">
+              <p className="text-sm text-gray-600 mb-2">Scan to verify this receipt's authenticity</p>
+              <div className="text-xs text-gray-500 bg-gray-100 p-3 rounded-lg break-all">
                 {`${window.location.origin}/verify?hash=${receiptNumber}`}
               </div>
-              <div className="flex gap-3">
+              <div className="mt-4 flex space-x-2">
                 <button
                   onClick={() => window.open(`${window.location.origin}/verify?hash=${receiptNumber}`, '_blank')}
-                  className="flex-1 bg-blue-600 text-white py-4 px-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20"
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
                 >
                   Open Link
                 </button>
                 <button
                   onClick={() => setShowVerificationQR(false)}
-                  className="flex-1 bg-white/5 border border-white/10 text-slate-300 py-4 px-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all"
+                  className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50"
                 >
                   Close
                 </button>
@@ -1100,24 +1098,32 @@ return (
         onClose={() => setShowCoffeeModal(false)}
       />
 
+    
+
+      
+
       {/* Platform-specific notice */}
       {platform === 'android' && (
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-[1.5rem] p-5 animate-in slide-in-from-top-4">
-          <div className="flex items-start gap-4">
-            <div className="p-2 bg-amber-500/10 rounded-lg">
-              <AlertCircle size={20} className="text-amber-500" />
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
             </div>
-            <div className="flex flex-col">
-              <h3 className="text-xs font-black text-amber-500 uppercase tracking-widest">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
                 Android Device Detected
               </h3>
-              <div className="mt-2 text-xs font-bold text-slate-400 leading-relaxed">
-                <p>For high-fidelity PDF rendering on Android:</p>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-2">
-                  <li className="flex items-center gap-2"><div className="w-1 h-1 bg-amber-500 rounded-full" />Use "Download PDF"</li>
-                  <li className="flex items-center gap-2"><div className="w-1 h-1 bg-amber-500 rounded-full" />Allow site pop-ups</li>
-                  <li className="flex items-center gap-2"><div className="w-1 h-1 bg-amber-500 rounded-full" />Chrome is recommended</li>
-                </ul>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>
+                  For best results on Android:
+                  <ul className="list-disc ml-4 mt-1">
+                    <li>Use <strong>Download PDF</strong> for crisp, shareable receipts</li>
+                    <li>Allow pop-ups for this site</li>
+                    <li>Use Chrome browser</li>
+                  </ul>
+                </p>
               </div>
             </div>
           </div>
@@ -1146,88 +1152,82 @@ return (
         verificationUrl={null}
       />
 
-      {/* Enhanced Preview Card */}
-      <div className="bg-[#11141b] rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/5">
-        <div className="p-6 border-b border-white/5 bg-white/[0.02]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-black text-white uppercase tracking-[0.2em] text-xs flex items-center gap-3">
-                <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                  <FileText size={16} className="text-blue-400" />
-                </div>
-                Live Preview
-              </h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-2 ml-10">
-                {enableVerification && currentStore
-                  ? 'Digital Signature & Anti-Fraud Enabled' 
-                  : enhancedData.hasCategoryData 
-                    ? 'Extended Metadata Schema Active' 
-                    : 'Standard Financial Document Format'}
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 ml-10 sm:ml-0">
-              <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 text-[9px] font-black rounded-lg border border-blue-500/20 uppercase">
-                {enhancedData.receiptType}
+      {/* Enhanced Preview */}
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+          <h3 className="font-bold text-gray-800 flex flex-wrap items-center gap-2">
+            <FileText size={18} className="text-blue-600" />
+            <span className="text-sm font-medium text-gray-800">Preview</span>
+            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-md">
+              {enhancedData.receiptType.toUpperCase()}
+            </span>
+            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-md">
+              {selectedTemplate.toUpperCase()} TEMPLATE
+            </span>
+            {enableVerification && currentStore && (
+              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-md flex items-center">
+                <Shield size={10} className="mr-1" />
+                ANTI-FRAUD
               </span>
-              <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 text-[9px] font-black rounded-lg border border-purple-500/20 uppercase">
-                {selectedTemplate} Template
+            )}
+            {enhancedData.hasCategoryData && (
+              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-md">
+                CATEGORY DATA
               </span>
-              {enableVerification && currentStore && (
-                <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-black rounded-lg border border-emerald-500/20 flex items-center gap-1 uppercase">
-                  <Shield size={10} /> Verified
-                </span>
-              )}
-            </div>
-          </div>
+            )}
+            {platform === 'android' && (
+              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-md">
+                ANDROID
+              </span>
+            )}
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {enableVerification && currentStore
+              ? 'This receipt is protected against fraud with digital verification' 
+              : enhancedData.hasCategoryData 
+                ? 'Category-specific details included in this receipt' 
+                : platform === 'android' 
+                  ? 'Use View to preview, then Download or Share' 
+                  : 'This is how your receipt will look when printed'}
+          </p>
         </div>
         
-        {/* Template Renderer Container */}
-        <div className="p-4 sm:p-10 bg-slate-100 min-h-[500px]">
-          <div className="max-w-2xl mx-auto shadow-[0_30px_60px_rgba(0,0,0,0.1)] transition-transform duration-500 hover:scale-[1.01]">
-            <Suspense fallback={
-              <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl gap-4">
-                <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Rendering Receipt...</p>
-              </div>
-            }>
-              <TemplateRenderer
-                receiptData={receiptData}
-                companyLogo={companyLogo}
-                formatNaira={formatNaira}
-                calculateSubtotal={calculateSubtotal}
-                calculateDiscount={calculateDiscount}
-                calculateVAT={calculateVAT}
-                calculateTotal={calculateTotal}
-                calculateChange={calculateChange}
-                isMobile={isMobile}
-                showCategoryData={enhancedData}
-              />
-            </Suspense>
-          </div>
+        {/* Custom Template Renderer */}
+        <div className="p-4 sm:p-6">
+          <Suspense fallback={<div className="animate-pulse bg-gray-200 h-96 rounded-lg"></div>}>
+            <TemplateRenderer
+              receiptData={receiptData}
+              companyLogo={companyLogo}
+              formatNaira={formatNaira}
+              calculateSubtotal={calculateSubtotal}
+              calculateDiscount={calculateDiscount}
+              calculateVAT={calculateVAT}
+              calculateTotal={calculateTotal}
+              calculateChange={calculateChange}
+              isMobile={isMobile}
+              showCategoryData={enhancedData}
+            />
+          </Suspense>
           
           {/* Quick summary of category data */}
           {enhancedData.hasCategoryData && (
-            <div className="max-w-2xl mx-auto mt-8 p-6 bg-white rounded-3xl border border-gray-200 shadow-sm">
-              <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Activity size={14} className="text-blue-500" />
-                Document Metadata Summary
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 className="text-xs font-bold text-gray-700 mb-2">📋 Included Category Details:</h4>
+              <div className="space-y-2">
                 {enhancedData.items.map((item, idx) => (
                   item.formattedCustomFields && item.formattedCustomFields.length > 0 && (
-                    <div key={idx} className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-[11px] font-black text-slate-900 uppercase mb-2 truncate">{item.name}</div>
-                      <div className="space-y-1">
+                    <div key={idx} className="text-xs">
+                      <div className="font-medium text-gray-800">{item.name}:</div>
+                      <div className="ml-3 text-gray-600">
                         {item.formattedCustomFields.slice(0, 2).map((field, fIdx) => (
-                          <div key={fIdx} className="flex justify-between items-center text-[10px]">
-                            <span className="text-slate-500 font-bold uppercase tracking-tighter">{field.key}</span>
-                            <span className="text-slate-900 font-black">{field.value}</span>
+                          <div key={fIdx} className="flex items-center">
+                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-2"></span>
+                            <span>{field.key}: <strong>{field.value}</strong></span>
                           </div>
                         ))}
                         {item.formattedCustomFields.length > 2 && (
-                          <div className="text-blue-600 text-[9px] font-bold mt-2 pt-2 border-t border-slate-200">
-                            + {item.formattedCustomFields.length - 2} Additional data points
+                          <div className="text-gray-500 text-[10px] mt-1">
+                            +{item.formattedCustomFields.length - 2} more details
                           </div>
                         )}
                       </div>
@@ -1238,11 +1238,15 @@ return (
             </div>
           )}
           
-          <div className="mt-10 pb-4 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-loose max-w-md mx-auto">
+          <div className="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+            <p>
               {enableVerification && currentStore
-                ? 'All exports will include encrypted QR validation signatures' 
-                : 'Preview generation complete • Document ready for distribution'}
+                ? 'All prints and PDFs will include verification QR codes and links' 
+                : enhancedData.hasCategoryData 
+                  ? 'All category details will appear in print/PDF/download' 
+                  : platform === 'android' 
+                    ? 'Use View, Download PDF, or Share above' 
+                    : 'Preview only • Click buttons above to print, save, or share'}
             </p>
           </div>
         </div>

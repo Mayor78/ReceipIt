@@ -24,10 +24,10 @@ const TaxDiscountSection = ({
       />
       
       {isExpanded && (
-        <div className="p-6 sm:p-8 space-y-6 border-t border-white/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="p-2  space-y-6 border-t border-white/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
           
           {/* VAT Row */}
-          <div className={`flex items-center justify-between p-4 rounded-2xl transition-all ${data.includeVAT ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/[0.02] border border-white/5'}`}>
+          <div className={`flex items-center justify-between p-4 rounded-xl transition-all ${data.includeVAT ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-white/2 border border-white/5'}`}>
             <label className="flex items-center gap-3 cursor-pointer group">
               <div className="relative flex items-center">
                 <input

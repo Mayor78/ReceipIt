@@ -171,7 +171,7 @@ const Header = ({
             {/* Bottom Action */}
             {!isStoreRegistered && (
               <button 
-                onClick={() => { onLoginClick?.(); setIsMobileMenuOpen(false); }}
+                onClick={() => { onRegisterClick(); setIsMobileMenuOpen(false); }}
                 className="w-full mt-auto bg-emerald-500 py-4 rounded-2xl text-black font-black text-sm flex items-center justify-center gap-2 shadow-lg"
               >
                 <LogIn size={18} /> SIGN IN / REGISTER

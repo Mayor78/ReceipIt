@@ -35,7 +35,7 @@ const TermsSection = ({
   };
 
   return (
-    <div className="bg-[#11141b] rounded-[1rem] px-3 border border-white/5 overflow-hidden transition-all  duration-300 shadow-xl">
+    <div className="bg-[#11141b] rounded- px- border border-white/5 overflow-hidden transition-all  duration-300 shadow-xl">
       <SectionHeader 
         title="Notes & Terms" 
         details="Add your notes, terms and signature"

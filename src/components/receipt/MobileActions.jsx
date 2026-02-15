@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ArrowUp, Sparkles } from 'lucide-react';
 
-const MobileActions = ({ 
-  onAddItem, 
-  hasIncompleteItems = false
-}) => {
-  const [buttonText, setButtonText] = useState('Add Item');
+const MobileActions = () => {
+ 
 
 
   return (
     <div className="sticky bottom-6 px-4 lg:hidden z-[100] animate-in slide-in-from-bottom-10 duration-500">
-      <div className="flex items-center justify-between gap-3 p-3 bg-[#1c2128]/80 backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <div className="">
         
       
 

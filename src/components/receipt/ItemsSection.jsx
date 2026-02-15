@@ -25,14 +25,14 @@ const ItemsSection = ({
   const handleItemSaved = (itemId) => { /* Logic Preserved */ };
 
   return (
-    <div className="bg-[#11141b] rounded-[1rem] px-3  border border-white/5 overflow-hidden transition-all duration-300 shadow-xl">
+    <div className="bg-[#11141b]   border border-white/5 overflow-hidden transition-all duration-300 shadow-xl">
       <SectionHeader 
         title="Items" 
         details="Products & Services"
         icon={Package} 
         sectionKey="items"
         isExpanded={isExpanded}
-        onClick={onToggle}
+        onClick={onToggle} 
         badge={{ 
           text: `${completeItems.length} item${completeItems.length !== 1 ? 's' : ''}`, 
           className: incompleteItems.length === 0 && items.length > 0 
@@ -52,11 +52,11 @@ const ItemsSection = ({
       </SectionHeader>
       
       {isExpanded && (
-        <div className="p-5 sm:p-7 space-y-6 border-t border-white/5 animate-in fade-in duration-500">
+        <div className="  space-y-6 border-t border-white/5 animate-in fade-in duration-500">
           
           {/* Neon Stats Bar */}
           {items.length > 0 && (
-            <div className="p-4 bg-white/[0.02] rounded-[1.5rem] border border-white/5 flex items-center justify-between shadow-inner">
+            <div className="p-2 my-2 bg-white/[0.02]  border border-white/5 flex items-center justify-between shadow-inner">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={14} className="text-emerald-500" />
@@ -154,7 +154,7 @@ const ItemsSection = ({
               {incompleteItems.length === 0 && (
                 <button
                   onClick={handleAddItem}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-5 border-2 border-dashed border-white/5 rounded-[1.5rem] text-slate-500 hover:border-emerald-500/30 hover:text-emerald-400 hover:bg-emerald-500/5 transition-all group"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-5 border-2 border-dashed border-white rounded-2xl text-white-500 hover:border-emerald-500/30 hover:text-emerald-400 hover:bg-emerald-500/5 transition-all group"
                 >
                   <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
                   <span className="text-xs font-black uppercase tracking-[0.2em]">Add Another Item</span>

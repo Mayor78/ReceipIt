@@ -32,7 +32,7 @@ const CustomerInfoSection = ({
   };
 
   return (
-    <div className="bg-[#11141b] rounded-[1rem] px-3  border border-white/5 overflow-hidden transition-all duration-300 shadow-xl">
+    <div className="bg-[#11141b]  border border-white/5 overflow-hidden transition-all duration-300 shadow-xl">
       <SectionHeader 
         title="Customer" 
         details="Client Contact & Delivery"
@@ -48,10 +48,12 @@ const CustomerInfoSection = ({
         }}
       >
         {/* Toggle Pills in Header */}
-        <div className="flex gap-2 mr-2" onClick={handleCheckboxClick}>
+      
+      </SectionHeader>
+        <div className=" flex justify-end gap-2 mr-2" onClick={handleCheckboxClick}>
           <button
             onClick={() => handleCheckboxChange('includeBillTo', !data.includeBillTo)}
-            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all ${
+            className={`px-2 py-1 rounded-md text-[8px] md:text-[10px] font-black uppercase tracking-tighter transition-all ${
               data.includeBillTo 
                 ? 'bg-blue-500 text-black shadow-[0_0_15px_rgba(59,130,246,0.5)]' 
                 : 'bg-white/5 text-slate-500 hover:text-slate-300 border border-white/5'
@@ -61,7 +63,7 @@ const CustomerInfoSection = ({
           </button>
           <button
             onClick={() => handleCheckboxChange('includeShipTo', !data.includeShipTo)}
-            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter transition-all ${
+            className={`px-3 py-1 rounded-md text-[8px] md:text-[10px] font-black uppercase tracking-tighter transition-all ${
               data.includeShipTo 
                 ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.5)]' 
                 : 'bg-white/5 text-slate-500 hover:text-slate-300 border border-white/5'
@@ -70,7 +72,6 @@ const CustomerInfoSection = ({
             Ship To
           </button>
         </div>
-      </SectionHeader>
       
       {isExpanded && (
         <div className="p-5 sm:p-7 space-y-8 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-500">
