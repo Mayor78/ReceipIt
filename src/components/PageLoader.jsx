@@ -17,11 +17,11 @@ const PageLoader = () => {
     }, 35); // Slightly slower for a more "calculated" feel
 
     const statusUpdates = [
-      { time: 400, text: "Accessing Receipt Vault..." },
-      { time: 1000, text: "Verifying Hashing Protocols..." },
+      { time: 400, text: "Accessing Receipt Home..." },
+      { time: 1000, text: "Verifying Secure Connection.." },
       { time: 1800, text: "Syncing ₦_Naira_VAT_Engines..." },
-      { time: 2400, text: "Decryption Module Online." },
-      { time: 2900, text: "Terminal Ready." },
+      { time: 2400, text: "Receipt Module Online." },
+      { time: 2900, text: "Happy  Creating Receipt." },
     ];
 
     statusUpdates.forEach((update) => {

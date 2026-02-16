@@ -114,7 +114,7 @@ const HeroSection = ({ onGetStarted }) => {
                   </span>
                   <br />
                   <div className="text-white flex items-center flex-wrap justify-center lg:justify-start">
-                    <span className="mr-3 font-medium text-slate-400">for</span>
+                    <span className="mr-3 text-4.5xl font-bold text-slate-400">for</span>
                     <div className="relative inline-block" style={{ height: '1.4em', minWidth: '280px' }}>
                       {rotatingTexts.map((text, index) => (
                         <span

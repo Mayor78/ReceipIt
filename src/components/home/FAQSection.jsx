@@ -75,9 +75,12 @@ const FAQSection = () => {
             <h3 className="text-2xl font-black text-black tracking-tight leading-none mb-2">Still have questions?</h3>
             <p className="text-black/70 font-bold">Our support protocol is active 24/7.</p>
           </div>
-          <button className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-2xl font-black text-sm hover:scale-105 transition-transform shadow-xl">
-            <MessageCircle size={18} />
+          <button className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-2xl font-black text-sm hover:scale-105 transition-transform shadow-xl ">
+               <MessageCircle size={18} />
+            <a href="tel:+2347084718050" >
+         
             CONTACT SUPPORT
+            </a>
           </button>
         </div>
       </div>

@@ -23,7 +23,7 @@ const Footer = () => {
                   RECEIPT<span className="text-emerald-500">IT</span>
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-slate-500">
-                  Secure Protocol v2.0
+                  Secure Receipt v2.0
                 </span>
               </div>
             </div>

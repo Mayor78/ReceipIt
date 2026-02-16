@@ -46,7 +46,7 @@ const Header = ({
                   RECEIPT<span className="text-emerald-400">IT</span>
                 </span>
                 <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-slate-500">
-                  Secure Protocol
+                  Secure Receipt
                 </span>
               </div>
             </button>

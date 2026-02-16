@@ -225,6 +225,7 @@ const MinimalReceipt = ({
         <div className="mb-6 p-2 bg-gray-100 rounded text-center">
           <div className="text-xs text-gray-700 font-medium">
             ✅ Complete item details included
+            <p>You can verify the genuine of the receipt on || receipit.digital/verify</p>
           </div>
         </div>
       )}
