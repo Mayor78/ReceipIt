@@ -12,9 +12,9 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields, v
     
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱', books: '📚', agriculture: '🌾', clothing: '👕',
-        food: '☕', services: '✂️', liquids: '💧', construction: '🏠',
-        logistics: '🚚', general: '📦'
+        electronics: '', books: '', agriculture: '', clothing: '',
+        food: '', services: '', liquids: '', construction: '',
+        logistics: '', general: ''
       };
       return icons[category] || icons.general;
     };
@@ -72,7 +72,7 @@ modern: (receiptData, companyLogo, formatNaira, calculations, importantFields, v
               const customFields = item.customFields ? Object.entries(item.customFields)
                 .filter(([key, value]) => value && value.toString().trim() !== '') : [];
               
-              const categoryIcon = item.category ? getCategoryIcon(item.category) : '📦';
+              const categoryIcon = item.category ? getCategoryIcon(item.category) : '';
               
               return `
                 <tr style="border-bottom: 1px solid #E5E7EB;">
@@ -176,9 +176,9 @@ professional: (receiptData, companyLogo, formatNaira, calculations, importantFie
     
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱', books: '📚', agriculture: '🌾', clothing: '👕',
-        food: '☕', services: '✂️', liquids: '💧', construction: '🏠',
-        logistics: '🚚', general: '📦'
+        electronics: '', books: '', agriculture: '', clothing: '',
+        food: '', services: '', liquids: '', construction: '',
+        logistics: '', general: ''
       };
       return icons[category] || '';
     };
@@ -360,16 +360,16 @@ elegant: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
     // Helper function to get category icon emoji
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱',
-        books: '📚',
-        agriculture: '🌾',
-        clothing: '👕',
-        food: '☕',
-        services: '✂️',
-        liquids: '💧',
-        construction: '🏠',
-        logistics: '🚚',
-        general: '📦'
+        electronics: '',
+        books: '',
+        agriculture: '',
+        clothing: '',
+        food: '',
+        services: '',
+        liquids: '',
+        construction: '',
+        logistics: '',
+        general: ''
       };
       return icons[category] || '';
     };
@@ -843,16 +843,16 @@ elegant: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
     // Helper function to get category icon emoji
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱',
-        books: '📚',
-        agriculture: '🌾',
-        clothing: '👕',
-        food: '☕',
-        services: '✂️',
-        liquids: '💧',
-        construction: '🏠',
-        logistics: '🚚',
-        general: '📦'
+        electronics: '',
+        books: '',
+        agriculture: '',
+        clothing: '',
+        food: '',
+        services: '',
+        liquids: '',
+        construction: '',
+        logistics: '',
+        general: ''
       };
       return icons[category] || '';
     };
@@ -1089,16 +1089,16 @@ elegant: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
     // Helper function to get category icon emoji
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱',
-        books: '📚',
-        agriculture: '🌾',
-        clothing: '👕',
-        food: '☕',
-        services: '✂️',
-        liquids: '💧',
-        construction: '🏠',
-        logistics: '🚚',
-        general: '📦'
+        electronics: '',
+        books: '',
+        agriculture: '',
+        clothing: '',
+        food: '',
+        services: '',
+        liquids: '',
+        construction: '',
+        logistics: '',
+        general: ''
       };
       return icons[category] || icons.general;
     };
@@ -1423,16 +1423,16 @@ classic: (receiptData, companyLogo, formatNaira, calculations, importantFields) 
     // Helper function to get category icon emoji
     const getCategoryIcon = (category) => {
       const icons = {
-        electronics: '📱',
-        books: '📚',
-        agriculture: '🌾',
-        clothing: '👕',
-        food: '☕',
-        services: '✂️',
-        liquids: '💧',
-        construction: '🏠',
-        logistics: '🚚',
-        general: '📦'
+        electronics: '',
+        books: '',
+        agriculture: '',
+        clothing: '',
+        food: '',
+        services: '',
+        liquids: '',
+        construction: '',
+        logistics: '',
+        general: ''
       };
       return icons[category] || icons.general;
     };
